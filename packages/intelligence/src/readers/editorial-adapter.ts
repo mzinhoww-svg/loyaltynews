@@ -6,7 +6,7 @@
  *   quotaExhausted: true  só quando a COTA acabou em todas as chaves da conta (ele passa ao próximo provedor);
  *   failedUrl: true       o provedor não conseguiu ESTA URL (bloqueio, login, paywall, desafio não resolvido, erro);
  *   status 429 + retryAfterSec  só para ritmo do serviço (o Editorial para a coleta da fonte e NÃO troca de provedor);
- *   unlocks: true         o provedor resolve CAPTCHA/proxy (informativo).
+ *   unlocks: true         o provedor resolve CAPTCHA/proxy: pela ADR-007 o coletor NÃO usa esse leitor.
  * O `ChainedReader` do Editorial recebe estes leitores na ordem que `orderByCost` devolve.
  */
 import type { ReadResult, ReaderPort } from '../reader-port';
@@ -44,7 +44,12 @@ export function toEditorialResult(r: ReadResult): EditorialReaderResult {
     case 'paywall':
       return { status: 402, body: '', failedUrl: true };
     case 'captcha_unsolved':
+    case 'captcha_solved_by_provider':
+    case 'robots_disallow':
+    case 'robots_unavailable':
       return { status: 403, body: '', failedUrl: true };
+    case 'unlock_forbidden':
+      return { status: 503, body: '', failedUrl: true };
     case 'not_found':
       return { status: 404, body: '' };
     case 'timeout':

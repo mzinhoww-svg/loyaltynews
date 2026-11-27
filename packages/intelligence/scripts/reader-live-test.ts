@@ -6,12 +6,13 @@
  * Uso (na raiz do checkout, depois de compilar com esbuild; ver STAGING/leitores-externos.md):
  *   node node_modules/.cache/ln-intelligence/reader-live-test.mjs <etapa> [<etapa>…]
  * Etapas: bd-zone | zyte | scrapfly | apify | exa | bd-read
- * Regra de custo: no máximo 2 leituras por provedor (uma página neutra e uma página que bloqueia o nosso User-Agent).
+ * Regra de custo: no máximo 2 leituras por provedor, só em página neutra. Pela ADR-007 não se testa página que recusa o nosso User-Agent,
+ * e os leitores com desbloqueio são recusados pela porta.
  */
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  ApifyRagBrowserReader, BrightDataUnlockerReader, ExaContentsReader, ExaDiscoverer, ScrapflyReader, ZyteReader, createReader,
+  ApifyRagBrowserReader, BrightDataUnlockerReader, ExaContentsReader, ExaDiscoverer, ScrapflyReader, ZyteReader, createReader, createRobotsGate,
   type KeyedReader, type ReadResult,
 } from '../src/index';
 
@@ -39,12 +40,11 @@ const out: Record<string, unknown>[] = [];
 const log = (o: Record<string, unknown>) => { out.push(o); console.log(scrub(o)); };
 
 const NEUTRAL = 'https://example.com/';
-const BLOCKED = 'https://ir.latam.com/'; // respondeu HTTP 403 ao nosso User-Agent identificado em 23/11/2026
 
 async function readWith(label: string, keyed: KeyedReader, secretName: string, urls: string[]) {
   const secret = readSecret(secretName);
   if (!secret) { log({ provedor: label, erro: 'chave ausente no cofre' }); return; }
-  const reader = createReader({ keyed, keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 1_000_000 }], resolveSecret: () => secret }, { enabled: true, pace: false });
+  const reader = createReader({ keyed, keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 1_000_000 }], resolveSecret: () => secret, robots: createRobotsGate() }, { enabled: true, pace: false });
   for (const url of urls) {
     const t0 = Date.now();
     const r: ReadResult = await reader.read({ url });
@@ -74,7 +74,7 @@ const steps: Record<string, () => Promise<void>> = {
     log({ etapa: 'bd-zone/criar', status: create.status, corpo: create.text.slice(0, 600), nota: 'Se o corpo falar em pagamento, fundos ou KYC: PARAR e avisar o PM.' });
   },
   async zyte() {
-    await readWith('zyte-http', new ZyteReader('http'), NAMES.zyte, [NEUTRAL, BLOCKED]);
+    await readWith('zyte-http', new ZyteReader('http'), NAMES.zyte, [NEUTRAL]);
   },
   async scrapfly() {
     const key = readSecret(NAMES.scrapfly);
@@ -85,7 +85,7 @@ const steps: Record<string, () => Promise<void>> = {
       log({ etapa: 'scrapfly/antes', status: acc.status, usoDeScrape: used });
     }
     await readWith('scrapfly-basic', new ScrapflyReader('basic'), NAMES.scrapfly, [NEUTRAL]);
-    await readWith('scrapfly-asp', new ScrapflyReader('asp'), NAMES.scrapfly, [BLOCKED]);
+    await readWith('scrapfly-asp', new ScrapflyReader('asp'), NAMES.scrapfly, [NEUTRAL]);
     if (key) {
       const acc = await api('GET', `https://api.scrapfly.io/account?key=${encodeURIComponent(key)}`, key);
       let used: unknown = null;
@@ -94,7 +94,7 @@ const steps: Record<string, () => Promise<void>> = {
     }
   },
   async apify() {
-    await readWith('apify-rag-web-browser', new ApifyRagBrowserReader(), NAMES.apify, [NEUTRAL, BLOCKED]);
+    await readWith('apify-rag-web-browser', new ApifyRagBrowserReader(), NAMES.apify, [NEUTRAL]);
     const key = readSecret(NAMES.apify);
     if (key) {
       const runs = await api('GET', 'https://api.apify.com/v2/actor-runs?limit=3&desc=true', key);
@@ -118,7 +118,7 @@ const steps: Record<string, () => Promise<void>> = {
   },
   async 'bd-read'() {
     const zone = process.env.LN_BD_ZONE ?? 'ln_unlocker';
-    await readWith('brightdata-unlocker', new BrightDataUnlockerReader(zone), NAMES.brightdata, [NEUTRAL, BLOCKED]);
+    await readWith('brightdata-unlocker', new BrightDataUnlockerReader(zone), NAMES.brightdata, [NEUTRAL]);
   },
 };
 

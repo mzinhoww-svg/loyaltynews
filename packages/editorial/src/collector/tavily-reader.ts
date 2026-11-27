@@ -11,8 +11,8 @@ import type { Source } from '../types';
  *  - POST /search com `include_domains` para descobrir matérias novas do domínio (basic = 1 crédito por busca).
  *  - Plano gratuito (Researcher): 1.000 créditos/mês, sem cartão; limite de 100 requisições por minuto; 429 traz Retry-After.
  *  - Acesso "keyless" (cabeçalho X-Tavily-Access-Mode) existe, mas tem teto diário/mensal comum e estourou no 1º teste: não usado.
- * A documentação lida NÃO diz se o extract respeita o robots.txt dos sites; para a DP-31 isso é irrelevante (o proprietário aceitou
- * o risco), mas continua sendo um fato não verificado.
+ * A documentação lida NÃO diz se o extract respeita o robots.txt dos sites (não verificado): pela ADR-007 o próprio coletor confere o
+ * robots.txt antes de chamar este leitor. Redirecionamentos seguidos dentro do serviço não são visíveis ao coletor.
  * Pagamento por x402 ou plano pago NÃO é usado por este adaptador.
  */
 export interface TavilyOptions {

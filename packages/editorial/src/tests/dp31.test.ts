@@ -31,7 +31,7 @@ class FakeReader implements ReaderPort {
 }
 function mk(pages: Record<string, ReaderResult>, found: string[] = [], over: ConstructorParameters<typeof Collector>[1] = {}, withReader = true) {
   const clock = new Clock();
-  const direct = new MockFetcher({ [`https://${HOST}/robots.txt`]: 'User-agent: *\nDisallow: /' }); // robots proíbe tudo: a DP-31 ignora; o coletor direto NUNCA é usado
+  const direct = new MockFetcher({ [`https://${HOST}/robots.txt`]: 'User-agent: *\nDisallow:' }); // ADR-007: o robots.txt vale também via provedor; o GET direto só lê ele
   const reader = new FakeReader(clock, pages, found);
   const c = new Collector(direct, { now: clock.now, sleep: clock.sleep, resolver: resolver(), flags: COLLECT_ON, minSpacingMs: 0, ...(withReader ? { reader } : {}), ...over });
   return { clock, direct, reader, c };
@@ -45,7 +45,7 @@ test('DP-31: sem serviço de leitura configurado a fonte é pulada (reader_unava
   assert.deepEqual((await c.collectFeed(DP31)).skipped.map((s) => s.code), ['reader_unavailable']);
 });
 
-test('DP-31: lê pelo serviço IGNORANDO o robots.txt (Disallow: /), marca a evidência, guarda só um trecho curto e o hash do corpo inteiro', async () => {
+test('DP-31: com o robots.txt permitindo, lê pelo serviço, marca a evidência, guarda só um trecho curto e o hash do corpo inteiro', async () => {
   const body = LONG(1);
   const { direct, reader, c } = mk({ [u(1)]: { status: 200, body, format: 'text' } });
   const r = await c.collectUrl(DP31, u(1));
@@ -54,7 +54,7 @@ test('DP-31: lê pelo serviço IGNORANDO o robots.txt (Disallow: /), marca a evi
   assert.ok(r.evidence.text.length <= 1500, `trecho de ${r.evidence.text.length} caracteres`);
   assert.ok(body.length > 3000 && r.evidence.text.length < body.length / 2, 'texto integral NÃO é guardado');
   assert.equal(r.evidence.url, u(1)); assert.match(r.evidence.contentSha256, /^[0-9a-f]{64}$/);
-  assert.equal(direct.calls.length, 0, 'o coletor direto não foi usado (sem robots.txt, sem UA do coletor)');
+  assert.deepEqual(direct.calls, [`https://${HOST}/robots.txt`], 'o GET direto só lê o robots.txt, nunca a página');
   assert.equal(reader.calls.length, 1);
 });
 
@@ -82,44 +82,40 @@ test('DP-31: 429 do serviço para a coleta (rate_limited); 403/falha do serviço
   const rb = await b.c.collectFeed(DP31);
   assert.deepEqual(rb.skipped.map((s) => `${s.code}:${s.detail}`), ['http_error:403']);
   assert.equal(b.reader.calls.length, 1);
-  assert.equal(b.direct.calls.length, 0, 'sem fallback para o coletor direto');
+  assert.deepEqual(b.direct.calls, [`https://${HOST}/robots.txt`], 'sem fallback para o coletor direto');
 });
 
 const CAPTCHA = `<html><head><title>Just a moment...</title></head><body><div id="challenge-form"><p>Verifying you are human.</p></div>${'<p>x</p>'.repeat(60)}<script src="/cdn-cgi/challenge-platform/h/b/orchestrate"></script></body></html>`;
 const LOGIN = `<html><body><article><h1>Conteúdo exclusivo</h1><p>Assine para ler o restante deste conteúdo. Faça login para continuar lendo a matéria completa.</p></article></body></html>`;
 
-test('DP-32: via provedor, o desafio/CAPTCHA NÃO para a coleta (é falha do provedor naquela URL) mas NUNCA vira evidência; login/paywall continuam parando', async () => {
+test('ADR-007: via provedor, o desafio/CAPTCHA PARA a coleta e nunca vira evidência; login/paywall continuam parando', async () => {
   const a = mk({ [u(1)]: { status: 200, body: CAPTCHA, format: 'html' }, [u(2)]: { status: 200, body: LOGIN, format: 'html' }, [u(3)]: { status: 200, body: LONG(3), format: 'text' } }, [1, 2, 3].map(u));
   const r1 = await a.c.collectUrl(DP31, u(1));
   assert.equal(r1.evidence, undefined); assert.equal(r1.skip?.code, 'challenge'); assert.equal(r1.skip?.viaProvider, true);
   const r2 = await a.c.collectUrl(DP31, u(2));
   assert.equal(r2.evidence, undefined); assert.equal(r2.skip?.code, 'gated');
-  // laço: o desafio da 1ª página NÃO interrompe; a 2ª é lida e vira evidência
+  // laço: o desafio da 1ª página interrompe; a 2ª não é lida
   const b = mk({ [u(1)]: { status: 200, body: CAPTCHA, format: 'html' }, [u(2)]: { status: 200, body: LONG(2), format: 'text' } }, [1, 2].map(u));
   const rb = await b.c.collectFeed(DP31);
   assert.deepEqual(rb.skipped.map((x) => x.code), ['challenge']);
-  assert.equal(rb.evidences.length, 1); assert.equal(b.reader.calls.length, 2);
-  // mas 3 desafios seguidos (provedor sem conseguir nada nesta fonte) param a coleta
-  const c3 = mk({ [u(1)]: { status: 200, body: CAPTCHA, format: 'html' }, [u(2)]: { status: 200, body: CAPTCHA, format: 'html' }, [u(3)]: { status: 200, body: CAPTCHA, format: 'html' }, [u(4)]: { status: 200, body: LONG(4), format: 'text' } }, [1, 2, 3, 4].map(u));
-  const r3 = await c3.c.collectFeed(DP31);
-  assert.deepEqual(r3.skipped.map((x) => x.code), ['challenge', 'challenge', 'challenge']); assert.equal(r3.evidences.length, 0); assert.equal(c3.reader.calls.length, 3);
+  assert.equal(rb.evidences.length, 0); assert.equal(b.reader.calls.length, 1);
   // login/paywall: 2 seguidos param (o provedor não entra em área com login nem fura paywall)
   const d = mk({ [u(1)]: { status: 200, body: LOGIN, format: 'html' }, [u(2)]: { status: 200, body: LOGIN, format: 'html' }, [u(3)]: { status: 200, body: LONG(3), format: 'text' } }, [1, 2, 3].map(u));
   const rd = await d.c.collectFeed(DP31);
   assert.deepEqual(rd.skipped.map((x) => x.code), ['gated', 'gated']); assert.equal(d.reader.calls.length, 2);
 });
 
-test('DP-32: o coletor DIRETO (nosso UA) continua parando no desafio com HTTP 200; só o caminho via provedor muda', async () => {
+test('o desafio com HTTP 200 para a coleta no caminho direto e no via provedor', async () => {
   const clock = new Clock();
   const direct = new MockFetcher({ 'https://ri.mock.example/robots.txt': 'User-agent: *\nDisallow:', 'https://ri.mock.example/noticias/1': CAPTCHA, 'https://ri.mock.example/noticias/2': '<html><body>x</body></html>' });
   const c = new Collector(direct, { now: clock.now, sleep: clock.sleep, resolver: resolver(), flags: COLLECT_ON, minSpacingMs: 0 });
   const r = await c.collectUrl(MOCK_SOURCE, 'https://ri.mock.example/noticias/1');
   assert.equal(r.skip?.code, 'challenge'); assert.equal(r.skip?.viaProvider, undefined);
   assert.ok(stopsCollection(r.skip!), 'no coletor direto o desafio PARA a coleta da fonte');
-  assert.equal(stopsCollection({ ...r.skip!, viaProvider: true }), false, 'via provedor não para sozinho');
+  assert.ok(stopsCollection({ ...r.skip!, viaProvider: true }), 'via provedor também para');
 });
 
-test('DP-32: ChainedReader — troca de provedor por cota esgotada ou falha por URL; 429 de ritmo NÃO troca; sem provedor sobrando devolve o último resultado', async () => {
+test('ChainedReader — troca de provedor só por cota esgotada (falha por URL e 429 NÃO trocam); sem provedor sobrando devolve o último resultado', async () => {
   const mkR = (name: string, fn: (url: string) => ReaderResult): ReaderPort & { n: number } => { const r = { name, n: 0, read: async (url: string) => { r.n++; return fn(url); } }; return r; };
   const quota = mkR('p1', () => ({ status: 432, body: '', quotaExhausted: true }));
   const p2 = mkR('p2', (url) => (url.endsWith('/dura') ? { status: 502, body: '', failedUrl: true } : { status: 200, body: 'ok-p2', format: 'text' }));
@@ -129,7 +125,8 @@ test('DP-32: ChainedReader — troca de provedor por cota esgotada ou falha por 
   assert.equal((await chain.read('https://x.example/a')).body, 'ok-p2');
   assert.equal((await chain.read('https://x.example/b')).body, 'ok-p2');
   assert.equal(quota.n, 1, 'provedor sem cota não é tentado de novo');
-  assert.equal((await chain.read('https://x.example/dura')).body, 'ok-p3', 'falha por URL no p2 passa para o p3');
+  assert.equal((await chain.read('https://x.example/dura')).failedUrl, true, 'falha por URL no p2 não passa para o p3');
+  assert.equal(p3.n, 0);
   const rate = mkR('r1', () => ({ status: 429, body: '', retryAfterSec: 30 }));
   const other = mkR('r2', () => ({ status: 200, body: 'nao', format: 'text' }));
   assert.deepEqual(await new ChainedReader([rate, other]).read('https://x.example/a'), { status: 429, body: '', retryAfterSec: 30 });

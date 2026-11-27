@@ -4,6 +4,9 @@ import {
   type KeyConfig, type KeyedReader, type ProviderResponse, type ReaderDeps,
 } from '../index';
 
+/** robots.txt simulado que permite: estes testes exercitam o pool e os adaptadores; a recusa por robots está em adr007-*.test.ts. */
+const PERMITE = async () => ({ allowed: true, note: 'MOCK: robots permite' });
+
 /** Relógio controlável. */
 const makeClock = (iso: string) => {
   let t = new Date(iso).getTime();
@@ -29,7 +32,7 @@ function setup(handler: (apiKey: string, n: number) => ProviderResponse, opts: {
     creditsPerRead: opts.creditsPerRead ?? 1,
     read: vi.fn(async (_req, apiKey: string) => { calls.push(apiKey); return handler(apiKey, ++n); }),
   };
-  const deps: ReaderDeps = { keyed, keys: opts.keys ?? KEYS, resolveSecret: (ref) => SECRETS[ref], clock };
+  const deps: ReaderDeps = { keyed, keys: opts.keys ?? KEYS, resolveSecret: (ref) => SECRETS[ref], clock, robots: PERMITE };
   const reader = createReader(deps, { enabled: opts.enabled ?? true });
   return { reader, keyed, calls, clock };
 }
@@ -73,7 +76,7 @@ describe('duas contas por provedor: troca automática quando a cota gratuita aca
 
     t.clock.set('2026-12-01T00:00:01Z'); // renovou
     expect(nextMonthStartUtc(new Date('2026-11-23T12:00:00Z')).toISOString()).toBe('2026-12-01T00:00:00.000Z');
-    const ok3 = createReader({ keyed: { provider: 'p', creditsPerRead: 1, read: async () => ok() }, keys: KEYS, resolveSecret: (r) => SECRETS[r], clock: t.clock }, { enabled: true });
+    const ok3 = createReader({ keyed: { provider: 'p', creditsPerRead: 1, read: async () => ok() }, keys: KEYS, resolveSecret: (r) => SECRETS[r], clock: t.clock, robots: PERMITE }, { enabled: true });
     expect((await ok3.read({ url: 'https://a.invalid/3' })).ok).toBe(true);
   });
 
@@ -152,7 +155,7 @@ describe('ritmo baixo por host (DP-32 mantém)', () => {
   });
 });
 
-describe('login e paywall continuam parando; CAPTCHA resolvido pelo provedor não', () => {
+describe('login e paywall continuam parando; CAPTCHA nunca é contornado (ADR-007)', () => {
   it('tela de login (formulário de senha em página curta) e paywall viram falha e o texto é descartado', async () => {
     const login = setup(() => ({ status: 'ok', credits: 1, httpStatus: 200, html: '<form><input type="password" name="p"></form>', text: 'Entrar Senha' }));
     const r1 = await login.reader.read({ url: 'https://a.invalid/area' });
@@ -248,11 +251,11 @@ describe('login e paywall continuam parando; CAPTCHA resolvido pelo provedor nã
     expect(detectLoginOrPaywall({ text: corpo, html: `<article>${corpo}</article><div data-x="1" id='main' class='box content-gate' hidden>${aviso}</div>` })).toBe('paywall');
   });
 
-  it('desafio resolvido pelo próprio provedor NÃO para a leitura (DP-32); desafio devolvido sem resolver é falha', async () => {
+  it('desafio resolvido pelo próprio provedor é descartado (ADR-007); desafio devolvido sem resolver é falha', async () => {
     const solved = setup(() => ok({ providerSolvedCaptcha: true }));
     const r = await solved.reader.read({ url: 'https://a.invalid/1' });
-    expect(r).toMatchObject({ ok: true, providerSolvedCaptcha: true });
-    expect(r.text).toBe(longText);
+    expect(r).toMatchObject({ ok: false, failure: 'captcha_solved_by_provider' });
+    expect(r.text).toBeUndefined();
 
     const unsolved = setup(() => ({ status: 'captcha_unsolved', credits: 1, httpStatus: 200 }));
     const f = await unsolved.reader.read({ url: 'https://a.invalid/2' });

@@ -23,6 +23,8 @@ import { LiveShadow } from '../live-shadow';
 import { createLiveShadowFromEnv, ShadowHostGate } from '../live-shadow-env';
 
 const LONG = 'Lorem ipsum dolor sit amet. '.repeat(60);
+/** robots.txt simulado que permite: estes testes exercitam o pool e os adaptadores; a recusa por robots está em adr007-*.test.ts. */
+const PERMITE = async () => ({ allowed: true, note: 'MOCK: robots permite' });
 const article = (title: string, date = '2026-11-20T10:00:00Z') =>
   `<html lang="pt-BR"><head><meta property="og:title" content="${title}"><meta property="article:published_time" content="${date}"></head><body><h1>${title}</h1><p>${LONG}</p></body></html>`;
 
@@ -101,7 +103,7 @@ describe('orçamento (corte automático)', () => {
 describe('roteador com fallback', () => {
   const noSleep = { sleep: async () => {}, random: () => 0.5 };
   it('fallback em falha técnica e sucesso no próximo; cache e dedupe', async () => {
-    const a = new MockReader('a', (r) => ({ ok: false, url: r.url, provider: 'a', failure: 'captcha_unsolved', creditsUsed: 1 }));
+    const a = new MockReader('a', (r) => ({ ok: false, url: r.url, provider: 'a', failure: 'provider_error', creditsUsed: 1 })); // falha técnica (CAPTCHA não passa a outro: ADR-007)
     const b = new MockReader('b', (r) => ok('b', r.url));
     const router = new AdaptiveRouter(
       [
@@ -199,24 +201,25 @@ describe('leitor direto e SSRF', () => {
     expect(isPrivateAddress('::ffff:192.168.0.1')).toBe(true);
   });
   it('redirect para rede interna é bloqueado (MOCK de transporte)', async () => {
-    const t: Transport = async (u) => (u.startsWith('https://pub.com') ? { status: 302, headers: { location: 'http://10.1.1.1/admin' } as Record<string, string>, body: Buffer.from('') } : { status: 200, headers: {} as Record<string, string>, body: Buffer.from('x') });
+    const t: Transport = async (u) => (u.endsWith('/robots.txt') ? { status: 404, headers: {} as Record<string, string>, body: Buffer.from('') } : u.startsWith('https://pub.com') ? { status: 302, headers: { location: 'http://10.1.1.1/admin' } as Record<string, string>, body: Buffer.from('') } : { status: 200, headers: {} as Record<string, string>, body: Buffer.from('x') });
     const r = await new DirectReader(t, async (h) => (h === 'pub.com' ? ['8.8.8.8'] : ['10.1.1.1'])).read({ url: 'https://pub.com/a' });
     expect(r.ok).toBe(false);
     expect((r as { ssrf?: string }).ssrf).toBe('ip_privado');
   });
   it('DNS rebinding: resolve UMA vez por salto e conecta no IP validado, mesmo se o DNS mudar depois', async () => {
     let calls = 0;
-    const rebinding: Resolver = async () => (++calls === 1 ? ['93.184.216.34'] : ['127.0.0.1']); // 2ª resposta seria interna
+    const rebinding: Resolver = async () => (++calls <= 2 ? ['93.184.216.34'] : ['127.0.0.1']); // robots.txt e página; a 3ª resposta seria interna
     const pinned: string[] = [];
-    const t: Transport = async (_u, ip) => {
+    const t: Transport = async (u, ip) => {
       pinned.push(ip);
+      if (u.endsWith('/robots.txt')) return { status: 404, headers: {}, body: Buffer.from('') };
       await rebinding('evil.com'); // um atacante "troca" o DNS durante a conexão: não pode afetar o IP usado
       return { status: 200, headers: {}, body: Buffer.from('<title>ok</title>') };
     };
     const r = await new DirectReader(t, rebinding).read({ url: 'https://evil.com/x' });
     expect(r.ok).toBe(true);
-    expect(pinned).toEqual(['93.184.216.34']);
-    expect(calls).toBe(2); // 1 da validação + 1 do "atacante"; o leitor não resolveu de novo
+    expect(pinned).toEqual(['93.184.216.34', '93.184.216.34']);
+    expect(calls).toBe(3); // 1 do robots.txt + 1 da página + 1 do "atacante"; o leitor não resolveu de novo
   });
   it('pinnedTransport conecta no IP fixado sem consultar o DNS (servidor local real)', async () => {
     const srv = createServer((_q, s) => s.end('pinned-ok'));
@@ -236,7 +239,7 @@ describe('leitor direto e SSRF', () => {
 describe('contrato dos adaptadores do Data (via ReaderPort, MOCK de fetch)', () => {
   it('Scrapfly: custo real do cabeçalho vira creditsUsed; segredo nunca aparece no resultado', async () => {
     const f = (async () => new Response(JSON.stringify({ result: { content: article('Título X'), status_code: 200 } }), { status: 200, headers: { 'x-scrapfly-api-cost': '1' } })) as unknown as typeof fetch;
-    const reader = createReader({ keyed: new ScrapflyReader('basic', f), keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 900 }], resolveSecret: () => 'SEGREDO-NAO-PODE-VAZAR' }, { enabled: true, pace: false });
+    const reader = createReader({ keyed: new ScrapflyReader('basic', f), keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 900 }], resolveSecret: () => 'SEGREDO-NAO-PODE-VAZAR', robots: PERMITE }, { enabled: true, pace: false });
     const r = await reader.read({ url: 'https://a.com/x' });
     expect(r).toMatchObject({ ok: true, creditsUsed: 1, keyLabel: 'conta-1' });
     expect(JSON.stringify({ ...r, text: undefined, html: undefined })).not.toContain('SEGREDO');
@@ -300,7 +303,7 @@ describe('shadow por replay (respostas registradas; nenhuma chamada)', () => {
 describe('contrato Firecrawl (MOCK de fetch)', () => {
   it('ok com metadados viram título/data; 402 = cota; 429 = ritmo; segredo não vaza', async () => {
     const ok = (async () => new Response(JSON.stringify({ success: true, data: { markdown: `# Azul anuncia nova rota para Lisboa\n${LONG}`, metadata: { ogTitle: 'Azul anuncia nova rota para Lisboa', publishedTime: '2026-11-20T10:00:00Z', statusCode: 200, sourceURL: 'https://a.com/x' } } }), { status: 200 })) as unknown as typeof fetch;
-    const reader = createReader({ keyed: new FirecrawlReader(ok), keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 150 }], resolveSecret: () => 'SEGREDO-FC' }, { enabled: true, pace: false });
+    const reader = createReader({ keyed: new FirecrawlReader(ok), keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 150 }], resolveSecret: () => 'SEGREDO-FC', robots: PERMITE }, { enabled: true, pace: false });
     const r = await reader.read({ url: 'https://a.com/x' });
     expect(r).toMatchObject({ ok: true, creditsUsed: 1 });
     const v = evaluate(r.text, r.html, 'Azul anuncia nova rota para Lisboa', r.httpStatus);
@@ -339,10 +342,10 @@ describe('ressalvas QA 3 (M2)', () => {
   });
   it('contrato exportado (ReaderPort): 401/402 da ORIGEM viram login/paywall nos adaptadores Firecrawl e Scrapfly', async () => {
     const fc402 = (async () => new Response(JSON.stringify({ success: true, data: { markdown: LONG, metadata: { statusCode: 402, title: 'x' } } }), { status: 200 })) as unknown as typeof fetch;
-    const r1 = await createReader({ keyed: new FirecrawlReader(fc402), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k' }, { enabled: true, pace: false }).read({ url: 'https://a.com/x' });
+    const r1 = await createReader({ keyed: new FirecrawlReader(fc402), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k', robots: PERMITE }, { enabled: true, pace: false }).read({ url: 'https://a.com/x' });
     expect(r1).toMatchObject({ ok: false, failure: 'paywall' });
     const sf401 = (async () => new Response(JSON.stringify({ result: { content: article('x'), status_code: 401 } }), { status: 200 })) as unknown as typeof fetch;
-    const r2 = await createReader({ keyed: new ScrapflyReader('basic', sf401), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k' }, { enabled: true, pace: false }).read({ url: 'https://a.com/x' });
+    const r2 = await createReader({ keyed: new ScrapflyReader('basic', sf401), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k', robots: PERMITE }, { enabled: true, pace: false }).read({ url: 'https://a.com/x' });
     expect(r2).toMatchObject({ ok: false, failure: 'login_required' });
   });
 });
@@ -492,7 +495,7 @@ describe('Firecrawl: sucesso diferente de 200 com paywall/login (ressalva QA 3)'
     expect(pw.text).toBeUndefined();
     const lg = await mk('Faça login para continuar lendo').read({ url: 'https://a.com' }, 'k');
     expect(lg).toMatchObject({ httpStatus: 401 });
-    const viaPool = await createReader({ keyed: mk(`${LONG} Conteúdo exclusivo para assinantes`), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k' }, { enabled: true, pace: false }).read({ url: 'https://a.com' });
+    const viaPool = await createReader({ keyed: mk(`${LONG} Conteúdo exclusivo para assinantes`), keys: [{ label: 'c', secretRef: 'K', monthlyCreditCap: 9 }], resolveSecret: () => 'k', robots: PERMITE }, { enabled: true, pace: false }).read({ url: 'https://a.com' });
     expect(viaPool).toMatchObject({ ok: false, failure: 'paywall' });
   });
 });

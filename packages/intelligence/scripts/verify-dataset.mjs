@@ -60,28 +60,29 @@ const norm = (s) => s.normalize('NFC').replace(/[‘’]/g, "'").replace(/[“�
 
 /**
  * Consulta o robots.txt do HOST da URL (RFC 9309, ver crawl-guards.mjs) e decide para o CAMINHO da URL.
- * robots.txt ausente (404/410) = permitido; qualquer outro erro/status = não busca (precaução). `fetchImpl` injetável para teste.
+ * robots.txt ausente (404/410) = permitido; qualquer outro erro/status = não busca (precaução; `unavailable: true`). `fetchImpl` injetável
+ * para teste; `ua` é o agente cujas regras valem (quem for baixar a página passa o próprio).
  */
-export async function robotsAllows(url, fetchImpl = fetch) {
+export async function robotsAllows(url, fetchImpl = fetch, ua = UA) {
   const u = new URL(url);
   try {
     // robots.txt pode redirecionar (RFC 9309 manda seguir até 5): é o arquivo que o próprio host publica.
-    const r = await fetchImpl(`${u.origin}/robots.txt`, { headers: { 'user-agent': UA }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+    const r = await fetchImpl(`${u.origin}/robots.txt`, { headers: { 'user-agent': ua }, signal: AbortSignal.timeout(TIMEOUT_MS) });
     if (r.status === 404 || r.status === 410) return { allowed: true, note: 'robots.txt ausente', sitemaps: [] };
-    if (!r.ok) return { allowed: false, note: `robots.txt indisponivel (HTTP ${r.status}); por precaucao nao busca`, sitemaps: [] };
+    if (!r.ok) return { allowed: false, unavailable: true, note: `robots.txt indisponivel (HTTP ${r.status}); por precaucao nao busca`, sitemaps: [] };
     const body = await r.text();
     // robots.txt que responde 200 com PÁGINA DE DESAFIO/BLOQUEIO não é "sem regras": é inacessível e a página NÃO é buscada.
     const headers = Object.fromEntries(r.headers.entries());
     const looksHtml = /html/i.test(r.headers.get('content-type') ?? '') || /^\s*<(?:!doctype|html|head|body|script|meta|title)/i.test(body);
     const challenge = detectChallenge({ status: r.status, headers, html: looksHtml ? body : '', text: looksHtml ? htmlToText(body) : '' });
-    if (challenge) return { allowed: false, note: `robots.txt inacessivel (resposta de desafio/bloqueio com HTTP ${r.status}: ${challenge}); por precaucao nao busca`, sitemaps: [] };
+    if (challenge) return { allowed: false, unavailable: true, note: `robots.txt inacessivel (resposta de desafio/bloqueio com HTTP ${r.status}: ${challenge}); por precaucao nao busca`, sitemaps: [] };
     const parsed = parseRobots(body);
     const sitemaps = parsed.sitemaps.slice(0, 5);
-    const d = robotsDecision(parsed, UA, u.pathname + u.search);
-    if (!d.allowed) return { allowed: false, note: `robots.txt proibe (${d.rule})`, sitemaps };
+    const d = robotsDecision(parsed, ua, u.pathname + u.search);
+    if (!d.allowed) return { allowed: false, unavailable: false, note: `robots.txt proibe (${d.rule})`, sitemaps };
     return { allowed: true, note: 'robots.txt permite', sitemaps };
   } catch (e) {
-    return { allowed: false, note: `robots.txt inacessivel (${e.name}); por precaucao nao busca`, sitemaps: [] };
+    return { allowed: false, unavailable: true, note: `robots.txt inacessivel (${e.name}); por precaucao nao busca`, sitemaps: [] };
   }
 }
 

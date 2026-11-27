@@ -6,6 +6,7 @@
  *    (`(flag) => isEnabled(flag, runtimeFlags())`); este módulo NUNCA lê variável de ambiente própria para ligar leitura (N1).
  *  - Sem resolvedor, com resolvedor que devolve false ou que LANÇA: desligado (falha fechada). Desligado = nenhum leitor externo é criado e nada chama `fetch`.
  *  - O resolvedor é consultado a CADA leitura (a flag vale no instante da chamada); o leitor interno só nasce na primeira leitura permitida.
+ *  - ADR-007 (v8): o Web Unlocker é um serviço de desbloqueio, então a porta recusa a leitura ('unlock_forbidden') mesmo com a flag ligada.
  *  - Staging (DP-36): Bright Data com UMA conta (`conta-2`, `BRIGHTDATA_API_KEY`, teto 5000) e zone `web_unlocker1`, sem troca automática de conta:
  *    cota acabou ou chave recusada = falha (nunca outra conta, nunca compra). O valor da chave vem de `resolveSecret` só no instante da chamada.
  */

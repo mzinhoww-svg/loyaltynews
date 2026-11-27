@@ -9,7 +9,7 @@ const okBody = () => new Response(HTML, { status: 200, headers: { 'content-type'
 function fakeKeyed() {
   const read = vi.fn(async (): Promise<ProviderResponse> => ({ status: 'ok', credits: 1, httpStatus: 200, text: 'Texto de página pública suficientemente longo. '.repeat(10) }));
   const keyed: KeyedReader = { provider: 'fake', creditsPerRead: 1, read };
-  const deps: ReaderDeps = { keyed, keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 100 }], resolveSecret: () => FAKE };
+  const deps: ReaderDeps = { keyed, keys: [{ label: 'conta-1', secretRef: 'K', monthlyCreditCap: 100 }], resolveSecret: () => FAKE, robots: async () => ({ allowed: true, note: 'MOCK: robots permite' }) };
   return { read, deps };
 }
 
@@ -77,42 +77,12 @@ describe('staging (DP-36): Bright Data com UMA conta, zone web_unlocker1, sem tr
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it('com a flag ligada: usa a zone web_unlocker1 e a chave só no cabeçalho da chamada; resultado traz só o rótulo conta-2', async () => {
-    const calls: { url: string; init: RequestInit }[] = [];
-    const fetchImpl = vi.fn(async (url: string, init: RequestInit) => { calls.push({ url, init }); return okBody(); });
-    const r = createBrightDataStagingReader((ref) => (ref === 'BRIGHTDATA_API_KEY' ? FAKE : undefined), () => true, { fetchImpl: fetchImpl as unknown as typeof fetch, pace: false });
-    const res = await r.read({ url: 'https://ri.exemplo.invalid/diretoria' });
-    expect(res).toMatchObject({ ok: true, keyLabel: 'conta-2', provider: 'brightdata-unlocker' });
-    expect(calls).toHaveLength(1);
-    expect(calls[0]!.url).toBe('https://api.brightdata.com/request');
-    expect(JSON.parse(String(calls[0]!.init.body))).toMatchObject({ zone: 'web_unlocker1', url: 'https://ri.exemplo.invalid/diretoria' });
-    expect((calls[0]!.init.headers as Record<string, string>).authorization).toBe(`Bearer ${FAKE}`);
-    expect(JSON.stringify([{ ...res, text: undefined, html: undefined }, r.pool!.report()])).not.toContain(FAKE);
-    expect(r.pool!.report().map((x) => x.label)).toEqual(['conta-2']);
-  });
-
-  it('SEM TROCA de conta: cota acabou (402) ou chave recusada (401) = falha com UMA chamada; nenhuma segunda conta é tentada', async () => {
-    for (const [status, failure] of [[402, 'quota_exhausted'], [401, 'auth_failed']] as const) {
-      const fetchImpl = vi.fn(async () => new Response('x', { status }));
-      const r = createBrightDataStagingReader(() => FAKE, () => true, { fetchImpl: fetchImpl as unknown as typeof fetch, pace: false });
-      expect((await r.read({ url: 'https://ri.exemplo.invalid/a' })).failure).toBe(failure);
-      expect(fetchImpl).toHaveBeenCalledTimes(1);
-      // depois disso a conta única fica fora de uso: a próxima leitura nem chama o provedor
-      const again = await r.read({ url: 'https://ri.exemplo.invalid/b' });
-      expect(again.ok).toBe(false);
-      expect(['quota_exhausted', 'auth_failed']).toContain(again.failure);
-      expect(fetchImpl).toHaveBeenCalledTimes(1);
-    }
-  });
-
-  it('o teto de 5000 créditos é da conta única: gasto o teto, a leitura falha por cota sem chamar o provedor (nunca paga)', async () => {
+  it('ADR-007: mesmo com a flag ligada, o Web Unlocker (desbloqueio) é recusado: nenhuma chamada, nenhum crédito', async () => {
     const fetchImpl = vi.fn(async () => okBody());
     const r = createBrightDataStagingReader(() => FAKE, () => true, { fetchImpl: fetchImpl as unknown as typeof fetch, pace: false });
-    await r.read({ url: 'https://ri.exemplo.invalid/0' });
-    r.pool!.charge('conta-2', 4999); // 1 + 4999 = teto
-    const res = await r.read({ url: 'https://ri.exemplo.invalid/1' });
-    expect(res.failure).toBe('quota_exhausted');
-    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    for (const u of ['https://ri.exemplo.invalid/a', 'https://ri.exemplo.invalid/b']) expect(await r.read({ url: u })).toMatchObject({ ok: false, failure: 'unlock_forbidden', provider: 'brightdata-unlocker' });
+    expect(fetchImpl).not.toHaveBeenCalled();
+    expect(r.pool!.report().map((x) => [x.label, x.usedInMonth])).toEqual([['conta-2', 0]]);
   });
 
   it('sem o segredo configurado a leitura não chama o provedor e não inventa outra conta', async () => {

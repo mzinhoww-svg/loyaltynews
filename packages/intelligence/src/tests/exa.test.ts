@@ -86,7 +86,7 @@ describe('Exa — descoberta restrita ao domínio da fonte', () => {
 });
 
 describe('Exa — leitura de conteúdo já indexado (/contents)', () => {
-  const read = (f: typeof fetch) => createReader({ keyed: new ExaContentsReader(f), keys: KEYS, resolveSecret: (r) => SECRETS[r] }, { enabled: true, pace: false }).read({ url: 'https://a.invalid/p' });
+  const read = (f: typeof fetch) => createReader({ keyed: new ExaContentsReader(f), keys: KEYS, resolveSecret: (r) => SECRETS[r], robots: async () => ({ allowed: true, note: 'MOCK: robots permite' }) }, { enabled: true, pace: false }).read({ url: 'https://a.invalid/p' });
 
   it('requisição e sucesso: POST /contents com urls e text; custo vem de costDollars', async () => {
     const f = fakeFetch(() => json(200, { results: [{ url: 'https://a.invalid/p', text: 'Texto indexado '.repeat(80) }], statuses: [{ id: 'https://a.invalid/p', status: 'success', source: 'cached' }], costDollars: { total: 0.001 } }));

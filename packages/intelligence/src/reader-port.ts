@@ -4,9 +4,10 @@
  * Referência testada e SEM rede: os adaptadores HTTP de cada provedor implementam `KeyedReader` e entram depois, com as chaves
  * que o proprietário fornecer. Pode ser movida para `packages/editorial` (dona do coletor) — o contrato é o que importa.
  *
- * Regras da DP-32 que o código impõe:
+ * Regras que o código impõe (DP-32, restringida pela ADR-007 v8 / J-14 A; sem lista nominal de exceções, não há exceção):
  *  - DESLIGADO por padrão (`createReader` sem `enabled: true` devolve um leitor que não chama nada).
- *  - Desbloqueio, CAPTCHA e proxies feitos pelo PRÓPRIO provedor são aceitos (o desafio resolvido pelo provedor não para a leitura).
+ *  - robots.txt do alvo conferido ANTES de chamar o provedor (e do destino final, se mudar). Proíbe, indisponível ou sem verificador = não lê.
+ *  - Nunca contornar CAPTCHA: provedor com desbloqueio (`unlocks`) não é chamado; CAPTCHA resolvido pelo provedor ou página de desafio é descartado.
  *  - Login e paywall continuam parando: página com formulário de senha ou aviso de conteúdo pago vira falha e o texto é descartado.
  *  - Ritmo baixo: mínimo entre leituras do mesmo host e teto diário por host; 429 do provedor = espera, não força.
  *  - Nada pago: cada chave tem teto de créditos igual à cota gratuita; acabou, troca de chave; sem chave com saldo = falha (nunca compra).
@@ -15,6 +16,12 @@
  *  - Segredo nunca sai do pool: o resultado traz só o RÓTULO da chave ("conta-1"), nunca o valor.
  */
 
+import { detectChallenge } from '../scripts/crawl-guards.mjs';
+
+/** Veredito do robots.txt para UMA URL. `unavailable` = não deu para ler as regras (por precaução, não busca). */
+export interface RobotsVerdict { allowed: boolean; unavailable?: boolean; note: string }
+export type RobotsGate = (url: string) => Promise<RobotsVerdict>;
+
 export type ReaderFailure =
   | 'disabled'
   | 'quota_exhausted' // todas as chaves sem saldo gratuito
@@ -22,7 +29,11 @@ export type ReaderFailure =
   | 'host_paced' // ritmo baixo por host
   | 'login_required'
   | 'paywall'
-  | 'captcha_unsolved' // o provedor devolveu o próprio desafio (não o conteúdo)
+  | 'captcha_unsolved' // veio o próprio desafio/CAPTCHA (não o conteúdo)
+  | 'captcha_solved_by_provider' // o provedor diz que resolveu um CAPTCHA: conteúdo descartado (ADR-007)
+  | 'robots_disallow' // o robots.txt do alvo proíbe (ADR-007)
+  | 'robots_unavailable' // robots.txt ilegível, com erro, ou sem verificador configurado (falha fechada)
+  | 'unlock_forbidden' // provedor com desbloqueio: não é chamado (ADR-007)
   | 'not_found'
   | 'timeout'
   | 'provider_error'
@@ -55,7 +66,7 @@ export interface KeyedReader {
   readonly provider: string;
   /** Créditos que uma leitura deve custar no pior caso (para checar o teto ANTES de chamar). */
   readonly creditsPerRead: number;
-  /** O provedor faz desbloqueio (CAPTCHA/proxy próprios, DP-32). Informativo. */
+  /** O provedor faz desbloqueio (CAPTCHA/proxy próprios). Pela ADR-007, leitor com `unlocks` NÃO é chamado. */
   readonly unlocks?: boolean;
   /** Fração da cota gratuita mensal que UMA leitura consome (para ordenar a cascata por custo). */
   readonly freeQuotaFractionPerRead?: number;
@@ -315,6 +326,8 @@ export interface ReaderDeps {
   /** Resolve a referência do segredo (env/cofre) só no momento da chamada. */
   resolveSecret: (secretRef: string) => string | undefined;
   clock?: Clock;
+  /** Verificador de robots.txt (produção: `createRobotsGate()`). Ausente = nada é lido ('robots_unavailable'). */
+  robots?: RobotsGate;
 }
 
 class DisabledReader implements ReaderPort {
@@ -340,8 +353,21 @@ class PooledReader implements ReaderPort {
     this.pacer = pace === false ? null : new HostPacer(clock, pace);
   }
 
+  /** Motivo para NÃO usar esta URL, segundo o robots.txt; `null` = permitido. */
+  private async robotsVeto(url: string): Promise<'robots_disallow' | 'robots_unavailable' | null> {
+    if (!this.deps.robots) return 'robots_unavailable';
+    try {
+      const v = await this.deps.robots(url);
+      if (v.allowed === true) return null;
+      return v.unavailable ? 'robots_unavailable' : 'robots_disallow';
+    } catch {
+      return 'robots_unavailable';
+    }
+  }
+
   async read(req: ReadRequest): Promise<ReadResult> {
     const base = { url: req.url, provider: this.provider };
+    if (this.unlocks === true) return { ...base, ok: false, failure: 'unlock_forbidden' };
     let host: string;
     try {
       const u = new URL(req.url);
@@ -352,6 +378,9 @@ class PooledReader implements ReaderPort {
     }
     const wait = this.pacer?.check(host) ?? null;
     if (wait !== null) return { ...base, ok: false, failure: 'host_paced', retryAfterSeconds: wait === Infinity ? undefined : wait };
+
+    const veto = await this.robotsVeto(req.url);
+    if (veto) return { ...base, ok: false, failure: veto };
 
     const cost = this.deps.keyed.creditsPerRead;
     let sawRateLimit: number | undefined;
@@ -369,8 +398,13 @@ class PooledReader implements ReaderPort {
       if (resp.status === 'captcha_unsolved') return { ...base, ok: false, keyLabel: key.label, creditsUsed: resp.credits, failure: 'captcha_unsolved' };
       if (resp.status !== 'ok') return { ...base, ok: false, keyLabel: key.label, creditsUsed: resp.credits, failure: resp.status };
 
+      const refuse = (failure: ReaderFailure): ReadResult => ({ ...base, ok: false, keyLabel: key.label, creditsUsed: resp.credits, failure }); // texto descartado
+      if (resp.providerSolvedCaptcha) return refuse('captcha_solved_by_provider');
+      if (detectChallenge({ status: resp.httpStatus ?? 200, html: resp.html, text: resp.text })) return refuse('captcha_unsolved');
       const wall = detectLoginOrPaywall(resp);
-      if (wall) return { ...base, ok: false, keyLabel: key.label, creditsUsed: resp.credits, failure: wall }; // texto descartado
+      if (wall) return refuse(wall);
+      const moved = resp.finalUrl && resp.finalUrl !== req.url ? await this.robotsVeto(resp.finalUrl) : null;
+      if (moved) return refuse(moved);
       return { ...base, ok: true, keyLabel: key.label, creditsUsed: resp.credits, finalUrl: resp.finalUrl, providerSolvedCaptcha: resp.providerSolvedCaptcha, httpStatus: resp.httpStatus, text: resp.text, html: resp.html };
     }
     if (sawRateLimit !== undefined) return { ...base, ok: false, failure: 'rate_limited', retryAfterSeconds: sawRateLimit };

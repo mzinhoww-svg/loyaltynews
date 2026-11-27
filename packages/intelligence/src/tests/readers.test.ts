@@ -15,7 +15,14 @@ const KEYS: KeyConfig[] = [
   { label: 'conta-2', secretRef: 'K2', monthlyCreditCap: 1000 },
 ];
 const SECRETS: Record<string, string> = { K1: 'segredo-conta-1-NAO-VAZAR', K2: 'segredo-conta-2-NAO-VAZAR' };
-const make = (keyed: KeyedReader) => createReader({ keyed, keys: KEYS, resolveSecret: (r) => SECRETS[r] }, { enabled: true, pace: false });
+/** robots.txt simulado que permite: estes testes exercitam o pool e os adaptadores; a recusa por robots está em adr007-*.test.ts. */
+const PERMITE = async () => ({ allowed: true, note: 'MOCK: robots permite' });
+/**
+ * SÓ NO TESTE: tira a marca `unlocks` para continuar exercitando o mapeamento dos adaptadores dentro do pool. Em produção a porta RECUSA
+ * leitor com desbloqueio (ADR-007; ver adr007-leitores.test.ts).
+ */
+const semDesbloqueio = (k: KeyedReader): KeyedReader => Object.create(k, { unlocks: { value: false } }) as KeyedReader;
+const make = (keyed: KeyedReader) => createReader({ keyed: semDesbloqueio(keyed), keys: KEYS, resolveSecret: (r) => SECRETS[r], robots: PERMITE }, { enabled: true, pace: false });
 const ask = (keyed: KeyedReader, url = 'https://alvo.invalid/ri') => make(keyed).read({ url });
 
 describe('Bright Data — Web Unlocker API', () => {
@@ -195,18 +202,21 @@ describe('ponte para o ReaderPort do Editorial e cascata por custo', () => {
     expect(toEditorialResult({ ...base, ok: true, text: 'só texto' })).toEqual({ status: 200, body: 'só texto', format: 'text' });
   });
 
-  it('asEditorialReader entrega o contrato (name, unlocks, read) e o leitor desligado nunca chama o provedor', async () => {
+  it('asEditorialReader entrega o contrato (name, unlocks, read); desligado ou com desbloqueio nunca chama o provedor', async () => {
     const f = fakeFetch(() => text(200, PAGE));
-    const on = asEditorialReader(make(new BrightDataUnlockerReader('z', f)), 'brightdata');
-    expect(on).toMatchObject({ name: 'brightdata', unlocks: true });
+    const on = asEditorialReader(make(new ScrapflyReader('basic', fakeFetch(() => json(200, { result: { content: PAGE, status_code: 200 } })))), 'scrapfly');
+    expect(on).toMatchObject({ name: 'scrapfly', unlocks: false });
     expect(await on.read('https://alvo.invalid/ri')).toMatchObject({ status: 200, format: 'html' });
+    const desbloqueio = asEditorialReader(createReader({ keyed: new BrightDataUnlockerReader('z', f), keys: KEYS, resolveSecret: (r) => SECRETS[r], robots: PERMITE }, { enabled: true, pace: false }), 'brightdata');
+    expect(desbloqueio).toMatchObject({ name: 'brightdata', unlocks: true });
+    expect(await desbloqueio.read('https://alvo.invalid/ri')).toMatchObject({ status: 503, failedUrl: true });
     const off = asEditorialReader(createReader({ keyed: new BrightDataUnlockerReader('z', f), keys: KEYS, resolveSecret: (r) => SECRETS[r] }), 'brightdata-off');
     expect(await off.read('https://alvo.invalid/ri')).toMatchObject({ failedUrl: true });
-    expect((f as unknown as { mock: { calls: unknown[] } }).mock.calls).toHaveLength(1); // só a chamada do leitor ligado
+    expect((f as unknown as { mock: { calls: unknown[] } }).mock.calls).toHaveLength(0);
   });
 
   it('cascata por custo: do mais barato ao mais caro em fração da cota gratuita; sem custo declarado vai para o fim', () => {
-    const mk = (k: KeyedReader) => make(k);
+    const mk = (k: KeyedReader) => createReader({ keyed: k, keys: KEYS, resolveSecret: (r) => SECRETS[r] }, { enabled: true, pace: false }); // só ordenação: mantém `unlocks`
     const f = fakeFetch(() => text(200, ''));
     const readers = [
       mk(new ScrapflyReader('asp_js', f)), mk(new ScrapflyReader('basic', f)), mk(new ApifyRagBrowserReader(f)),

@@ -8,6 +8,7 @@ import { writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseFeed, discoveryMetrics } from '../src/discovery.ts';
+import { politeGet } from '../src/polite-get.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const DATA = join(here, '..', 'data');
@@ -61,8 +62,9 @@ export const SOURCES: Src[] = [
 async function get(url: string) {
   const t0 = Date.now();
   try {
-    const r = await fetch(url, { headers: { 'user-agent': UA, accept: 'application/rss+xml,application/atom+xml,application/xml,text/xml,*/*' }, signal: AbortSignal.timeout(30_000) });
-    return { status: r.status, body: r.ok ? await r.text() : '', ms: Date.now() - t0 };
+    const r = await politeGet(url, { userAgent: UA, accept: 'application/rss+xml,application/atom+xml,application/xml,text/xml,*/*' }); // robots.txt e CAPTCHA (ADR-007)
+    const ok = !r.err && r.status >= 200 && r.status < 300;
+    return { status: r.status, body: ok ? r.body.toString('utf8') : '', ms: Date.now() - t0, ...(r.err ? { err: r.err } : {}) };
   } catch (e) {
     return { status: 0, body: '', ms: Date.now() - t0, err: String((e as Error).message ?? e).slice(0, 120) };
   }

@@ -4,9 +4,9 @@
  * Monta o LiveShadow com o AdaptiveRouter, leitores dos provedores com chaves vindas do AMBIENTE (cofre do staging; nunca do código),
  * orçamento com corte automático (só cota gratuita) e o JSONL de `SCRAPING_SHADOW_SINK`.
  * Ritmo próprio (DP-31/DP-32), porque a Editorial não vê o roteador: ≥ 10 s por host, teto diário por host, 429 = host
- * suspenso no dia; login/paywall param no roteador. Só grava status/tamanho/hash/latência/créditos/provedor.
+ * suspenso no dia; login/paywall param no roteador. ADR-007: robots.txt conferido antes de cada provedor; leitor com desbloqueio é recusado. Só grava status/tamanho/hash/latência/créditos/provedor.
  */
-import { createReader, ScrapflyReader, ZyteReader, ExaContentsReader, BrightDataUnlockerReader, ApifyRagBrowserReader } from '@ln/intelligence';
+import { createReader, createRobotsGate, ScrapflyReader, ZyteReader, ExaContentsReader, BrightDataUnlockerReader, ApifyRagBrowserReader } from '@ln/intelligence';
 import type { KeyedReader } from '@ln/intelligence';
 import { AdaptiveRouter, type RoutedProvider } from './router';
 import { BudgetGuard, type ProviderBudget } from './budget';
@@ -69,7 +69,7 @@ export function createLiveShadowFromEnv(env: Env = process.env, deps: { now?: ()
   const routed: RoutedProvider[] = specs.map((s) => ({
     name: s.name,
     reader: s.keyed
-      ? createReader({ keyed: s.keyed(), keys: [{ label: 'staging', secretRef: s.envKey!, monthlyCreditCap: s.cap }], resolveSecret: (ref) => env[ref] }, { enabled: true, pace: false })
+      ? createReader({ keyed: s.keyed(), keys: [{ label: 'staging', secretRef: s.envKey!, monthlyCreditCap: s.cap }], resolveSecret: (ref) => env[ref], robots: createRobotsGate() }, { enabled: true, pace: false })
       : new DirectReader(),
     worstCaseCredits: s.worst,
     usdPerCredit: s.usd,

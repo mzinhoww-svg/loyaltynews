@@ -9,7 +9,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, appendFileSync } fr
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
-import { createReader, ScrapflyReader, ZyteReader, ApifyRagBrowserReader, ExaContentsReader, BrightDataUnlockerReader } from '@ln/intelligence';
+import { createReader, createRobotsGate, ScrapflyReader, ZyteReader, ApifyRagBrowserReader, ExaContentsReader, BrightDataUnlockerReader } from '@ln/intelligence';
 import type { KeyedReader } from '@ln/intelligence';
 import { BudgetGuard, type ProviderBudget } from '../src/budget.ts';
 import { DirectReader } from '../src/direct-reader.ts';
@@ -53,7 +53,7 @@ const BUDGETS: Record<string, ProviderBudget> = {
 };
 
 function pooled(keyed: KeyedReader, keyName: string, cap: number) {
-  return createReader({ keyed, keys: [{ label: 'conta', secretRef: keyName, monthlyCreditCap: cap }], resolveSecret: secret }, { enabled: true, pace: false });
+  return createReader({ keyed, keys: [{ label: 'conta', secretRef: keyName, monthlyCreditCap: cap }], resolveSecret: secret, robots: createRobotsGate() }, { enabled: true, pace: false });
 }
 
 /** Espaço mínimo entre chamadas ao MESMO provedor (Firecrawl Free ≈ 10/min). */
