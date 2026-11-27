@@ -118,6 +118,9 @@ const eventoPassado = { id: 'ev-passado', titulo: '[MOCK] Evento encerrado', ini
 const eventoHostil = { id: 'ev-xss', titulo: '[MOCK] </script><script>window.__xss_evento=1</script> Evento hostil', inicio: day(15), fim: day(15), local: '</script><script>window.__xss_local=1</script>', url: 'https://evento.example/?q=</script><script>window.__xss_evurl=1</script>', editorias: [], patrocinado: false, fonteUrl: 'https://fonte.example/x?q=</script><script>window.__xss_evfonte=1</script>' };
 const agendaMode = process.env.FAKE_API_AGENDA ?? 'ok'; // ok | vazia
 
+// FAKE_API_FALHA: derruba (503) só uma das leituras de matérias da home: flash | editoria (bancos) | destaques | ultimas.
+const falhaParcial = process.env.FAKE_API_FALHA ?? '';
+
 // GET /api/publico/site (formato de apps/web/app/api/_lib/site/index.ts). FAKE_API_SITE: full (padrão) | vazio | noindex | invalido | malicioso.
 const siteMode = process.env.FAKE_API_SITE ?? 'full';
 const siteFull = () => ({
@@ -270,6 +273,8 @@ http
     const ev = /^\/api\/publico\/agenda\/([^/]+)$/.exec(u.pathname);
     if (ev) {
       const id = decodeURIComponent(ev[1]);
+      // Gatilho de teste (N7): erro na rota por id, fora da lista.
+      if (id === 'ev-falha') return send(res, 500, { error: { code: 'INTERNAL', message: 'detalhe interno de teste' } });
       const found = [...agendaEvents, eventoPassado, eventoHostil].find((e) => e.id === id);
       return found ? send(res, 200, { data: found }) : send(res, 404, { error: { code: 'NOT_FOUND', message: 'Evento não encontrado.' } });
     }
@@ -295,6 +300,9 @@ http
       const tipo = u.searchParams.get('tipo');
       if (tipo !== null && !TIPOS.includes(tipo)) return send(res, 400, { error: { code: 'VALIDATION_ERROR', message: 'tipo inválido' } });
       if (q !== undefined && (q.length > 100 || q.length === 0)) return send(res, 400, { error: { code: 'VALIDATION_ERROR', message: 'q inválido' } });
+      const semFiltro = ed === null && tipo === null && q === undefined;
+      const derrubada = { flash: tipo === 'flash', editoria: ed === 'bancos', destaques: semFiltro && limit === 6, ultimas: semFiltro && limit === 12 }[falhaParcial];
+      if (derrubada) return send(res, 503, { error: { code: 'NOT_CONFIGURED', message: 'detalhe interno de teste' } });
       const all = articles.filter((a) => (!ed || a.editoria === ed) && (!tipo || a.tipoConteudo === tipo) && (!q || a.titulo.toLowerCase().includes(q) || a.resumo.toLowerCase().includes(q)));
       return send(res, 200, { data: all.slice(offset, offset + limit).map(listItem), total: all.length, limit, offset });
     }
