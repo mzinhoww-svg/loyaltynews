@@ -25,11 +25,10 @@ const assertWellFormed = (a: TemplateAsset) => {
   expect(root.getAttribute("width")).toBe(String(a.width));
   expect(root.getAttribute("height")).toBe(String(a.height));
   expect(root.getAttribute("viewBox")).toBe(`0 0 ${a.width} ${a.height}`);
-  // O status vem do token: o template não afirma marca aprovada por conta própria.
+  // O status de marca é o do token do brandkit (hoje "approved"); o template só o repete, nunca o afirma por conta própria.
+  expect(meta.status).toBe("approved");
   expect(root.getAttribute("data-brand-status")).toBe(meta.status);
   expect(a.brandStatus).toBe(meta.status);
-  // Caminho aprovado coberto: o brandkit do design system está aprovado e é isso que a peça publica.
-  expect(meta.status).toBe("approved");
   return doc;
 };
 

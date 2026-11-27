@@ -3,7 +3,7 @@
 // concorrência real entre conexões e processos fica em ledger-acceptance.real-pg.test.ts (PostgreSQL local, opt-in).
 import { fileURLToPath } from 'node:url';
 import { createTestDb } from '@ln/db/testing';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { PostgresLedgerStore, type SqlDatabase } from '../budget-pg';
 import { loadPolicyFile } from '../policy';
 import type { ModelPolicy } from '../types';
@@ -14,29 +14,25 @@ const policy = loadPolicyFile(fileURLToPath(new URL('../../fixtures/model.policy
 
 let t: Awaited<ReturnType<typeof createTestDb>> | null = null;
 
-beforeAll(async () => {
-  // Cada harness recebe um banco NOVO carregado do dump de migrações (createTestDb já isola). Não se usa TRUNCATE:
-  // desde a 0037 o ledger é append-only e o próprio banco recusa TRUNCATE/UPDATE/DELETE (A10 prova isso).
-  t = await createTestDb();
-}, 120_000);
 afterAll(async () => {
   await t?.close();
 });
 
+// Cada harness recebe um banco NOVO (createTestDb clona o modelo já migrado). Não se limpa com TRUNCATE: desde a 0037
+// o budget_ledger recusa TRUNCATE por gatilho de STATEMENT, e é o próprio banco que a A10 prova append-only.
 const harness = async (): Promise<AcceptanceHarness> => {
-  // Fecha o banco do harness anterior e abre um novo, com o schema migrado e o ledger vazio.
   await t?.close();
-  t = await createTestDb();
-  const db = t;
-  const make = () => new WithLockAtomicAdapter(new PostgresLedgerStore(db.db as unknown as SqlDatabase));
+  const cur = await createTestDb();
+  t = cur;
+  const mk = () => new WithLockAtomicAdapter(new PostgresLedgerStore(cur.db as unknown as SqlDatabase));
   return {
-    a: make(),
-    b: () => make(),
+    a: mk(),
+    b: () => mk(),
     policy,
     tamper: async (kind) => {
-      if (kind === 'update') await db.client.query('UPDATE budget_ledger SET delta_microusd = 1 WHERE true');
-      else if (kind === 'delete') await db.client.query('DELETE FROM budget_ledger WHERE true');
-      else await db.client.query('DELETE FROM budget_reservations WHERE true');
+      if (kind === 'update') await cur.client.query('UPDATE budget_ledger SET delta_microusd = 1 WHERE true');
+      else if (kind === 'delete') await cur.client.query('DELETE FROM budget_ledger WHERE true');
+      else await cur.client.query('DELETE FROM budget_reservations WHERE true');
     },
   };
 };
