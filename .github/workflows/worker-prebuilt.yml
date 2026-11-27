@@ -1,0 +1,128 @@
+# Constroi o worker (apps/workers/dist) num Linux e entrega o pacote PRE-CONSTRUIDO do worker:
+# o dist vai dentro do pacote e o app sobe com build_command VAZIO na Vertra (sem esbuild/OOM no build).
+# O numero de aceite e o `zip-sha256` impresso no summary. Sem segredos; so workflow_dispatch.
+# O empacotamento (BUILD= vazio, dist no pacote, manifesto do ZIP final) e o package-prebuilt.mjs --tipo workers do PROPRIO
+# commit do workflow (checkout em ferramentas/), entao tambem empacota commits anteriores ao script (ex.: o que esta em producao).
+name: worker-prebuilt
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit:
+        description: SHA de 40 hexadecimais do commit a construir (ja enviado ao GitHub)
+        required: true
+        type: string
+      perfil:
+        description: staging ou production
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-prebuilt-${{ inputs.perfil }}
+  cancel-in-progress: false
+
+jobs:
+  construir:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      LN_COMMIT: ${{ inputs.commit }}
+      LN_PERFIL: ${{ inputs.perfil }}
+    steps:
+      - name: Validar as entradas
+        run: |
+          set -euo pipefail
+          [[ "$LN_COMMIT" =~ ^[0-9a-f]{40}$ ]] || { echo "commit precisa ter 40 hexadecimais minusculos"; exit 1; }
+          [[ "$LN_PERFIL" == "staging" || "$LN_PERFIL" == "production" ]] || { echo "perfil invalido"; exit 1; }
+
+      - name: Codigo do commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.commit }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Conferir que o checkout e o commit pedido
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$LN_COMMIT"
+
+      - name: Producao so constroi commit que ja esta na main
+        run: |
+          set -euo pipefail
+          if [[ "$LN_PERFIL" == "production" ]]; then
+            git fetch --no-tags origin main
+            if git merge-base --is-ancestor "$LN_COMMIT" origin/main; then
+              echo "ok: $LN_COMMIT e ancestral de origin/main ($(git rev-parse origin/main))"
+            else
+              rc=$?
+              if [[ "$rc" -eq 1 ]]; then
+                echo "RECUSADO: o commit $LN_COMMIT nao e ancestral da main."
+              else
+                echo "ERRO ao conferir a ancestralidade (codigo $rc)."
+              fi
+              exit 1
+            fi
+          fi
+
+      - name: Versao do Node da Vertra
+        id: node
+        run: |
+          set -euo pipefail
+          echo "versao=$(node -p "require('./infra/vertra/environments.json').runtime.node")" >> "$GITHUB_OUTPUT"
+
+      - name: Node igual ao da Vertra
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: ${{ steps.node.outputs.versao }}
+
+      - name: Pacote do worker do mesmo commit (package-web)
+        run: |
+          set -euo pipefail
+          node infra/scripts/package-web.mjs --repo . --commit "$LN_COMMIT" --out /tmp/pacote --profile "$LN_PERFIL" --app workers
+          PASTA="$(ls -d /tmp/pacote/ln-workers-*/ | head -1)"
+          echo "PASTA=${PASTA%/}" >> "$GITHUB_ENV"
+
+      - name: Dependencias e build do worker
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build -w apps/workers
+          test -s apps/workers/dist/index.js
+
+      - name: Ferramentas do commit do workflow
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.sha }}
+          path: ferramentas
+          persist-credentials: false
+
+      - name: Pacote pre-construido (package-prebuilt --tipo workers)
+        env:
+          LN_ORIGEM: github-actions ${{ github.repository }} run ${{ github.run_id }} (workflow ${{ github.sha }})
+        run: |
+          set -euo pipefail
+          command -v zip >/dev/null || { sudo apt-get update -qq && sudo apt-get install -y -qq zip; }
+          # zera o BUILD= do vertracloud.config, poe o dist no pacote e grava o manifesto do ZIP FINAL (sha256, bytes, lista)
+          node ferramentas/infra/scripts/package-prebuilt.mjs --tipo workers --pacote "$PASTA" --dist apps/workers/dist --out /tmp/prebuilt --origem "$LN_ORIGEM"
+          FINAL="/tmp/prebuilt/$(basename "$PASTA")-prebuilt"
+          grep -qx 'BUILD=' "$FINAL/vertracloud.config" || { echo "BUILD= nao saiu vazio"; exit 1; }
+          SHA="$(sha256sum "$FINAL.zip" | awk '{print $1}')"
+          MAN="$(node -p "require(process.argv[1]).zipSha256" "$FINAL.manifest.json")"
+          test "$SHA" = "$MAN" || { echo "manifesto ($MAN) nao aponta para o ZIP final ($SHA)"; exit 1; }
+          echo "$(basename "$FINAL").zip - $(stat -c%s "$FINAL.zip") B" >> "$GITHUB_STEP_SUMMARY"
+          echo "zip-sha256=$SHA" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Artefato
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: worker-prebuilt-${{ inputs.perfil }}-${{ inputs.commit }}
+          path: /tmp/prebuilt/
+          retention-days: 7
+          if-no-files-found: error
