@@ -174,7 +174,8 @@ if (provaPng) INCLUDE.push('infra/scripts/prova-png.mjs');
 // As CLIs do worker (bench-graph, staging-admin, prod-admin, seed-staging) importam infra/vertra/bindings.json NO BUILD (esbuild). Sem ele o build do pacote morre com
 // "Could not resolve ../../../infra/vertra/bindings.json" (24/11/2026: derrubou o app descartável do benchmark). Só host e nome do banco, nenhum segredo.
 if (appKey === 'workers') INCLUDE.push('infra/vertra/bindings.json');
-const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e'];
+// os testes `e2e-*.test.ts` importam `apps/web/e2e`, que fica fora: dentro do pacote o typecheck do next build reprova (TS2307, v16, 27/11)
+const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e', ':(exclude,glob)apps/web/**/e2e-*.test.ts'];
 const pathspec = [...INCLUDE, ...EXCLUDE];
 const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '--', p]));
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
