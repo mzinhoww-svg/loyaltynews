@@ -2,8 +2,9 @@
   {
     "id": "D01",
     "status": "registrada",
-    "escolha": "Aceite autônomo, independente; sem aprovação humana de rotina",
-    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
+    "escolha": "Nenhuma aprovação humana; os bots aprovam e operam sozinhos. Complemento (DP-69): \"voce tem total autonomia de publicacao, pagameto, orcamento e juridico, nao sendo exclusivo do proprietario\"",
+    "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2; DP-69",
+    "nota": "Leitura do PM sobre a DP-69, ate o proprietario dizer outra coisa: o PM decide publicacao (inclusive o GO de producao), orcamento e juridico; tetos numericos seguem (US$ 50/mes em API tarifada; US$ 0 de despesa nova); cada pagamento e confirmado com item, preco e total; a assinatura raiz continua do proprietario; revisao independente, DP-66 e a ordem tecnica da DP-67 seguem"
   },
   {
     "id": "D02",
