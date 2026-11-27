@@ -10,7 +10,7 @@ const env = (account: string) => ({
 });
 
 function io() {
-  const seen: { url?: string; body?: { usage?: { lane?: string; account?: string; model?: string; costMicro?: number } } } = {};
+  const seen: { url?: string; body?: { usage?: { lane?: string; account?: string; model?: string; costMicro?: number }; trace?: { stage?: string } } } = {};
   return {
     readFile: () => 'segredo-de-teste',
     now: () => Date.parse('2026-11-25T18:00:00.000Z'),
@@ -45,7 +45,7 @@ describe('cliente do agente: lane opencode', () => {
   it('aceita a etapa context (classe do despacho) e a envia no trace', async () => {
     const i = io();
     await run(done.map((x) => (x === 'draft' ? 'context' : x)), env('opencode'), i as never);
-    expect(i.seen.body.trace.stage).toBe('context');
+    expect(i.seen.body!.trace!.stage).toBe('context');
   });
 
   it('antigravity continua recusada pelo cliente', async () => {
