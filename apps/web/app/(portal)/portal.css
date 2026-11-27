@@ -4,7 +4,7 @@
  * Regra: nada de hex solto aqui; tudo por token. Densidade de portal de notícias: seções de 24px,
  * títulos de 20px com barra curta, grades de 16px, cartões sem caixa de imagem quando não há foto.
  */
-.pt { display: flex; flex-direction: column; min-height: 100vh; font-family: var(--ln-font-ui); font-size: var(--ln-text-md); line-height: 1.5; }
+.pt { display: flex; flex-direction: column; min-height: 100vh; font-family: var(--ln-font-ui); font-size: var(--ln-text-md); line-height: 1.5; --ln-layout-container: 1280px; }
 .pt-wrap { width: 100%; max-width: var(--ln-layout-container); margin: 0 auto; padding: 0 var(--ln-layout-gutter); }
 .pt-main { flex: 1; padding-bottom: var(--ln-space-4); }
 .pt-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -26,14 +26,14 @@
 /* grades e colunas */
 .pt-grid { display: grid; gap: var(--ln-space-4); grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: start; }
 .pt-grid-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.pt-hero { display: grid; gap: var(--ln-space-5); grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); align-items: start; }
-.pt-hero-side { display: grid; gap: var(--ln-space-3); align-content: start; }
+.pt-hero { display: grid; gap: var(--ln-space-5); grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; }
+.pt-hero-side { display: grid; gap: var(--ln-space-3); grid-column: span 2; grid-template-columns: repeat(2, minmax(0, 1fr)); align-content: start; }
 .pt-hero-side .ln-card { padding-bottom: var(--ln-space-3); border-bottom: 1px solid var(--ln-color-border); }
 .pt-hero-side .ln-card:last-child { border-bottom: 0; padding-bottom: 0; }
 /* destaque sem foto: manchete em largura total e os demais em linha (sem vazio ao lado) */
 .pt-hero--text { grid-template-columns: minmax(0, 1fr); gap: var(--ln-space-4); }
 .pt-hero--text .ln-card--lg .ln-card__title { max-width: 28ch; }
-.pt-hero--text .pt-hero-side { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--ln-space-4); padding-top: var(--ln-space-3); border-top: 1px solid var(--ln-color-border); }
+.pt-hero--text .pt-hero-side { grid-column: auto; grid-template-columns: repeat(4, minmax(0, 1fr));gap: var(--ln-space-4); padding-top: var(--ln-space-3); border-top: 1px solid var(--ln-color-border); }
 .pt-hero--text .pt-hero-side .ln-card { border-bottom: 0; padding-bottom: 0; }
 .pt-layout { display: grid; gap: var(--ln-space-6); grid-template-columns: minmax(0, 1fr) 320px; align-items: start; }
 .pt-col { min-width: 0; }
@@ -110,8 +110,14 @@
   .pt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pt-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* tablet (768–1023): mantém as duas colunas 7/5 de antes; a grade de três colunas vale só a partir de 1024 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .pt-hero:not(.pt-hero--text) { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+  .pt-hero:not(.pt-hero--text) .pt-hero-side { grid-column: auto; grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 767px) {
   .pt-hero { grid-template-columns: minmax(0, 1fr); }
+  .pt-hero-side { grid-column: auto; grid-template-columns: minmax(0, 1fr); }
   .pt-hero--text .pt-hero-side { grid-template-columns: minmax(0, 1fr); }
   .pt-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .pt-body { font-size: 1.0625rem; }
@@ -145,6 +151,14 @@
 .pt-hero-main .ln-card--lg:not(.ln-card--noimg) { grid-template-columns: minmax(0, 1fr); gap: var(--ln-space-3); }
 .pt-hero-main .ln-card--lg .ln-card__byline { flex-wrap: wrap; white-space: normal; row-gap: 2px; }
 .pt-hero-main .ln-card--lg .ln-card__excerpt { -webkit-line-clamp: 2; }
+/* Desvio 9 do estado honesto: imagem de abertura mais leve no desktop (370 -> 146 px). A arte aparece inteira (contain sobre o fundo
+ * mint), porque os criativos por código têm texto dentro e o recorte em 146 px cortava marca e rótulos (regra V-07). Nos itens laterais
+ * a imagem fica em cima do título: a miniatura de 144 px ao lado virava um quadrado cortado. */
+@media (min-width: 1024px) {
+  .pt-hero:not(.pt-hero--text) .ln-card__media { height: 146px; aspect-ratio: auto; }
+  .pt-hero:not(.pt-hero--text) .ln-card__media img { object-fit: contain; }
+  .pt-hero:not(.pt-hero--text) .pt-hero-side .ln-card--sm:not(.ln-card--noimg) { grid-template-columns: minmax(0, 1fr); align-content: start; }
+}
 .pt-hero--text .pt-hero-main .ln-card--lg { max-width: 920px; }
 
 /* V-02: topo da matéria com ritmo único (breadcrumb → selos → título → subtítulo → autoria → imagem) */
@@ -239,10 +253,13 @@
 .pt .ln-breadcrumb__item + .ln-breadcrumb__item::before { content: none; margin: 0; }
 .pt .ln-breadcrumb__item:not(:last-child)::after { content: "/"; margin-inline: var(--ln-space-2); color: var(--ln-role-fg-muted); }
 
-/* A-3: destaque com imagem em tela larga: a coluna de itens acompanha a altura do card principal (linhas de mesma altura), sem o vazio sob o 4º item */
+/* A-3: destaque com imagem em tela larga e 1 ou 2 itens laterais: a coluna acompanha a altura do card principal. Com 3 ou mais a grade
+ * 2x2 usa a altura natural de cada linha (esticar abria vazios sob os cartões sem foto). */
 @media (min-width: 1024px) {
-  .pt-hero:not(.pt-hero--text) { align-items: stretch; }
-  .pt-hero:not(.pt-hero--text) .pt-hero-side { grid-auto-rows: 1fr; align-content: stretch; }
+  .pt-hero:not(.pt-hero--text):not(:has(.pt-hero-side > :nth-child(3))) { align-items: stretch; }
+  .pt-hero:not(.pt-hero--text) .pt-hero-side:not(:has(> :nth-child(3))) { grid-auto-rows: 1fr; align-content: stretch; }
+  .pt-hero:not(.pt-hero--text) .pt-hero-side:not(:has(> :nth-child(2))) { grid-template-columns: minmax(0, 1fr); }
+  .pt-hero:not(.pt-hero--text) .pt-hero-side:has(> :nth-child(3)) { align-items: start; }
 }
 
 /* P3-4 (revisão do staging 56e4cdc): sem lateral a matéria é filha direta do .pt-wrap e a coluna de leitura de 760 px ficava à esquerda, com ~40% da

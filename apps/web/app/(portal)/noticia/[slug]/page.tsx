@@ -6,6 +6,7 @@ import { cache } from 'react';
 import { WithSidebar } from '../../_components/Sidebar';
 import { ErrorState } from '../../_components/states';
 import { AdSlot, ArticleGrid, MockTag, Section } from '../../_components/ui';
+import { assinaturaExibida } from '../../_lib/demo';
 import { CONTENT_TYPE_LABEL, editoriaName } from '../../_lib/editorias';
 import { flags } from '../../_lib/flags';
 import { formatDate } from '../../_lib/format';
@@ -117,7 +118,7 @@ export default async function ArticlePage({ params }: Props) {
           <h1>{a.title}</h1>
           {a.subtitle && <p className="pt-article-sub">{a.subtitle}</p>}
           <div className="pt-byline">
-            <span>{a.authorLabel}</span>
+            <span data-testid="article-byline-author">{assinaturaExibida(a)}</span>
             <span>
               Publicado em <time dateTime={a.publishedAt}>{formatDate(a.publishedAt)}</time>
             </span>

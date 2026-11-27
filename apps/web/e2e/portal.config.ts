@@ -53,7 +53,7 @@ export default defineConfig({
             ? /api-ads\.spec\.ts/
           : apiIntel
             ? /(intelligence|moves-estados|intelligence-seed-v3|intelligence-pessoas-moves-seed|empresas-editoria-seed)\.spec\.ts/
-          : /(api|api-site|api-agenda|api-tipos|env|intelligence|a11y-dados|moves-estados|correcoes|seo-dados|cls-dados|header-busca|sem-js|seo|rodape)\.spec\.ts/
+          : /(api|api-site|api-agenda|api-tipos|env|intelligence|a11y-dados|moves-estados|correcoes|seo-dados|cls-dados|header-busca|sem-js|seo|rodape|demo-staging|demo-assinatura)\.spec\.ts/
       : indexavel
         ? /.*\.spec\.ts/
         : /env\.spec\.ts/,
