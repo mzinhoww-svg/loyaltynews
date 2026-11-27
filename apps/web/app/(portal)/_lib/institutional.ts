@@ -186,7 +186,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
     title: 'Privacidade e LGPD',
     lead: 'Como tratamos dados pessoais de leitores, assinantes e pessoas citadas.',
     // Texto aprovado pelo proprietário (DP-68); desvios por mudança de código ou de decisão estão em institucional-lancamento.test.ts.
-    draftNotice: 'Minuta v0.5, sujeita à validação jurídica.',
+    draftNotice: 'Minuta v0.6, sujeita à validação jurídica.',
     sections: [
       {
         heading: '1. Quem responde pelos seus dados',
@@ -213,8 +213,10 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
         paragraphs: [
           'Usamos os dados para responder ao pedido de proposta ou de mídia kit e conduzir a negociação. A base legal são os procedimentos preliminares a um contrato, a seu pedido (LGPD, art. 7º, V). Uma newsletter só poderá ser enviada com o seu consentimento separado (art. 7º, I).',
           'Têm acesso a equipe comercial e a administração do portal. Não vendemos esses dados.',
-          'Hoje não há apagamento automático em funcionamento nem opção no painel para excluir um pedido: os dados permanecem guardados. Para pedir a exclusão, escreva para contato@loyaltynews.com.br; o atendimento é manual.',
-          'Os contatos comerciais registrados pela equipe também não têm prazo de exclusão nem rotina de apagamento.',
+          'O sistema apaga automaticamente o pedido que não foi marcado como convertido nem ligado a uma conta de empresa: depois de 12 meses sem alteração no pedido ou na oportunidade ligada a ele, ou, se foi descartado, 30 dias depois do descarte. Essa limpeza roda quando o programa de rotinas do sistema inicia e depois a cada 6 horas.',
+          'O pedido que a equipe marcou como convertido, ou ligou a uma conta de empresa, não é apagado automaticamente, mesmo que depois seja descartado. Marcar como convertido não significa que há contrato. Quando um pedido é apagado, a conta e a oportunidade da empresa, se existirem, permanecem sem ligação com ele. Cada limpeza que apaga algum pedido registra na auditoria apenas as quantidades.',
+          'Para pedir a exclusão antes desses prazos, escreva para contato@loyaltynews.com.br; o atendimento é manual. A administração ou a equipe comercial pode excluir o pedido, e o registro dessa exclusão guarda um código do identificador, quem excluiu, o papel, a data e a origem.',
+          'Os contatos comerciais registrados pela equipe não têm prazo de exclusão nem rotina de apagamento.',
         ],
       },
       {
@@ -258,8 +260,10 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: '9. Segurança e endereço IP',
         paragraphs: [
-          'Usamos senha protegida por hash, segundo fator obrigatório no painel, controle de acesso por papel e auditoria. Para segurança e prevenção a fraude, com base no legítimo interesse (art. 7º, IX), limitamos tentativas de acesso ao painel por conta e envios do formulário de correção por contato. Essas contagens guardam um código no lugar do e-mail. Esse código é um pseudônimo e continua sendo dado pessoal. A limpeza periódica dessas contagens ainda não está ativa. A auditoria de login também guarda um código no lugar do e-mail e não é apagada (item 7).',
-          'Hoje o sistema do portal não usa o seu endereço IP para limitar tentativas nem registra código de IP na auditoria. As empresas que fazem o site funcionar podem registrar o IP nos registros de acesso delas; o que guardam e por quanto tempo ainda será confirmado.',
+          'Usamos senha protegida por hash, segundo fator obrigatório no painel, controle de acesso por papel e auditoria. Para segurança e prevenção a fraude, com base no legítimo interesse (art. 7º, IX), limitamos tentativas de acesso ao painel por conta e por endereço IP. Os envios públicos ao sistema (pedido de proposta, direito de resposta, pedido de correção ou remoção e sugestão de evento) são limitados por endereço IP; o pedido de correção ou remoção é limitado também por contato. Quando o endereço não pode ser identificado, os envios de proposta e de direito de resposta têm um limite geral para cada um.',
+          'Essas contagens guardam um código no lugar do e-mail, do contato ou do endereço IP. As contagens sem bloqueio em vigor, iniciadas há mais de 24 horas, são apagadas automaticamente por uma limpeza que roda de hora em hora.',
+          'A auditoria de login guarda um código no lugar do e-mail e essas linhas não são apagadas (item 7). O registro de auditoria também pode guardar um código do endereço IP, nunca o número: esse código é apagado depois de 12 meses, e a linha permanece. Todo código usado no lugar de um dado é um pseudônimo e continua sendo dado pessoal.',
+          'As empresas que fazem o site funcionar podem registrar o IP nos registros de acesso delas; o que guardam e por quanto tempo ainda será confirmado.',
           'Nenhum sistema é infalível.',
         ],
       },
@@ -272,7 +276,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: '11. Alterações',
         paragraphs: [
-          'Versão 0.5, aprovada em 27/11/2026.',
+          'Versão 0.6, de 27/11/2026.',
         ],
       },
     ],

@@ -63,23 +63,46 @@ describe('institucional do lançamento', () => {
     expect(p).not.toMatch(/formatos de interesse/);
     expect(p).toMatch(/art\. 7º, V\)/); expect(p).toMatch(/consentimento separado \(art\. 7º, I\)/); expect(p).toMatch(/legítimo interesse \(art\. 7º, IX\)/);
     expect(p).toMatch(/Não vendemos esses dados/);
-    // o que NÃO roda hoje é dito como não ativo; nenhuma promessa de apagamento automático, prazo de guarda ou descadastro
-    expect(p).toMatch(/Hoje não há apagamento automático em funcionamento/); expect(p).toMatch(/limpeza periódica dessas contagens ainda não está ativa/);
-    expect(p).not.toMatch(/apagamento é automático|12 meses|30 dias|24 horas|descadastro/i);
-    expect(p).toMatch(/Hoje o sistema do portal não usa o seu endereço IP para limitar tentativas nem registra código de IP na auditoria/);
+    // DP-76, janela A: limpeza automática, exclusão e limite por IP. Cada promessa é conferida no código em outro teste.
+    expect(p).toContain('depois de 12 meses sem alteração no pedido ou na oportunidade ligada a ele, ou, se foi descartado, 30 dias depois do descarte');
+    expect(p).toMatch(/depois a cada 6 horas[^]*marcou como convertido, ou ligou a uma conta de empresa, não é apagado automaticamente, mesmo que depois seja descartado/);
+    expect(p).toMatch(/Para pedir a exclusão antes desses prazos, escreva para contato@loyaltynews\.com\.br[^]*quem excluiu, o papel, a data e a origem/);
+    expect(p).toContain('Os contatos comerciais registrados pela equipe não têm prazo de exclusão nem rotina de apagamento.');
+    expect(p).toMatch(/por conta e por endereço IP[^]*proposta, direito de resposta, pedido de correção ou remoção e sugestão de evento[^]*limitado também por contato/);
+    expect(p).toMatch(/iniciadas há mais de 24 horas[^]*de hora em hora/); expect(p).toMatch(/código do endereço IP, nunca o número: esse código é apagado depois de 12 meses, e a linha permanece/);
+    expect(p).not.toMatch(/não há apagamento automático|ainda não está ativa|não usa o seu endereço IP|nem opção no painel|botão|descadastro|parecer/i);
     expect(p).not.toMatch(/sem dado pessoal|IP anonimizado|por até 2 anos/i);
     // login: a auditoria grava um código no lugar do e-mail (PR #74); linhas antigas são declaradas
     expect(p).toMatch(/grava na auditoria um código no lugar do e-mail digitado[^]*pseudônimo e continua sendo dado pessoal[^]*anteriores a essa mudança guardam o e-mail digitado; eles não são apagados/);
     expect(p).not.toMatch(/grava na auditoria o e-mail digitado|e-mail digitado em texto legível/);
     expect(p).toMatch(/Cloudflare[^]*Vertra/);
     expect(p).not.toMatch(/DP-\d|HMAC/);
-    expect(INFO_DOCS['privacidade']?.draftNotice).toBe('Minuta v0.5, sujeita à validação jurídica.');
-    expect(INFO_DOCS['privacidade']!.sections.at(-1)!.paragraphs).toEqual(['Versão 0.5, aprovada em 27/11/2026.']);
+    expect(INFO_DOCS['privacidade']?.draftNotice).toBe('Minuta v0.6, sujeita à validação jurídica.');
+    expect(INFO_DOCS['privacidade']!.sections.at(-1)!.paragraphs).toEqual(['Versão 0.6, de 27/11/2026.']);
     // item 7 mudou depois da aprovação do texto 7C5F07D0 (PM, DP-69; achado do QA 6): a sessão é a que o código configura
     expect(p).toContain('A sessão vale por até 12 horas, contadas da entrada ou da última renovação feita durante o uso. Não há limpeza periódica das sessões vencidas: uma sessão vencida é apagada se o sistema voltar a consultá-la.');
     expect(p).not.toMatch(/12 horas sem uso|sessões vencidas não são apagadas/);
     expect(ler('../../../packages/auth/src/server.ts')).toMatch(/expiresIn: opts\.sessionSeconds \?\? 12 \* 3600,\s+updateAge: 3600,/);
     expect(p).not.toMatch(/quando o texto for aprovado|Esta política é uma minuta/);
+  });
+
+  it('o código sustenta o que a privacidade diz sobre limpeza, exclusão e limite por IP', () => {
+    const lead = ler('../../workers/src/lead-retention.ts');
+    expect(lead).toMatch(/NAO_CONVERTIDO_MESES = 12;[^]*DESCARTADO_DIAS = 30;/);
+    expect(lead).toContain("WHERE conta_id IS NULL AND status <> 'convertido'"); expect(lead).toContain('o.intervalMs ?? 6 * 3_600_000');
+    expect(lead).toContain('UPDATE crm_opportunities SET lead_id = NULL'); expect(lead).toContain('detalhe: { ...out }');
+    expect(ler('../../../packages/auth/src/attempts.ts')).toMatch(/ATTEMPT_RETENTION_MS = 24 \* 3_600_000;/);
+    expect(ler('../../workers/src/attempt-retention.ts')).toContain('o.intervalMs ?? 3_600_000');
+    expect(ler('../../workers/src/audit-ip-retention.ts')).toMatch(/AUDIT_IP_MESES = 12;[^]*UPDATE audit_log SET ip = NULL/);
+    const main = ler('../../workers/src/main.ts');
+    for (const f of ['startAttemptRetention({', 'startLeadRetention({', 'startAuditIpRetention({']) expect(main, f).toContain(f);
+    const login = ler('../../../packages/auth/src/handler.ts');
+    expect(login).toContain("acquireAttempt(db, 'conta', email, t)"); expect(login).toContain("acquireAttempt(db, 'ip', ip, t)");
+    expect(ler('../app/api/_lib/commercial/index.ts')).toMatch(/limitedForm: \(r\) => r\.path === LEADS_PATH/);
+    expect(ler('../app/api/_lib/editorial/index.ts')).toMatch(/limitedForm: \(r\) => r\.path === `\$\{PUB\}\/right-of-reply`/);
+    expect(ler('../app/api/_lib/titular.ts')).toMatch(/titular:\$\{c\.ip\}[^]*titular-contato:/);
+    expect(ler('../app/api/_lib/agenda.ts')).toContain('`agenda:${c.ip}`');
+    expect(ler('../app/api/_lib/commercial/index.ts')).toContain("origin: 'studio'");
   });
 
   it('o código sustenta o que a privacidade diz sobre o login: o e-mail digitado não vai à auditoria', () => {
