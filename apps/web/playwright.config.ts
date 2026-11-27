@@ -6,7 +6,9 @@ const PORT = Number(process.env.E2E_PORT ?? 3100);
 export default defineConfig({
   testDir: './e2e',
   // e2e/portal-real tem config própria (e2e/portal-real.config.ts: harness do build de produção, seed real e flags por ambiente); fora dela roda sem o ambiente e semeia o banco compartilhado (int/021).
-  testIgnore: ['**/portal-real/**'],
+  // e2e/tipografia mede o perfil vitrine (matéria mock e login de teste) e tem config própria: e2e/tipografia/medir.config.ts.
+  // Na suíte de produção as provas dela caem em 404 (sem matéria mock) e falhavam por ambiente, não por produto.
+  testIgnore: ['**/portal-real/**', '**/tipografia/**'],
   timeout: 60_000,
   retries: 0,
   // Um worker: o backend de e2e usa um PGlite de conexão única (transações de requisições concorrentes se intercalariam) e o banco é compartilhado entre os specs.
@@ -20,7 +22,7 @@ export default defineConfig({
     url: `http://127.0.0.1:${PORT}/api/health`,
     // E2E do Studio roda no build de e2e (.next-e2e, LN_E2E_BUILD=1), o único que contém o backend de teste (PGlite + login de teste).
     // O build de produção não o contém nem aceita estas variáveis (scripts/verify-no-mock.mjs).
-    env: { LN_E2E_BUILD: '1', LN_STUDIO_TEST_SESSION: '1', LN_ATTEMPT_HMAC_KEY: 'e2e-chave-do-hmac-de-ip-com-32-caracteres', LN_STUDIO_DEV_DB: 'pglite', PORTAL_BASE_URL: 'https://portal.example.test' },
+    env: { LN_E2E_BUILD: '1', LN_STUDIO_TEST_SESSION: '1', LN_ATTEMPT_HMAC_KEY: 'e2e-chave-do-hmac-de-ip-com-32-caracteres', LN_STUDIO_DEV_DB: 'pglite', BETTER_AUTH_SECRET: 'segredo-de-teste-do-e2e-com-32-bytes!!', PORTAL_BASE_URL: 'https://portal.example.test' },
     reuseExistingServer: false,
     timeout: 120_000,
   },

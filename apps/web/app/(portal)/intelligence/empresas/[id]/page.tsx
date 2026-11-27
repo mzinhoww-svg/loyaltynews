@@ -152,12 +152,17 @@ export default async function EmpresaPage({ params }: { params: Promise<{ id: st
         )}
       </section>
 
-      {moves.status === 'ok' && moves.items.length > 0 && (
+      {/* Falha de leitura aparece como falha: sumir com a seção diria "não há movimentação". */}
+      {(moves.status === 'unavailable' || moves.items.length > 0) && (
         <section className="pt-section" aria-labelledby="mov-t">
           <div className="pt-section-head"><h2 id="mov-t">Movimentações confirmadas</h2></div>
-          <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 16 }}>
-            {moves.items.map((m) => <li key={m.id}><MoveCard m={m} headingLevel={3} /></li>)}
-          </ul>
+          {moves.status === 'unavailable' ? (
+            <ErrorState title="Movimentações temporariamente indisponíveis" appearance="inline" retryHref={`/intelligence/empresas/${c.id}`} />
+          ) : (
+            <ul style={{ listStyle: 'none', padding: 0, display: 'grid', gap: 16 }}>
+              {moves.items.map((m) => <li key={m.id}><MoveCard m={m} headingLevel={3} /></li>)}
+            </ul>
+          )}
         </section>
       )}
 

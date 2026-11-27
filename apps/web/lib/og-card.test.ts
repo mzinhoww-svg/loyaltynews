@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { OG_COLORS, OgCardRefusal, dataCurta, planejarOgCard, podeGerarOgCard, quebrarManchete, tamanhoDaManchete } from './og-card';
+import { OG_CARD, OG_COLORS, OgCardRefusal, dataCurta, planejarOgCard, podeGerarOgCard, quebrarManchete, tamanhoDaManchete } from './og-card';
 import { ogImagemDaMateria } from '../app/(portal)/_lib/seo';
 
 /** Luminância relativa WCAG 2.x. */
@@ -36,6 +36,32 @@ describe('card de OG por matéria: manchete', () => {
     const desenhado = plano.lines.join(' ');
     expect(desenhado).not.toContain('…');
     expect(desenhado).not.toContain('...');
+  });
+
+  // P2 do QA 5 (int038-v7): o passo de 4 px atravessava o mínimo (52 → 48 → 44).
+  it('manchete que só caberia abaixo do mínimo é recusada, nunca desenhada a 44 px', () => {
+    const exemplo = Array(21).fill('milhas').join(' ');
+    expect(() => planejarOgCard({ title: exemplo, editoria: 'Mercado' })).toThrow(/no mínimo de 46px/);
+    expect(podeGerarOgCard({ title: exemplo, editoria: 'Mercado' })).toBe(false);
+  });
+
+  it('manchete que cabe exatamente no mínimo sai a 46 px, nem abaixo nem recusada', () => {
+    // 4 linhas de 40 caracteres: cabem a 46 px (40 por linha), não a 48 px (39 por linha).
+    const linha = 'abcdefghijklm abcdefghijklm abcdefghijkl';
+    const titulo = Array(4).fill(linha).join(' ');
+    expect(linha.length).toBe(40);
+    const plano = planejarOgCard({ title: titulo, editoria: 'Mercado' });
+    expect(plano.fontSize).toBe(46);
+    expect(plano.lines).toEqual(Array(4).fill(linha));
+  });
+
+  it('nenhum plano aceito usa fonte menor que o mínimo, em qualquer comprimento', () => {
+    for (let tamanho = 1; tamanho <= 14; tamanho++) {
+      for (let palavras = 1; palavras <= 40; palavras++) {
+        const title = Array(palavras).fill('m'.repeat(tamanho)).join(' ');
+        if (podeGerarOgCard({ title, editoria: 'Mercado' })) expect(planejarOgCard({ title, editoria: 'Mercado' }).fontSize, title).toBeGreaterThanOrEqual(OG_CARD.minFontSize);
+      }
+    }
   });
 
   it('manchete que não cabe é RECUSADA, nunca truncada', () => {

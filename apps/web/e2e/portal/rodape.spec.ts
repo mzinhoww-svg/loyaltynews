@@ -105,11 +105,18 @@ test.describe('rodapé: grupos por largura', () => {
 test.describe('rodapé: altura e alinhamento (home do modo vazio)', () => {
   test.skip(mode !== 'empty', 'as alturas-alvo são da home sem matérias');
   const MAXIMA: Record<number, number> = { 390: 560, 768: 420, 1280: 440 };
+  const LINHA_COOKIES = 44;
   for (const largura of [390, 768, 1280]) {
     test(`a ${largura} px o rodapé tem no máximo ${MAXIMA[largura]} px`, async ({ page }) => {
       const rodape = await pronto(page, largura);
+      const total = (await rodape.boundingBox())!.height;
+      // O botão "Preferências de cookies" (LGPD) só existe no build indexável e é obrigatório: o desenho se mede SEM ele, no teto de
+      // sempre, e ele tem teto próprio. Medido a 390 px: 564,8 px com o botão, 520,8 sem.
+      const cookies = rodape.getByTestId('preferencias-cookies');
+      if (await cookies.count()) await cookies.evaluate((b) => b.remove());
       const h = (await rodape.boundingBox())!.height;
-      expect(h, `altura ${Math.round(h)} px a ${largura} px`).toBeLessThanOrEqual(MAXIMA[largura]!);
+      expect(h, `altura ${Math.round(h)} px a ${largura} px (sem o botão de cookies)`).toBeLessThanOrEqual(MAXIMA[largura]!);
+      expect(total - h, `o botão de cookies soma ${Math.round(total - h)} px a ${largura} px`).toBeLessThanOrEqual(LINHA_COOKIES);
     });
   }
 
@@ -188,11 +195,15 @@ test.describe('rodapé: acessibilidade e responsividade', () => {
     expect(await resumo.evaluate((e) => parseFloat(getComputedStyle(e).outlineWidth))).toBeGreaterThan(0);
   });
 
-  test('prefers-reduced-motion e impressão: sem animação e com todos os grupos visíveis', async ({ page }) => {
+  test('prefers-reduced-motion e impressão: sem animação e sem o rodapé no papel', async ({ page }) => {
     const rodape = await pronto(page, 390);
+    // Reduzir movimento não muda o recolhimento: no celular os links continuam fechados.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(rodape.locator('.ln-footer__list a').first()).toBeHidden();
+    // No papel sai só a peça: cabeçalho, rodapé, aviso de cookies e banner ficam de fora (portal.css, P2 da auditoria do int/031).
+    // A expectativa anterior (todos os grupos visíveis no papel) contrariava essa decisão de produto.
     await page.emulateMedia({ media: 'print' });
-    await expect(rodape.locator('.ln-footer__list a').first()).toBeVisible();
-    await expect(rodape.locator('.ln-footer__col').nth(1).locator('.ln-footer__list a').first()).toBeVisible();
-    expect(await rodape.locator('summary').first().evaluate((e) => getComputedStyle(e, '::after').content)).toBe('none');
+    await expect(rodape).toBeHidden();
+    expect(await page.locator('.ln-header').evaluate((e) => getComputedStyle(e).display)).toBe('none');
   });
 });

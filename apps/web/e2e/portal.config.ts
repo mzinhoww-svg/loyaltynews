@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { appEnvDoServidor } from './ambiente-servidor';
 
 /**
  * E2E do portal público (Frente 03).
@@ -92,7 +93,7 @@ export default defineConfig({
             PORTAL_SOURCE: mode,
             ...(mode === 'api' ? { PORTAL_API_BASE_URL: `http://localhost:${fakeApiPort}`, PORT: String(port) } : {}),
             // Mock nunca roda com APP_ENV=production (resolveSourceKind recusa): o servidor de mock usa staging.
-            APP_ENV: mode === 'mock' ? 'staging' : appEnv,
+            APP_ENV: appEnvDoServidor(process.env),
             // Interruptor de indexação de produção (DP-24); em staging/mock nunca é definido.
             ...(indexavel && mode !== 'mock' ? { PORTAL_INDEXAVEL: '1' } : {}),
             NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',
@@ -101,6 +102,9 @@ export default defineConfig({
             // faltava só a flag de runtime, e por isso glifo, cache e Studio davam 404 nesse perfil.
             LN_STUDIO_TEST_SESSION: '1',
             LN_STUDIO_DEV_DB: 'pglite',
+            // Chave FIXA só do e2e (não é segredo nem vale em deploy): sem ela o login de teste responde 400.
+            LN_ATTEMPT_HMAC_KEY: 'chave-de-teste-do-limite-32-bytes!!',
+            BETTER_AUTH_SECRET: 'segredo-de-teste-do-e2e-com-32-bytes!!',
             // Flags de produto são de EXECUÇÃO (ADR-022): o mesmo build sobe com ou sem a flag. Só repassa o que o operador do teste definiu.
             ...(process.env.LN_FLAGS_ON ? { LN_FLAGS_ON: process.env.LN_FLAGS_ON } : {}),
           },

@@ -34,7 +34,8 @@ export interface ArticleImage {
 export interface ArticleSource {
   label: string;
   url: string;
-  publishedAt?: string;
+  /** Quando a fonte foi coletada (`capturadoEm` da API). Não é a data de publicação da fonte. */
+  collectedAt?: string;
 }
 
 export interface ArticleCorrection {

@@ -7,13 +7,15 @@ import { chromium, expect, test, type Browser, type Page } from '@playwright/tes
  * Chromium headless, processo de navegador novo por rodada (cache frio), CDP 1,6 Mbps / 750 kbps / 150 ms e CPU 4x.
  * Antes e depois usam este mesmo spec, contra um build de produção local (next build + next start).
  *
- *   TIPOGRAFIA_BASE=http://localhost:3000
+ *   TIPOGRAFIA_BASE=<url>                   (padrão: o servidor da própria suíte, http://127.0.0.1:$E2E_PORT)
  *   TIPOGRAFIA_LADO=antes|depois|negativo   (nome das pastas de evidência)
  *   TIPOGRAFIA_SAIDA=<pasta>                (padrão: e2e/tipografia/evidencias/<lado>)
  *   TIPOGRAFIA_RODADAS=3
  *   TIPOGRAFIA_FONTE_BLOQUEADA=1            (roda só o caso do .woff2 abortado a 768 no perfil)
  */
-const BASE = process.env.TIPOGRAFIA_BASE ?? 'http://localhost:3000';
+// A suíte sobe o servidor em E2E_PORT (playwright.config.ts). Sem TIPOGRAFIA_BASE o spec
+// media o 3000 fixo, que ninguém sobe no e2e, e as provas caíam em ERR_CONNECTION_REFUSED.
+const BASE = process.env.TIPOGRAFIA_BASE ?? `http://127.0.0.1:${process.env.E2E_PORT ?? 3100}`;
 const LADO = process.env.TIPOGRAFIA_LADO ?? 'depois';
 const SAIDA = process.env.TIPOGRAFIA_SAIDA ?? join('e2e', 'tipografia', 'evidencias', LADO);
 const RODADAS = Number(process.env.TIPOGRAFIA_RODADAS ?? 3);

@@ -130,8 +130,10 @@ test.describe('CMS editorial (/api/materias)', () => {
     await enviar(page, page.getByRole('button', { name: 'Aprovar v2' }));
     await sucesso(page, 'Matéria aprovada.');
     await expect(page.locator('.ln-pill', { hasText: 'Aprovado' }).first()).toBeVisible();
-    const hist = page.locator('aside').getByText(/em_checagem → aprovado/);
-    await expect(hist).toBeVisible();
+    // A seta do histórico é SVG (Seta, aria-hidden), não o carácter "→": os dois textos ficam em nós separados.
+    const hist = page.locator('aside li').filter({ hasText: 'em_checagem' }).filter({ hasText: 'aprovado' });
+    await expect(hist).toHaveCount(1);
+    await expect(hist.locator('svg.st-seta')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Salvar como nova versão' })).toHaveCount(0); // revisor não edita
   });
 

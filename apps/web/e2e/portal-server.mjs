@@ -28,6 +28,9 @@ const BUILD_ENV = {
   ...(perfil === 'producao' ? { NEXT_PUBLIC_GA_ID: 'G-E2ETESTE00' } : {}),
   LN_E2E_BUILD: '1',
   LN_E2E_DIST: DIST,
+  // Chave FIXA só do e2e (não é segredo nem vale em deploy): o login de teste responde 400 sem ela.
+  LN_ATTEMPT_HMAC_KEY: 'chave-de-teste-do-limite-32-bytes!!',
+  BETTER_AUTH_SECRET: 'segredo-de-teste-do-e2e-com-32-bytes!!',
   NEXT_TELEMETRY_DISABLED: '1',
 };
 const RUNTIME_ONLY = ['PORTAL_SOURCE', 'PORTAL_API_BASE_URL', 'PORTAL_INDEXAVEL', 'PORT', 'LN_STUDIO_TEST_SESSION', 'LN_STUDIO_DEV_DB', 'LN_FLAGS_ON'];
@@ -115,7 +118,7 @@ rmSync(join(DIST, 'cache', 'fetch-cache'), { recursive: true, force: true });
 
 // Runtime: as variáveis do modo + LN_E2E_BUILD/LN_E2E_DIST (o next start lê a pasta do build pela config e só aceita a fonte mock
 // fora do deploy com LN_E2E_BUILD=1).
-const srv = spawn(`npx next start -p ${port}`, { stdio: 'inherit', shell: true, env: { ...process.env, LN_E2E_BUILD: '1', LN_E2E_DIST: DIST, NEXT_TELEMETRY_DISABLED: '1' } });
+const srv = spawn(`npx next start -p ${port}`, { stdio: 'inherit', shell: true, env: { ...process.env, LN_E2E_BUILD: '1', LN_E2E_DIST: DIST, NEXT_TELEMETRY_DISABLED: '1', LN_ATTEMPT_HMAC_KEY: process.env.LN_ATTEMPT_HMAC_KEY ?? 'chave-de-teste-do-limite-32-bytes!!', BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET ?? 'segredo-de-teste-do-e2e-com-32-bytes!!' } });
 const parar = () => {
   if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(srv.pid), '/t', '/f'], { stdio: 'ignore' });
   else srv.kill('SIGTERM');

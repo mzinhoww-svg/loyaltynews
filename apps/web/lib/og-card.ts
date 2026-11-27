@@ -96,7 +96,8 @@ export function planejarOgCard(entrada: OgCardEntrada): OgCardPlano {
   let fontSize = tamanhoDaManchete(entrada.title);
   let lines = quebrarManchete(entrada.title, fontSize, larguraUtil);
   while (lines.length > OG_CARD.maxLines && fontSize > OG_CARD.minFontSize) {
-    fontSize -= 4;
+    // O passo nunca atravessa o mínimo: a última tentativa é exatamente nele (QA 5).
+    fontSize = Math.max(OG_CARD.minFontSize, fontSize - 4);
     lines = quebrarManchete(entrada.title, fontSize, larguraUtil);
   }
   if (lines.length > OG_CARD.maxLines) throw new OgCardRefusal(`manchete ocupa ${lines.length} linhas no mínimo de ${OG_CARD.minFontSize}px`);

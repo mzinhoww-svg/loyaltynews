@@ -39,6 +39,9 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
   const dir = await getSource().getCompanyDirectory({ kind, q: q || undefined, offset: (pagina - 1) * DIRETORIO_PAGINA });
   const paginas = dir.status === 'ok' && dir.total ? Math.ceil(dir.total / dir.limit) : 0;
   const fim = dir.status === 'ok' ? dir.offset + dir.items.length : 0;
+  // Três estados, não dois (P2 da auditoria do Senior Auditor, 26/11): com o diretório VAZIO não se culpa o filtro nem se
+  // promete "em breve". `kinds` é contado sobre a busca (q) e sem o filtro de tipo: só sem busca a soma zero prova diretório vazio.
+  const vazio = dir.status === 'ok' && !q && dir.kinds.reduce((n, k) => n + k.total, 0) === 0;
 
   return (
     <>
@@ -122,13 +125,13 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
               O diretório tem {dir.total} {dir.total === 1 ? 'organização publicada' : 'organizações publicadas'} em {paginas} {paginas === 1 ? 'página' : 'páginas'}.
               {' '}<Link href={hrefFor(kind, q, paginas)} style={{ textDecoration: 'underline' }}>Ir para a última página</Link>.
             </EmptyState>
+          ) : vazio ? (
+            <EmptyState title="Ainda não há perfis publicados">
+              O diretório só publica empresas com fonte primária e data de validação. Perfis candidatos ficam internos até a verificação.
+            </EmptyState>
           ) : (
-            <EmptyState title={q || kind ? 'Nenhuma empresa com esse filtro' : 'Em breve: primeiros perfis verificados'}>
-              {q || kind ? (
-                <Link href="/intelligence/empresas" style={{ textDecoration: 'underline' }}>Ver todas as empresas</Link>
-              ) : (
-                'O diretório só publica empresas com fonte primária e data de validação. Perfis candidatos ficam internos até a verificação.'
-              )}
+            <EmptyState title="Nenhuma empresa com esse filtro">
+              <Link href="/intelligence/empresas" style={{ textDecoration: 'underline' }}>Ver todas as empresas</Link>
             </EmptyState>
           )}
         </>

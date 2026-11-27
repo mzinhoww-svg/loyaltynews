@@ -274,6 +274,6 @@ describe('envelope e itens malformados nunca derrubam a página (QA 1: A6.1)', (
     const data = { ...ok({ corpo: 'Texto.' }), erratas: [null, { nota: '', em: '2026-11-21T09:00:00-03:00' }, { nota: 'Corrigido.', em: 'x' }, { nota: 'Corrigido.', em: '2026-11-21T09:00:00-03:00' }], fontes: [null, { url: 3 }, { url: 'https://f.example/a', capturadoEm: 'x' }] };
     const art = (await createApiSlice('http://api.test', resp({ data })).getArticle('x')).article;
     expect(art?.corrections).toHaveLength(1);
-    expect(art?.sources).toEqual([{ label: 'f.example', url: 'https://f.example/a', publishedAt: undefined }]);
+    expect(art?.sources).toEqual([{ label: 'f.example', url: 'https://f.example/a', collectedAt: undefined }]);
   });
 });
