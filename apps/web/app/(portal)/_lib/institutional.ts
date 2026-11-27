@@ -241,7 +241,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: '7. Painel interno',
         paragraphs: [
-          'Para as pessoas autorizadas a publicar, guardamos nome, e-mail, papel, situação de bloqueio, a senha em forma protegida (hash), os dados do segundo fator, o token da sessão e a identificação do navegador usado. A sessão não guarda o endereço IP. Ela expira após 12 horas sem uso e é renovada enquanto usada; sessões vencidas não são apagadas automaticamente.',
+          'Para as pessoas autorizadas a publicar, guardamos nome, e-mail, papel, situação de bloqueio, a senha em forma protegida (hash), os dados do segundo fator, o token da sessão e a identificação do navegador usado. A sessão não guarda o endereço IP. A sessão vale por até 12 horas, contadas da entrada ou da última renovação feita durante o uso. Não há limpeza periódica das sessões vencidas: uma sessão vencida é apagada se o sistema voltar a consultá-la.',
           'Cada tentativa de login (certa, errada ou bloqueada) grava na auditoria um código no lugar do e-mail digitado, mesmo que não exista conta com ele. Esse código é um pseudônimo e continua sendo dado pessoal. Registros anteriores a essa mudança guardam o e-mail digitado; eles não são apagados, e a consulta pelo painel o oculta.',
           'A auditoria registra quem fez o quê: autor, papel, ação, item afetado e detalhes. Senhas, códigos de acesso e textos com endereço de e-mail são removidos; os detalhes podem conter motivos escritos pela equipe. Essas linhas não são apagadas. Podem lê-la a administração e a chefia de redação, e a leitura também é registrada. A conta de administrador pode ser removida por procedimento técnico; para os demais papéis ainda não há rotina de exclusão.',
         ],

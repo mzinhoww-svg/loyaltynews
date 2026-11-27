@@ -75,6 +75,10 @@ describe('institucional do lançamento', () => {
     expect(p).not.toMatch(/DP-\d|HMAC/);
     expect(INFO_DOCS['privacidade']?.draftNotice).toBe('Minuta v0.5, sujeita à validação jurídica.');
     expect(INFO_DOCS['privacidade']!.sections.at(-1)!.paragraphs).toEqual(['Versão 0.5, aprovada em 27/11/2026.']);
+    // item 7 mudou depois da aprovação do texto 7C5F07D0 (PM, DP-69; achado do QA 6): a sessão é a que o código configura
+    expect(p).toContain('A sessão vale por até 12 horas, contadas da entrada ou da última renovação feita durante o uso. Não há limpeza periódica das sessões vencidas: uma sessão vencida é apagada se o sistema voltar a consultá-la.');
+    expect(p).not.toMatch(/12 horas sem uso|sessões vencidas não são apagadas/);
+    expect(ler('../../../packages/auth/src/server.ts')).toMatch(/expiresIn: opts\.sessionSeconds \?\? 12 \* 3600,\s+updateAge: 3600,/);
     expect(p).not.toMatch(/quando o texto for aprovado|Esta política é uma minuta/);
   });
 
