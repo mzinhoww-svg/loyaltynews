@@ -30,6 +30,29 @@ test.describe('assinatura em demonstração (fixtures MOCK)', () => {
     });
   }
 
+  // Varredura: em nenhuma tela de conteúdo a assinatura aparece sem a marca. A tabela rota x ocorrências sai no log.
+  test('varredura das telas de conteúdo: toda assinatura visível está marcada', async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop', 'varredura única; as larguras são trocadas no teste');
+    test.setTimeout(180_000);
+    await page.goto('/');
+    const materia = (await page.locator('.pt-hero-main a').first().getAttribute('href'))!;
+    const rotas = ['/', '/noticias', '/flash', '/analises', '/entrevistas', '/opiniao', '/em-alta', '/busca?q=a', '/editoria/mercado', '/agenda', materia];
+    let total = 0;
+    for (const largura of [390, 1280]) {
+      await page.setViewportSize({ width: largura, height: 900 });
+      for (const rota of rotas) {
+        await page.goto(rota);
+        const texto = await page.locator('main').innerText();
+        const todas = texto.split(AUTOR).length - 1;
+        const marcadas = texto.split(DEMO).length - 1;
+        console.log(`assinatura | ${largura} | ${rota} | visíveis ${todas} | marcadas ${marcadas}`);
+        expect(marcadas, `${largura} ${rota}`).toBe(todas);
+        total += todas;
+      }
+    }
+    expect(total, 'a varredura encontrou assinaturas').toBeGreaterThan(0);
+  });
+
   test('matéria aberta pela home: a linha de autoria sai marcada', async ({ page }) => {
     await page.goto('/');
     await page.locator('.pt-hero-main a').first().click();
