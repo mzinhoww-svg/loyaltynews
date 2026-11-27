@@ -5,7 +5,6 @@
 //   POST /api/studio/correcoes/{id}/decidir  {acao,...}      → corrigido | removido | negado; 409 ALREADY_DECIDED se já decidido
 // A decisão é REGISTRADA aqui. Aplicar o efeito na exibição pública (ocultar pessoa/cargo, corrigir campo) é passo seguinte do
 // Intelligence: o pedido decidido traz `efeitoPublico: 'pendente'` até isso existir. Nada apaga evidência.
-import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
 import { audit, authorize, clientIp } from '@ln/auth';
@@ -13,7 +12,7 @@ import { schema } from '@ln/db';
 import { getDeps } from './deps';
 import { EFEITO_APLICADO } from './titular-efeito';
 import { protocoloDe } from './titular';
-import { HttpError, json, parse, queryObject, readBody, toResponse } from './http';
+import { HttpError, json, parse, queryObject, readBody, requestIdDe, toResponse } from './http';
 
 const t = schema.titularPedidos;
 type Row = typeof t.$inferSelect;
@@ -58,7 +57,7 @@ type Next = { params?: Promise<{ path?: string[] } | Record<string, unknown>> };
 
 /** Dispatcher do catch-all opcional /api/studio/correcoes/[[...path]]. */
 export async function dispatchTitular(req: Request, next?: Next): Promise<Response> {
-  const requestId = req.headers.get('x-request-id') ?? randomUUID();
+  const requestId = requestIdDe(req);
   try {
     const raw = ((await next?.params) as { path?: string[] | string } | undefined)?.path;
     const path = (Array.isArray(raw) ? raw : raw ? [raw] : []).map(String);

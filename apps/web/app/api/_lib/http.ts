@@ -28,6 +28,16 @@ export interface RouteCtx {
   requestId: string;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/**
+ * Identificador da requisição. O `x-request-id` é escrito por quem chama e vai a logs, à resposta e à auditoria: só vale se for um UUID (formato fechado, em que
+ * não cabe e-mail, nome nem texto livre); qualquer outra coisa é descartada e um novo é gerado.
+ */
+export function requestIdDe(req: Request): string {
+  const v = req.headers.get('x-request-id');
+  return v && UUID.test(v) ? v : randomUUID();
+}
+
 export type Perm = 'public' | readonly [Resource, Action];
 export type RouteFn = (req: Request, c: RouteCtx) => Promise<Response>;
 type NextParams = { params?: Promise<Record<string, string>> };
@@ -109,7 +119,7 @@ export async function execute(
   params: Record<string, string> = {},
   opts: { audit?: { action: string; resource: string } } = {},
 ): Promise<Response> {
-  const requestId = req.headers.get('x-request-id') ?? randomUUID();
+  const requestId = requestIdDe(req);
   try {
     const deps = getDeps();
     if (!deps) throw new HttpError(503, 'NOT_CONFIGURED', 'Banco não configurado neste ambiente.');
