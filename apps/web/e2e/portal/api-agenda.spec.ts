@@ -26,11 +26,16 @@ test.describe('agenda do Studio', () => {
     await page.screenshot({ path: path.join(SHOTS, `${info.project.name}-agenda.png`), fullPage: true });
   });
 
-  test('filtros online/presencial não classificam por palpite: modalidade desconhecida só aparece em "Todos"', async ({ page }) => {
-    for (const f of ['online', 'presencial']) {
-      await page.goto(`/agenda?filtro=${f}`);
-      await expect(page.getByTestId('event-row')).toHaveCount(0);
-      await expect(page.getByText('Nenhum evento verificado por enquanto')).toBeVisible();
+  // N2 (26/11): a API não informa modalidade; filtros que nunca retornavam nada escondiam a agenda inteira.
+  test('sem modalidade na fonte não há filtros, e um ?filtro= antigo mostra todos os eventos', async ({ page }) => {
+    await page.goto('/agenda');
+    await expect(page.getByTestId('event-row').first()).toBeVisible();
+    const total = await page.getByTestId('event-row').count();
+    for (const rota of ['/agenda', '/agenda?filtro=online', '/agenda?filtro=presencial']) {
+      await page.goto(rota);
+      await expect(page.getByRole('list', { name: 'Filtros' }), rota).toHaveCount(0);
+      await expect(page.getByTestId('event-row'), rota).toHaveCount(total);
+      await expect(page.getByText('Nenhum evento verificado por enquanto'), rota).toHaveCount(0);
     }
   });
 

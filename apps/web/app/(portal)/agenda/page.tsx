@@ -3,11 +3,11 @@ import Link from 'next/link';
 import { WithSidebar } from '../_components/Sidebar';
 import { ErrorState } from '../_components/states';
 import { AdSlot, EmptyState, MockTag, PageHead } from '../_components/ui';
-import { eventWhen, eventWhere, isUpcoming, noon } from '../_lib/events';
+import { eventWhen, eventWhere, filtroDaAgenda, isUpcoming, noon, type FiltroAgenda } from '../_lib/events';
 import { dayOf, monthAbbrev } from '../_lib/format';
 import { getSource } from '../_lib/source';
 import { metadadosPagina } from '../_seo/paginas';
-import type { EventItem } from '../_lib/types';
+import type { EventItem, EventList } from '../_lib/types';
 
 // Dinâmica: a fonte api lê com cache 'no-store'; com revalidate o Next congelaria no build a cópia sem API ("Page changed from static to dynamic at runtime").
 export const dynamic = 'force-dynamic';
@@ -24,6 +24,8 @@ const FILTERS = [
   { id: 'presencial', label: 'Presencial' },
   { id: 'online', label: 'Online' },
 ] as const;
+
+const validados = (list: EventList) => list.items.filter((e) => e.status === 'validado');
 
 function EventRow({ ev }: { ev: EventItem }) {
   return (
@@ -47,9 +49,8 @@ function EventRow({ ev }: { ev: EventItem }) {
   );
 }
 
-async function AgendaList({ filtro }: { filtro: (typeof FILTERS)[number]['id'] }) {
-  const list = await getSource().listEvents();
-  const all = list.items.filter((e) => e.status === 'validado').sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+function AgendaList({ list, filtro }: { list: EventList; filtro: FiltroAgenda }) {
+  const all = validados(list).sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const now = new Date();
   // Modalidade desconhecida (a fonte não informa) só aparece em "Todos": nunca é classificada por palpite.
   const matches = (e: EventItem) => (filtro === 'online' ? e.online === true : filtro === 'presencial' ? e.online === false : true);
@@ -94,7 +95,8 @@ async function AgendaList({ filtro }: { filtro: (typeof FILTERS)[number]['id'] }
 
 export default async function AgendaPage({ searchParams }: { searchParams: Promise<{ filtro?: string }> }) {
   const sp = await searchParams;
-  const filtro = FILTERS.find((f) => f.id === sp.filtro)?.id ?? 'todos';
+  const list = await getSource().listEvents();
+  const { mostrarFiltros, filtro } = filtroDaAgenda(validados(list), sp.filtro);
   return (
     <>
       <AdSlot slot="topo" />
@@ -103,18 +105,20 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         lead="Eventos do mercado. Só listamos eventos aprovados pela redação, com data e fonte verificadas."
         crumbs={[{ label: 'Agenda' }]}
       />
-      <ul className="pt-chips" aria-label="Filtros">
-        {FILTERS.map((f) => (
-          <li key={f.id}>
-            <Link className="pt-chip" href={f.id === 'todos' ? '/agenda' : `/agenda?filtro=${f.id}`} aria-current={f.id === filtro ? 'true' : undefined}>
-              {f.label}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      {mostrarFiltros && (
+        <ul className="pt-chips" aria-label="Filtros">
+          {FILTERS.map((f) => (
+            <li key={f.id}>
+              <Link className="pt-chip" href={f.id === 'todos' ? '/agenda' : `/agenda?filtro=${f.id}`} aria-current={f.id === filtro ? 'true' : undefined}>
+                {f.label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
       <WithSidebar>
         {/* Sem Suspense/esqueleto: sem JavaScript o esqueleto ficava no lugar da lista (decisão do PM sobre a recomendação da UI/UX). */}
-        <AgendaList filtro={filtro} />
+        <AgendaList list={list} filtro={filtro} />
       </WithSidebar>
     </>
   );
