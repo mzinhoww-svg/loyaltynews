@@ -85,9 +85,32 @@ describe('GET /api/studio/auditoria', () => {
       const saida = JSON.stringify(r.body).toLowerCase();
       for (const proibido of ['@', 'pessoa.antiga', 'senha-colada', 'exemplo-real']) expect(saida, proibido).not.toContain(proibido);
       expect(r.body.data.find((x: any) => x.id === 'antiga-1').detalhe).toEqual({ email: '[e-mail removido]', status: 401 });
+      expect(r.body.data.find((x: any) => x.id === 'antiga-3')).toMatchObject({ actorId: '[e-mail removido]', resourceId: '[e-mail removido]' });
     }
     const noBanco = (await app.db.select().from(schema.auditLog)).filter((l) => l.action === 'login.antigo');
     expect(JSON.stringify(noBanco)).toContain('pessoa.antiga@exemplo-real.com'); // controle: a máscara é só na leitura
+  });
+
+  it('filtro fornecido pelo chamador não insere endereço incomum na trilha (actorId, resourceId, ação e recurso)', async () => {
+    const email = 'qa6-rota@intranet';
+    for (const filtro of ['actorId', 'resourceId', 'action', 'actionPrefix', 'resource']) expect((await get({ [filtro]: email }, admin)).status, filtro).toBe(200);
+    const consultas = (await app.db.select().from(schema.auditLog)).filter((l) => l.action === 'auditoria.consultada');
+    expect(consultas.length).toBeGreaterThanOrEqual(5);
+    expect(JSON.stringify(consultas)).not.toContain(email);
+  });
+
+  it('leitura não expõe valor incomum antigo fora da chave email, em nenhuma coluna', async () => {
+    const email = 'qa6-legado@[192.0.2.2]';
+    await app.db.insert(schema.auditLog).values({ id: 'qa6-legado', action: 'qa6.legado', resource: 'qa6', actorId: email, actorRole: email, resourceId: email, detalhe: { nota: email, fundo: { contato: 'Fulana sem arroba' } } });
+    await app.db.insert(schema.auditLog).values({ id: 'qa6-legado-2', action: 'legado ' + email, resource: email, detalhe: null });
+    for (const quem of [admin, chefe]) {
+      for (const q of [{ action: 'qa6.legado' }, { actionPrefix: 'legado ' }] as Record<string, string>[]) {
+        const r = await get(q, quem);
+        expect(r.status).toBe(200);
+        expect(r.body.total).toBe(1);
+        for (const proibido of [email, '@', 'Fulana sem arroba']) expect(JSON.stringify(r.body), proibido).not.toContain(proibido);
+      }
+    }
   });
 
   it('a própria consulta é auditada, com os filtros e sem o resultado', async () => {

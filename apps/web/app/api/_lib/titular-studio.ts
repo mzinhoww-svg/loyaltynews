@@ -8,7 +8,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
-import { audit, authorize, clientIp } from '@ln/auth';
+import { audit, authorize, clientIp, sanitizeAuditRow } from '@ln/auth';
 import { schema } from '@ln/db';
 import { getDeps } from './deps';
 import { EFEITO_APLICADO } from './titular-efeito';
@@ -104,12 +104,11 @@ export async function dispatchTitular(req: Request, next?: Next): Promise<Respon
         texto: r.texto,
         nome: r.nome,
         contato: r.contato,
-        auditoria: logs.map((l) => ({
-          em: l.at.toISOString(),
-          ator: l.actorId ?? 'titular',
-          acao: l.action,
-          motivo: (l.detalhe as { motivo?: string } | null)?.motivo ?? null,
-        })),
+        // linhas antigas do audit_log saem pela mesma barreira da escrita
+        auditoria: logs.map((linha) => {
+          const l = sanitizeAuditRow(linha);
+          return { em: linha.at.toISOString(), ator: l.actorId ?? 'titular', acao: l.action, motivo: (l.detalhe as { motivo?: string } | null)?.motivo ?? null };
+        }),
       });
     } else if (m === 'POST' && path.length === 2 && path[1] === 'atribuir') {
       const b = await readBody(req, Atribuir);

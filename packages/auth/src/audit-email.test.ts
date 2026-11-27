@@ -5,7 +5,7 @@ import { base32 } from '@better-auth/utils/base32';
 import { createOTP } from '@better-auth/utils/otp';
 import { schema } from '@ln/db';
 import { createTestDb } from '@ln/db/testing';
-import { EMAIL_REMOVIDO, attemptSubject, audit, auditEmail, createAuth, createAuthHandler, createStaffUser, stripEmails } from './index';
+import { EMAIL_REMOVIDO, attemptSubject, audit, auditEmail, createAuth, createAuthHandler, createStaffUser } from './index';
 import type { Db } from './types';
 
 const ORIGIN = 'http://localhost:3000';
@@ -115,15 +115,8 @@ describe('controle negativo e segunda barreira em audit()', () => {
     });
     const [row] = (await linhas()).filter((r) => r.action === action);
     expect(vazamentos(row, [...DIGITADOS, 'josé'])).toEqual([]);
-    expect(row).toMatchObject({ actorId: EMAIL_REMOVIDO, resourceId: `contato:${EMAIL_REMOVIDO}` });
-    expect((row!.detalhe as { motivo: string }).motivo).toBe(`confirmado por ${EMAIL_REMOVIDO}, ok`);
+    expect(row).toMatchObject({ actorId: EMAIL_REMOVIDO, resourceId: EMAIL_REMOVIDO });
+    expect((row!.detalhe as { motivo: string }).motivo).toBe(EMAIL_REMOVIDO);
   });
 
-  it('não mexe no que não é e-mail e responde rápido a texto grande e hostil', () => {
-    const intacto = { emailDominio: 'exemplo-real.com', pacote: 'esbuild@0.28.2', n: 3, ok: true, nada: null, ref: 'h1:abc', arroba: '@ln/auth' };
-    expect(stripEmails(intacto)).toEqual(intacto);
-    const inicio = Date.now();
-    stripEmails(`${'a'.repeat(200_000)}@${'b.'.repeat(50_000)}`);
-    expect(Date.now() - inicio).toBeLessThan(5_000);
-  });
 });
