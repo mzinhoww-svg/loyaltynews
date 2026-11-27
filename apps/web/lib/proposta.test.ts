@@ -81,7 +81,10 @@ describe('pedido de proposta: formulário (marcação de servidor)', () => {
     expect(texto).toContain('opcional, separado do pedido');
   });
   it('diz a finalidade, o que é gravado e aponta a política de privacidade', () => {
-    expect(texto).toContain('só para responder a este pedido de proposta');
+    expect(texto).toContain('Usaremos nome, empresa, e-mail, objetivo e, se informado, WhatsApp e mensagem para responder ao pedido de proposta ou de mídia kit e conduzir a negociação.');
+    expect(texto).toContain('Se você marcar a opção abaixo, registramos o interesse na newsletter; nada é enviado hoje.');
+    expect(texto).toContain('Tenho interesse na newsletter do Loyalty News (opcional, separado do pedido)');
+    expect(texto).not.toMatch(/só para responder|quero receber/i); // contradizia os itens 2 e 3 da privacidade; o rótulo não promete envio
     expect(texto).toContain('data e a hora do envio');
     expect(html).toContain('href="/privacidade"');
   });

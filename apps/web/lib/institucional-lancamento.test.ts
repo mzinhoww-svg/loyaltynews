@@ -85,7 +85,10 @@ describe('institucional do lançamento', () => {
   it('as outras páginas não contradizem o texto: correções, contato, The Loyal, aviso de cookies, formulário, rodapé e termos', () => {
     expect(texto('correcoes')).toMatch(/Correção e remoção são pedidas pelo formulário desta página; o direito de resposta, por contato@loyaltynews\.com\.br/);
     expect(texto('correcoes')).not.toMatch(/canal do encarregado/);
-    expect(texto('contato')).toMatch(/Direito de resposta e demais pedidos de titulares de dados: escreva para contato@loyaltynews\.com\.br/);
+    expect(texto('contato')).toMatch(/Notificação de direitos autorais, direito de resposta e demais pedidos de titulares de dados: escreva para contato@loyaltynews\.com\.br/);
+    // notificação autoral vai por e-mail (o formulário só cobre dado pessoal), sem prazo novo (DP-69)
+    expect(texto('correcoes')).toContain('podem enviar notificação para contato@loyaltynews.com.br; analisamos, retiramos quando cabível e mantemos registro do prazo e da decisão.');
+    expect(texto('correcoes') + texto('contato')).not.toMatch(/formulário abaixo|notificação de direitos autorais[^.\]]*formulário/i);
     expect(texto('contato')).not.toMatch(/direito de resposta, notificação|e pedidos de titulares de dados: use o formulário|canal do encarregado/);
     for (const slug of ['termos', 'contato']) expect(texto(slug), slug).toContain('Razão social: REINERS MEDIA LTDA. CNPJ: 66.084.338/0001-87.');
     const loyal = ler('../app/(portal)/the-loyal/page.tsx');

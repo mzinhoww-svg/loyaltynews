@@ -110,11 +110,11 @@ export function PropostaForm() {
         </label>
       </div>
       <p className="pt-meta" style={{ margin: 0 }} data-testid="proposta-finalidade">
-        Usaremos nome, empresa, e-mail e, se informado, WhatsApp e mensagem só para responder a este pedido de proposta. Gravamos a data e a hora do envio como registro do pedido. Detalhes na{' '}
+        Usaremos nome, empresa, e-mail, objetivo e, se informado, WhatsApp e mensagem para responder ao pedido de proposta ou de mídia kit e conduzir a negociação. Gravamos a data e a hora do envio como registro do pedido. Se você marcar a opção abaixo, registramos o interesse na newsletter; nada é enviado hoje. Detalhes na{' '}
         <Link href="/privacidade" style={{ textDecoration: 'underline' }}>política de privacidade</Link>.
       </p>
       <label style={{ display: 'flex', gap: 8, alignItems: 'center', minHeight: 44 }}>
-        <input type="checkbox" name="optInNewsletter" style={CHECK} defaultChecked={false} /> Também quero receber a newsletter do Loyalty News (opcional, separado do pedido)
+        <input type="checkbox" name="optInNewsletter" style={CHECK} defaultChecked={false} /> Tenho interesse na newsletter do Loyalty News (opcional, separado do pedido)
       </label>
       <div>
         <Button type="submit" variant="primary" disabled={enviando || !pronto} aria-busy={enviando || undefined}>{enviando ? 'Enviando…' : 'Pedir proposta'}</Button>

@@ -168,7 +168,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: 'Créditos e direitos autorais',
         paragraphs: [
-          'Todo material de terceiros é creditado. Titulares e autores que identificarem uso indevido podem enviar notificação pelo formulário abaixo; analisamos, retiramos quando cabível e mantemos registro do prazo e da decisão.',
+          'Todo material de terceiros é creditado. Titulares e autores que identificarem uso indevido podem enviar notificação para contato@loyaltynews.com.br; analisamos, retiramos quando cabível e mantemos registro do prazo e da decisão.',
         ],
       },
       {
@@ -337,8 +337,8 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: 'Pedidos que já têm canal',
         paragraphs: [
-          'Correção ou remoção de um dado e notificação de direitos autorais: use o formulário de pedidos em /correcoes#pedido. A resposta chega ao e-mail informado no formulário.',
-          'Direito de resposta e demais pedidos de titulares de dados: escreva para contato@loyaltynews.com.br.',
+          'Correção ou remoção de um dado exibido no portal: use o formulário de pedidos em /correcoes#pedido. A resposta chega ao e-mail informado no formulário.',
+          'Notificação de direitos autorais, direito de resposta e demais pedidos de titulares de dados: escreva para contato@loyaltynews.com.br.',
         ],
       },
       {
