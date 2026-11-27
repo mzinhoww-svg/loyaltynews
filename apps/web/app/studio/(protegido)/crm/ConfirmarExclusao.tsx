@@ -1,8 +1,9 @@
 import { excluirLeadAction } from './actions';
+import { FocarAoAbrir } from './FocarAoAbrir';
 
 const PAINEL = 'excluir-lead';
 
-/** Endereço que abre a confirmação (navegação comum, sem JavaScript): o fragmento leva o foco ao painel. Só o id vai na URL. */
+/** Endereço que abre a confirmação (navegação comum, funciona sem JavaScript; com ele o foco vai ao painel). Só o id vai na URL. */
 export const linkExcluir = (id: string, status?: string): string =>
   `/studio/crm?${new URLSearchParams({ ...(status ? { status } : {}), excluir: id })}#${PAINEL}`;
 
@@ -13,6 +14,7 @@ export function ConfirmarExclusao({ lead, erro }: { lead: LeadDaConfirmacao | un
   if (!lead) {
     return (
       <div id={PAINEL} tabIndex={-1} className="st-alert err" role="alert" data-exclusao-indisponivel>
+        <FocarAoAbrir id={PAINEL} />
         {erro
           ? `Não foi possível abrir a exclusão: a leitura dos leads falhou (${erro}). Nada foi apagado.`
           : 'Esse contato não está nesta lista: ele pode já ter sido excluído. Nada foi apagado agora.'}
@@ -21,6 +23,7 @@ export function ConfirmarExclusao({ lead, erro }: { lead: LeadDaConfirmacao | un
   }
   return (
     <section id={PAINEL} tabIndex={-1} className="st-card" style={{ marginBottom: 14 }} aria-labelledby="h-excluir-lead" data-confirmar-exclusao={lead.id}>
+      <FocarAoAbrir key={lead.id} id={PAINEL} />
       <h2 id="h-excluir-lead">Excluir o contato {lead.name}?</h2>
       <p>
         <strong>{lead.name}</strong> · {lead.company} · {lead.email}

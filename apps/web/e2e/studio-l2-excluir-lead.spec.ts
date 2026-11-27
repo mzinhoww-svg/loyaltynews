@@ -154,6 +154,7 @@ test.describe('Studio CRM: excluir contato', () => {
     await page.goto(`/studio/crm?excluir=${novo}`);
     await expect(painel(page)).toHaveCount(0);
     await expect(page.locator('[data-exclusao-indisponivel]')).toContainText('Nada foi apagado agora');
+    await expect(page.locator('[data-exclusao-indisponivel]')).toBeFocused();
     await axe(page, 'contato indisponível');
   });
 });
