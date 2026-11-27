@@ -65,6 +65,8 @@ test.describe('Moves: os três estados vazios', () => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/moves?q=ninguem-com-esse-nome');
       for (const id of ['moves-filter-clear', 'moves-filter-empty-clear']) {
+        // boundingBox não espera a visibilidade: espera o conteúdo aparecer antes de medir.
+        await expect(page.getByTestId(id), `${width}px ${id}`).toBeVisible();
         const box = await page.getByTestId(id).boundingBox();
         expect(box, `${width}px ${id} visível`).not.toBeNull();
         expect(box!.width, `${width}px ${id} largura`).toBeGreaterThanOrEqual(44);

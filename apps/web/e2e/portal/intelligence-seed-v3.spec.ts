@@ -26,7 +26,7 @@ type Seed = {
 type Verificacao = { sources: { id: string; fetched_at?: string; status?: string }[] };
 type ListaItem = { id: string; nome: string; nomeLegal: string; tipo: string; relacoes: number; validadoEm: string };
 type Fonte = { nome: string; url: string; coletadoEm: string };
-type Relacao = { id: string; tipo: string; sentido: 'origem' | 'destino'; empresa: { id: string; nome: string; tipo: string }; vigenteDesde: string; validadoEm: string; fonte: Fonte };
+type Relacao = { id: string; tipo: string; sentido: 'origem' | 'destino'; empresa: { id: string; nome: string; tipo: string }; vigenteDesde: string; coletadoEm: string; validadoEm: string; fonte: Omit<Fonte, 'coletadoEm'> };
 type Detalhe = { id: string; nome: string; nomeLegal: string; tipo: string; fonte: Fonte; relacoes: Relacao[]; pessoas: { disponivel: boolean; itens: unknown[] } };
 type Envelope = { data: ListaItem[]; total: number; tipos: { tipo: string; total: number }[] };
 
@@ -88,7 +88,9 @@ test.describe('seed v3 real: a resposta HTTP é a seed, sem truncar', () => {
     for (const r of data.relacoes) {
       expect(r.fonte.url, `${r.id}`).toMatch(/^https:\/\//);
       expect(urlsDaSeed.has(r.fonte.url), `${r.fonte.url} não é fonte da seed`).toBe(true);
-      expect(r.validadoEm, `${r.id}: validação = data da evidência (seed-load.ts)`).toBe(r.fonte.coletadoEm);
+      const coletas = SEED.sources.filter((s) => s.url === r.fonte.url).map((s) => coletaDe(s.id));
+      expect(coletas, `${r.id}: coletadoEm = fetched_at da fonte do vínculo`).toContain(r.coletadoEm);
+      expect(r.validadoEm, `${r.id}: validação = data da evidência (seed-load.ts)`).toBe(r.coletadoEm);
     }
     // Trecho literal de página não é campo do contrato público.
     const bruto = JSON.stringify(data);
@@ -191,7 +193,10 @@ test.describe('seed v3 real: o que a página mostra', () => {
     for (const r of data.relacoes) {
       const linha = linhas.filter({ hasText: r.empresa.nome });
       await expect(linha.getByRole('link', { name: r.fonte.nome })).toHaveAttribute('href', r.fonte.url);
-      await expect(linha.locator('time')).toHaveAttribute('datetime', r.fonte.coletadoEm);
+      // Duas datas por linha, nesta ordem: coletado em e validado em.
+      await expect(linha.locator('time')).toHaveCount(2);
+      await expect(linha.locator('time').nth(0)).toHaveAttribute('datetime', r.coletadoEm);
+      await expect(linha.locator('time').nth(1)).toHaveAttribute('datetime', r.validadoEm);
     }
     // O trecho literal da fonte não pode aparecer na tela.
     const corpoTexto = await page.locator('body').innerText();

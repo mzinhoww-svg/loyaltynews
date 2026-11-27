@@ -46,8 +46,8 @@ test.describe('site publicado (full)', () => {
     await expect(page.locator('.ln-card__imglabel').first()).toHaveText('Ilustração conceitual');
     // Bloco de publicidade sem criativo real: nada é renderizado
     await expect(page.getByText('Espaço reservado')).toHaveCount(0);
-    // Sem faixa de demonstração: é conteúdo publicado, não vitrine
-    await expect(page.getByTestId('demo-banner')).toHaveCount(0);
+    // Faixa de demonstração segue o ambiente do servidor (como demo-staging.spec.ts): em staging sempre 1; em produção nenhuma.
+    await expect(page.getByTestId('demo-banner')).toHaveCount(process.env.PORTAL_APP_ENV === 'staging' ? 1 : 0);
     await page.screenshot({ path: path.join(import.meta.dirname, '..', 'screenshots', 'api', `${info.project.name}-home-publicada.png`), fullPage: true });
   });
 
@@ -134,7 +134,11 @@ test.describe('nada publicado (vazio) ou resposta inválida: padrão do portal, 
     const bar = await headerLinks(page, info.project.name);
     await expect(bar.getByRole('link', { name: 'Moves' })).toBeVisible();
     await expect(bar.getByRole('link', { name: 'Parceiro MOCK' })).toHaveCount(0);
-    await expect(page.locator('footer').getByRole('heading', { name: 'Conteúdo' })).toBeVisible();
+    // O título do grupo do rodapé é o <summary> de um <nav aria-label> (não um heading); o grupo padrão traz os links padrão.
+    const conteudo = page.locator('footer').getByRole('navigation', { name: 'Conteúdo' });
+    await expect(conteudo.locator('summary')).toBeVisible();
+    await expect(conteudo.locator('summary')).toHaveText('Conteúdo');
+    await expect(conteudo.locator('a[href="/noticias"]')).toHaveText('Últimas notícias');
     await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1); // só WebSite: sem Organization publicada
   });
 
@@ -195,8 +199,12 @@ test.describe('conteúdo hostil do Studio (XSS): nada executa, destinos reservad
   test('menu e rodapé: destinos com dot-segments para /studio, /api e /_next são descartados; destino bom permanece', async ({ page }, info) => {
     await page.goto('/');
     const hrefs = await page.locator('header a, footer a').evaluateAll((as) => as.map((a) => a.getAttribute('href') ?? ''));
+    // Único destino reservado permitido: o botão fixo "Entrar" do portal (não vem do Studio), com contagem exata:
+    // barra e painel do cabeçalho (2) e rodapé (1). Qualquer outro, ou um "Entrar" a mais, reprova.
+    await expect(page.locator('header a[href="/studio/entrar"]')).toHaveText(['Entrar', 'Entrar']);
+    await expect(page.locator('footer a[href="/studio/entrar"]')).toHaveText(['Entrar']);
     for (const h of hrefs) {
-      expect(h, h).not.toMatch(/^\/(api|studio|_next)(\/|$)/i);
+      if (h !== '/studio/entrar') expect(h, h).not.toMatch(/^\/(api|studio|_next)(\/|$)/i);
       expect(h, h).not.toMatch(/(^|\/)(\.|%2e){1,2}(\/|$)/i);
       expect(h, h).not.toMatch(/[<>]/);
     }

@@ -52,7 +52,7 @@ test('fila de checagem: vazio honesto da Fábrica explica o comando e o caminho 
 
 test('fila de checagem: filtro sem resultado não diz que a Fábrica não entregou nada e leva de volta à fila', async ({ page, context }) => {
   await entrar(context, 'honesto-check', 'admin');
-  // nenhum spec semeia matéria da Fábrica em rascunho: este filtro não acha nada em qualquer ordem
+  // roda antes de studio-editorial-api (ordem alfabética do arquivo), que semeia a matéria da Fábrica e a deixa em rascunho
   await page.goto('/studio/cms/checagem?status=rascunho');
   const vazio = page.locator('main .ln-empty').filter({ hasText: 'Nenhuma matéria da Fábrica com esse estado' });
   await expect(vazio).toBeVisible();

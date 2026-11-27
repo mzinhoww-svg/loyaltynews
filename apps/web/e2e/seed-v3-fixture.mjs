@@ -26,6 +26,11 @@ const uuid = (chave) => {
 
 let cache = null;
 
+/** Prova do vínculo como a rota real a devolve (api/_lib/intelligence/publico.ts): fonte sem data aninhada; datas no topo. */
+const prova = (ev) => ({
+  fonte: { nome: ev.nome, url: ev.url }, coletadoEm: ev.coletadoEm, validadoEm: ev.coletadoEm, naoConfirmado: false,
+});
+
 /** Monta { orgs, relacoes } no formato de detalhe da API pública, na ordem de nome que a API usa. */
 export function seedV3() {
   if (cache) return cache;
@@ -70,11 +75,11 @@ export function seedV3() {
     const id = uuid(`rel:${r.from}>${r.to}:${r.type}`);
     de.relacoes.push({
       id, tipo: r.type, sentido: 'origem', empresa: { id: para.id, nome: para.nome, tipo: para.tipo },
-      vigenteDesde: dia, validadoEm: ev.coletadoEm, mock: false, fonte: ev,
+      vigenteDesde: dia, ...prova(ev), mock: false,
     });
     para.relacoes.push({
       id, tipo: r.type, sentido: 'destino', empresa: { id: de.id, nome: de.nome, tipo: de.tipo },
-      vigenteDesde: dia, validadoEm: ev.coletadoEm, mock: false, fonte: ev,
+      vigenteDesde: dia, ...prova(ev), mock: false,
     });
   }
 
