@@ -282,7 +282,7 @@ describe('planilha e relatório', () => {
     const csv = pilotCsv([row({ notes: '=HYPERLINK("http://x")', gate_reasons: ['a', 'b'], limit_message: 'disse "oi", ok' })]);
     const [head, line] = csv.trim().split('\n');
     assert.equal(head, PILOT_CSV_COLUMNS.join(','));
-    assert.equal(PILOT_CSV_COLUMNS.length, 31);
+    assert.equal(PILOT_CSV_COLUMNS.length, 32);
     assert.ok(line!.includes("\"'=HYPERLINK(\"\"http://x\"\")\""));
     assert.ok(line!.includes('a | b'));
     assert.ok(line!.includes('"disse ""oi"", ok"'));
@@ -310,11 +310,11 @@ describe('planilha e relatório', () => {
     assert.deepEqual([r!.unsupported_facts, r!.unsupported_high, r!.unsupported_medium, r!.unsupported_low], [3, 0, 1, 2]);
   });
 
-  test('relatório do adaptador: contas, limites e janelas, independência por modelo declarado (Claude via Antigravity não é independente do redator Claude)', () => {
+  test('relatório do adaptador: contas, limites e janelas, independência por agente e execução (o mesmo agente não é independente, qualquer que seja o provedor)', () => {
     const rs: PilotRow[] = [
-      row({ task_id: 'd', stage: 'draft', account: 'claude', declared_model: 'claude-sonnet-5-5' }),
-      row({ task_id: 'f1', stage: 'factcheck', account: 'codex', declared_model: 'gpt-6.2-sol' }),
-      row({ task_id: 'f2', stage: 'review', account: 'antigravity', declared_model: 'claude-sonnet-4-6', article_id: 'a1' }),
+      row({ task_id: 'd', stage: 'draft', account: 'claude', declared_model: 'claude-sonnet-5-5', worker_id: 'w-redacao' }),
+      row({ task_id: 'f1', stage: 'factcheck', account: 'claude', declared_model: 'claude-sonnet-5-5', worker_id: 'w-checagem' }),
+      row({ task_id: 'f2', stage: 'review', account: 'antigravity', declared_model: 'gpt-6.2-sol', article_id: 'a1', worker_id: 'W-Redacao' }),
       row({ task_id: 'l', stage: 'triage', account: 'opencode', declared_model: 'm', article_id: 'a2', outcome: 'pending_limit', limit_at: '2026-11-23T12:00:00.000Z', account_resumed_at: '2026-11-23T12:30:00.000Z' }),
     ];
     const rep = adapterReport(rs);

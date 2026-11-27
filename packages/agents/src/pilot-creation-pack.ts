@@ -229,7 +229,7 @@ export function renderCreationPackMd(pack: CreationPack): string {
   L.push('|---|---|---|---|---|---|---|---|---|');
   for (const a of pack.agents) L.push(`| ${a.openbot.name} | ${a.openbot.provider} | \`${a.openbot.model}\` | ${a.openbot.backup_model ? `\`${a.openbot.backup_model}\`` : 'nenhum'} | ${a.openbot.reasoning_effort} | ${a.client_env.LN_AGENT_ACCOUNT} | \`${a.client_env.kinds.join(',')}\` | \`${a.client_env.stages.join(', ')}\` | \`${a.client_env.LN_WORKER_ID}\` |`);
   L.push('');
-  L.push(`Prompts: \`${pack.prompts.version}\` (ft/editorial \`${pack.prompts.commit}\`, blob \`${pack.prompts.blobSha.slice(0, 12)}\`), tom \`${pack.prompts.toneVersion}\`. A checagem e a revisão (Codex/OpenAI) nunca são do autor do rascunho (Claude/Anthropic); vale o modelo DECLARADO no relato (\`--model\`).`);
+  L.push(`Prompts: \`${pack.prompts.version}\` (ft/editorial \`${pack.prompts.commit}\`, blob \`${pack.prompts.blobSha.slice(0, 12)}\`), tom \`${pack.prompts.toneVersion}\`. A checagem e a revisão nunca são do agente nem da execução que redigiu (DP-71; o provedor pode ser o mesmo; a publicação continua exigindo outro). O agente é o \`LN_WORKER_ID\` do lease; o modelo DECLARADO no relato (\`--model\`) segue obrigatório.`);
   L.push('');
   L.push('## 3. Cabeçalhos HMAC (quem assina e como)');
   L.push('');

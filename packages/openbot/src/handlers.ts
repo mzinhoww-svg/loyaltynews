@@ -398,6 +398,8 @@ export async function handleCallback(deps: OpenBotDeps, req: SignedRequest): Pro
     const stopAt = now.toISOString();
     const tarifada = usage !== undefined && (isApiLane(usage) || usage.costMicro > 0);
     const outcome: PilotRow['outcome'] = cb.outcome === 'completed' ? 'completed' : limited ? 'pending_limit' : retryable ? 'retryable' : 'failed';
+    // quem executou é o dono do lease que a fila validou (um `fail` solta o lease, por isso vale o estado de antes); o que o agente disser na trilha não entra
+    const holder = before.leaseId === cb.leaseId ? before.leaseHolder : task.leaseId === cb.leaseId ? task.leaseHolder : undefined;
     const row: PilotRow = {
       task_id: task.id, kind: task.kind, article_id: cb.trace.articleId ?? task.refId, source_id: cb.trace.sourceId ?? 'nao_informada', stage: cb.trace.stage,
       account: cb.trace.account, declared_model: usage?.model ?? null, prompt_version: cb.trace.promptVersion ?? null,
@@ -413,6 +415,7 @@ export async function handleCallback(deps: OpenBotDeps, req: SignedRequest): Pro
       secret_in_log: secretFound,
       tool_outside_contract: cb.trace.toolOutsideContract === true,
       ...(notesText ? { notes: notesText.text } : {}),
+      ...(holder ? { worker_id: holder } : {}),
     };
     await pilot.rows.upsert(row);
     // A conta voltou a aceitar: a primeira execução concluída depois de um limite marca a retomada observada.

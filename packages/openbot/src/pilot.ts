@@ -1,4 +1,4 @@
-import { providerOfModel, type Account } from './types';
+import { type Account } from './types';
 
 // Trilha e parada imediata do PILOTO de 10 matérias pelo canal OpenBot (DP-41: SÓ as assinaturas Claude e Codex;
 // sem OpenCode, Antigravity nem OpenRouter). Desenho: fast-track/custo/piloto-10-materias-openbot.md. Kit do AgentOps: packages/agents (pilot.ts).
@@ -33,6 +33,8 @@ export interface PilotRow {
   gate_verdict?: 'approved' | 'blocked';
   gate_reasons?: string[];
   cross_provider_ok?: boolean;
+  /** Agente que executou: dono do lease (`workerId`), gravado pelo servidor no callback; nunca pela trilha nem por patch (DP-71). */
+  worker_id?: string;
   packet_chars: number | null;
   output_valid?: boolean;
   tokens_measured: false;
@@ -203,7 +205,7 @@ export const PILOT_CSV_COLUMNS = [
   'task_id', 'kind', 'article_id', 'source_id', 'stage', 'account', 'declared_model', 'prompt_version', 'started_at', 'ended_at', 'attempt',
   'reviewed_draft_task_id', 'outcome', 'limit_message', 'limit_at', 'account_resumed_at', 'gate_verdict', 'gate_reasons', 'cross_provider_ok',
   'packet_chars', 'output_valid', 'tokens_measured', 'unsupported_facts', 'unsupported_high', 'unsupported_medium', 'unsupported_low',
-  'published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract', 'notes',
+  'published_attempt', 'tarifada_api_call', 'secret_in_log', 'tool_outside_contract', 'notes', 'worker_id',
 ] as const;
 
 function cell(v: unknown): string {
@@ -228,7 +230,7 @@ export interface PilotAdapterReport {
   byAccount: Record<string, { executions: number; completed: number; failed: number; pendingLimit: number; limitHits: number }>;
   /** Intervalos entre o limite e a retomada da conta, em ms, quando o OpenBot informou os dois horários. */
   limitWindowsMs: number[];
-  /** Por matéria: redator e checador de provedores diferentes? Falso = violação da independência. */
+  /** Por matéria: checagem e revisão feitas por agente e execução diferentes do redator (DP-71)? Sem o agente na linha = violação. */
   independence: { checked: number; independent: number; violations: string[] };
   notMeasured: string[];
 }
@@ -257,12 +259,14 @@ export function adapterReport(rows: readonly PilotRow[]): PilotAdapterReport {
   let independent = 0;
   const violations: string[] = [];
   for (const [article, rs] of byArticle) {
-    const authors = new Set(rs.filter((r) => r.stage === 'draft' && r.outcome === 'completed').map((r) => providerOfModel(r.declared_model, r.account)));
+    const drafts = rs.filter((r) => r.stage === 'draft' && r.outcome === 'completed');
+    const agent = (r: PilotRow) => (r.worker_id ?? '').trim().toLowerCase();
     const checkers = rs.filter((r) => ['factcheck', 'review', 'check_edit'].includes(r.stage) && r.outcome === 'completed');
     for (const c of checkers) {
       checked += 1;
-      if (authors.size > 0 && !authors.has(providerOfModel(c.declared_model, c.account))) independent += 1;
-      else violations.push(`${article}: ${c.stage} (${c.account}) sem autor distinto do redator`);
+      const proven = drafts.length > 0 && agent(c) !== '' && drafts.every((d) => agent(d) !== '' && agent(d) !== agent(c) && d.task_id !== c.task_id);
+      if (proven) independent += 1;
+      else violations.push(`${article}: ${c.stage} (${c.account}) sem agente e execução distintos do redator`);
     }
   }
   return {

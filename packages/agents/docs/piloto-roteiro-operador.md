@@ -64,8 +64,8 @@ Cada ciclo de agente é um turno na assinatura; por isso **não use rotina perma
 |---|---|---|---|
 | 1 | Pauta | `triage` | conta `claude`, modelo com **haiku** (ou sonnet no backup), custo 0, lane `subscription` |
 | 2 | Redação | `draft` | conta `claude`; `article_id` da matéria |
-| 3 | Checagem | `factcheck` | conta **`codex`** (nunca claude), `reviewed_draft_task_id` = a redação |
-| 4 | Revisão | `review` | conta **`codex`**, mesmo `reviewed_draft_task_id` |
+| 3 | Checagem | `factcheck` | conta **`codex`** (nunca claude), `reviewed_draft_task_id` = a redação; `worker_id` diferente do da redação |
+| 4 | Revisão | `review` | conta **`codex`**, mesmo `reviewed_draft_task_id`; `worker_id` diferente do da redação |
 | 5 | Social (opcional) | `social_pack`, `roles` | conta `claude`; só rascunho |
 
 - **Depois de cada ciclo:** confira que a etapa seguinte apareceu e que a linha da etapa tem `output_valid` e nenhuma violação.
@@ -103,12 +103,12 @@ Uma violação (tentativa de publicar, chamada à API tarifada, segredo em log, 
 ## 8. Exportar a planilha
 
 - **Tela:** `/studio/piloto` → **Exportar planilha** (só o leitor 1: admin ou editor-chefe). **[relato]**
-- **Esperado:** download `piloto-planilha-AAAA-MM-DD.csv`: **31 colunas** do AgentOps (`task_id` … `notes`, nessa ordem) mais 7 colunas do Studio no fim (`materia`, `leitor1_veredito`, `leitor2_veredito`, `leitor2_unsupported_high/medium/low`, `leitor2_origem`); uma linha por tarefa e tentativa; o leitor 2 só aparece nas matérias que você já leu; células com fórmula vêm neutralizadas (`'=…`). **[verificado]** colunas contra o código (`pilot-columns.test.ts`).
+- **Esperado:** download `piloto-planilha-AAAA-MM-DD.csv`: **32 colunas** do AgentOps (`task_id` … `notes`, `worker_id`, nessa ordem) mais 7 colunas do Studio no fim (`materia`, `leitor1_veredito`, `leitor2_veredito`, `leitor2_unsupported_high/medium/low`, `leitor2_origem`); uma linha por tarefa e tentativa; o leitor 2 só aparece nas matérias que você já leu; células com fórmula vêm neutralizadas (`'=…`). **[verificado]** colunas contra o código (`pilot-columns.test.ts`).
 - **Confira no CSV:** `tarifada_api_call` = false em todas as linhas; `published_attempt` = false; `account` só `claude` ou `codex`; `tokens_measured` = false (o OpenBot não expõe tokens: use `packet_chars`).
 - **Resultado do piloto (comando):** na pasta do repositório, com Node ≥ 22.18:
   `node packages/agents/bin/avaliar-piloto.mjs --csv <arquivo.csv>` (acrescente `--json` para um resumo em JSON).
-  - Ele valida o cabeçalho (as 31 colunas do AgentOps, na ordem; as 7 do Studio no fim são ignoradas; qualquer outra coluna recusa), roda o avaliador do piloto e imprime o **veredito** e os **motivos**. Não usa rede, banco, segredo nem modelo: só lê o arquivo.
-  - **Esperado:** `VEREDITO: APROVADO` e **saída 0** quando a amostra é válida, a checagem e a revisão são de autor diferente do redator, a qualidade passa (0 altas e no máximo 1 média; baixas só anotadas), não há violação nem chamada à API tarifada e as janelas de limite foram medidas. Qualquer outro veredito (`REPROVADO`, `INVÁLIDO`, `PARADO`, `INCONCLUSIVO`) ou CSV malformado dá **saída 1**, com o motivo na tela.
+  - Ele valida o cabeçalho (as 32 colunas do AgentOps, na ordem; as 7 do Studio no fim são ignoradas; qualquer outra coluna recusa), roda o avaliador do piloto e imprime o **veredito** e os **motivos**. Não usa rede, banco, segredo nem modelo: só lê o arquivo.
+  - **Esperado:** `VEREDITO: APROVADO` e **saída 0** quando a amostra é válida, a checagem e a revisão são de agente (`worker_id`) e execução diferentes do redator, a qualidade passa (0 altas e no máximo 1 média; baixas só anotadas), não há violação nem chamada à API tarifada e as janelas de limite foram medidas. Qualquer outro veredito (`REPROVADO`, `INVÁLIDO`, `PARADO`, `INCONCLUSIVO`) ou CSV malformado dá **saída 1**, com o motivo na tela.
   - **Violações tratadas contam:** a violação resolvida em `/studio/piloto/violacoes` continua na planilha e continua contando no critério de 0 violações (o veredito fica `PARADO`).
   - Há o **destaque do `output_valid`** (limiar de 95%, informativo: não reprova, PM-2026-11-23-J).
   - Exemplos com dados SIMULADOS: `packages/agents/fixtures/pilot-csv/` (aprovado, reprovado, inválido).

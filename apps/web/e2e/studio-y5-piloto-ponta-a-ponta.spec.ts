@@ -7,7 +7,7 @@ import { expect, test } from '@playwright/test';
 import { api, entrar, enviar } from './helpers';
 
 // Linha 13 (proximas-tarefas-2026-11-24-0920): ponta a ponta do piloto no build da int/019.
-// leitura do editor-chefe (leitor 1) → exportação CSV em /studio/piloto/planilha → cabeçalho coluna a coluna = PILOT_SHEET_COLUMNS (31) + as 7 do Studio
+// leitura do editor-chefe (leitor 1) → exportação CSV em /studio/piloto/planilha → cabeçalho coluna a coluna = PILOT_SHEET_COLUMNS (32) + as 7 do Studio
 // → o avaliador do AgentOps (packages/agents/bin/avaliar-piloto.mjs --csv, sem rede, sem banco) ACEITA o arquivo.
 // Dados MOCK: artigos sampleArticle e linhas da trilha da seed ?seed=piloto e ?seed=piloto-violacoes. Roda isolado ou depois dos outros specs do piloto.
 test.describe.configure({ mode: 'serial' });
@@ -86,7 +86,7 @@ test('leitura do editor-chefe → CSV com as colunas do AgentOps, coluna a colun
   const cab = linhas[0]!;
 
   // 3) cabeçalho coluna a coluna: as 31 do AgentOps na ordem, depois exatamente as 7 do Studio
-  expect(PILOT_SHEET_COLUMNS).toHaveLength(31);
+  expect(PILOT_SHEET_COLUMNS).toHaveLength(32);
   expect(cab).toHaveLength(31 + 7);
   PILOT_SHEET_COLUMNS.forEach((c, i) => expect(cab[i], `coluna ${i + 1}`).toBe(c));
   expect(cab.slice(31)).toEqual(EXTRAS);

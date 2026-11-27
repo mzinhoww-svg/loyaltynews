@@ -17,9 +17,9 @@ void _camposSaoColunas;
 const cols = [...PILOT_SHEET_COLUMNS] as string[];
 
 describe('colunas da planilha do piloto × PilotRow × consumidores (Integration e Studio 2)', () => {
-  it('a planilha tem 31 colunas e elas são exatamente os campos do PilotRow, sem repetição', () => {
-    expect(cols).toHaveLength(31);
-    expect(new Set(cols).size).toBe(31);
+  it('a planilha tem 32 colunas e elas são exatamente os campos do PilotRow, sem repetição', () => {
+    expect(cols).toHaveLength(32);
+    expect(new Set(cols).size).toBe(32);
     expect([...cols].sort()).toEqual(Object.keys(PILOT_ROW_FIELDS).sort());
   });
 
