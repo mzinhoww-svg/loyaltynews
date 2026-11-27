@@ -86,6 +86,9 @@ articles.push(
 // Matéria com título/resumo hostis: só existe na rota de detalhe (não aparece nas listagens).
 const hostil = { ...base, slug: 'api-xss', titulo: '[MOCK API] </script><script>window.__xss_titulo=1</script> Matéria hostil', resumo: 'Resumo </script><script>window.__xss_resumo=1</script> (MOCK).', tipoConteudo: 'noticia', tempoLeituraMin: 1, editoria: 'global', corpo: 'Texto de teste (MOCK).\n\nFontes:\n- https://fonte.example/mock', imagem: { url: '/api/publico/midia/xss-1', origem: 'fonte_terceiro', credito: '</script><script>window.__xss_credito=1</script>', baseDeDireito: 'licenca', edicoes: [], textoAlternativo: 'Foto </script><script>window.__xss_alt=1</script>' }, publicadoEm: '2026-11-17T10:00:00-03:00' };
 
+// Matéria rotulada como o seed de staging (título começa com [DEMO · staging]): só na rota de detalhe, para não mudar as listagens.
+const demoSeed = { ...base, slug: 'api-demo-seed', titulo: '[DEMO · staging] Matéria do seed (MOCK)', resumo: '[DEMO · staging] Conteúdo fictício (MOCK).', tipoConteudo: 'noticia', tempoLeituraMin: 1, editoria: 'mercado', corpo: '[DEMO · staging] Texto fictício (MOCK).', publicadoEm: '2026-11-20T10:00:00-03:00' };
+
 const listItem = (a) => ({
   slug: a.slug, titulo: a.titulo, subtitulo: a.subtitulo, resumo: a.resumo, tipoConteudo: a.tipoConteudo,
   tempoLeituraMin: a.tempoLeituraMin, editoria: a.editoria, assinatura: a.assinatura, patrocinado: a.patrocinado,
@@ -288,7 +291,7 @@ http
     const m = /^\/api\/publico\/materias\/([^/]+)$/.exec(u.pathname);
     if (m) {
       if (decodeURIComponent(m[1]) === 'api-falha') return send(res, 503, { error: { code: 'NOT_CONFIGURED', message: 'detalhe interno de teste' } });
-      const a = [...articles, hostil].find((x) => x.slug === decodeURIComponent(m[1]));
+      const a = [...articles, hostil, demoSeed].find((x) => x.slug === decodeURIComponent(m[1]));
       if (!a) return send(res, 404, { error: { code: 'NOT_FOUND', message: 'Matéria não encontrada.' } });
       const pub = { ...a };
       delete pub.corrigida;

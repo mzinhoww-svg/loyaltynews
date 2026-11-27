@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { cache, type ReactNode } from 'react';
 import { AD_POSITION_OF, fetchAdPlan, type AdPlan } from '../_lib/ads';
 import { portalApiBase } from '../_lib/commercial-source';
+import { assinaturaExibida } from '../_lib/demo';
 import { editoriaName } from '../_lib/editorias';
 import { imagemDoCard } from '../_lib/ilustracao';
 import { getSource } from '../_lib/source';
@@ -111,7 +112,7 @@ export function ArticleCard({
       excerpt={article.summary}
       publishedAt={article.publishedAt}
       readingMinutes={article.readingMinutes}
-      author={article.authorLabel}
+      author={assinaturaExibida(article)}
       imageSrc={withImage ? imagem?.src : undefined}
       imageAlt={withImage ? imagem?.alt : undefined}
       imageLabel={withImage ? (imagem?.label ?? undefined) : undefined}
