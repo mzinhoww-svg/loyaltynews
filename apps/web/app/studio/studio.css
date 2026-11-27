@@ -32,6 +32,8 @@
 .st-card { background: var(--st-panel); border: 1px solid var(--st-line); border-radius: var(--ln-radius-lg); padding: 16px 18px; }
 /* Seta dos textos do Studio (SVG no lugar de U+2192/2190). */
 .st-seta { display: inline-block; vertical-align: middle; margin: 0 2px; }
+/* Âncora do texto só para leitor de tela: sem ela o .ln-sr-only (absoluto) pode alargar a página dentro de quadro rolável. */
+.st-seta-rotulada { position: relative; }
 .st-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 .st-stat { font-size: 28px; font-weight: 700; margin: 0; }
 .st-empty { border: 2px dashed var(--st-line); border-radius: var(--ln-radius-lg); padding: 24px; background: var(--st-panel); }

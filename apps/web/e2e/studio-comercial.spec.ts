@@ -107,8 +107,9 @@ test.describe('Comercial (@ln/commercial)', () => {
     // lista do Backend (GET /api/commercial/studio/campaigns): linha com estado, formato, período e anunciante; filtros e recusa de filtro
     const linha = page.locator('tr[data-campanha]').filter({ hasText: 'Cartão Verão' });
     await expect(linha).toHaveAttribute('data-status', 'cancelled');
-    await expect(linha).toContainText('2099-01-10');
-    await expect(linha).toContainText('2099-01-20');
+    // nome acessível da célula: as duas datas e o separador lido pelo leitor de tela (a seta em SVG é só visual)
+    await expect(linha.getByRole('cell', { name: '2099-01-10 a 2099-01-20', exact: true })).toBeVisible();
+    await expect(linha.locator('svg.st-seta[aria-hidden="true"]')).toHaveCount(1);
     await expect(page.getByText('1 campanha(s) · página 1 de 1')).toBeVisible();
     await page.getByLabel('Estado', { exact: true }).selectOption('active');
     await enviar(page, page.getByRole('button', { name: 'Filtrar' }));

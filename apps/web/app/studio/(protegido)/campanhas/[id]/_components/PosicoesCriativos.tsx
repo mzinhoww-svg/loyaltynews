@@ -85,7 +85,7 @@ export function PosicoesCriativos(props: {
                 <tr key={r.id} data-reserva={r.id} data-status={r.status}>
                   <td>{r.positionId}</td>
                   <td>
-                    {r.startDate} <Seta /> {r.endDate}
+                    {r.startDate} <Seta rotulo="a" /> {r.endDate}
                   </td>
                   <td>{ESTADO_RESERVA[r.status] ?? r.status}</td>
                   {escreve ? (
@@ -173,7 +173,7 @@ export function PosicoesCriativos(props: {
                     </span>
                   );
                 })()}{' '}
-                · {cr.startDate} <Seta /> {cr.endDate} · <span className="st-badge">{cr.approved ? 'aprovado' : 'não aprovado'}</span>
+                · {cr.startDate} <Seta rotulo="a" /> {cr.endDate} · <span className="st-badge">{cr.approved ? 'aprovado' : 'não aprovado'}</span>
                 <div className="st-hint">
                   Arquivo:{' '}
                   {cr.asset ? `${cr.asset.mime}, ${cr.asset.width}x${cr.asset.height}, ${cr.asset.sizeKB} KB, sha256 ${cr.asset.sha256.slice(0, 12)}…` : 'nenhum'} · Alt:{' '}

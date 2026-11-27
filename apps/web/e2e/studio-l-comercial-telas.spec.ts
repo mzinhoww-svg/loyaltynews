@@ -91,9 +91,9 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(reserva).toHaveCount(1);
     await expect(reserva).toHaveAttribute('data-status', 'held');
     await expect(reserva).toContainText('pré-reserva');
-    await expect(reserva).toContainText('2099-03-01');
-    await expect(reserva).toContainText('2099-05-31');
-    await expect(reserva.locator('svg.st-seta')).toHaveCount(1);
+    // nome acessível da célula: as duas datas e o separador lido pelo leitor de tela (a seta em SVG é só visual)
+    await expect(reserva.getByRole('cell', { name: '2099-03-01 a 2099-05-31', exact: true })).toBeVisible();
+    await expect(reserva.locator('svg.st-seta[aria-hidden="true"]')).toHaveCount(1);
 
     // com a reserva, 'reserved' passa (antes recusava por falta de reserva)
     await enviar(page, page.getByRole('button', { name: 'Mover para reserved' }));
@@ -110,6 +110,7 @@ test.describe('Studio comercial: anunciantes, posições e criativos', () => {
     await expect(cr).toHaveCount(1);
     await expect(cr).toHaveAttribute('data-aprovado', 'nao');
     await expect(cr).toContainText('Arquivo: nenhum');
+    await expect(cr).toContainText('2099-03-01 a 2099-05-31'); // período do criativo, com o separador lido pelo leitor de tela
     const crId = (await cr.getAttribute('data-criativo'))!;
     // DP-43: o comercial não aprova (sem botão); o proprietário (admin) tenta e o domínio recusa o criativo incompleto
     await expect(page.getByRole('button', { name: `Aprovar ${crId}` })).toHaveCount(0);
