@@ -272,7 +272,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: '11. Alterações',
         paragraphs: [
-          'Esta política é uma minuta. A versão e a data serão exibidas quando o texto for aprovado.',
+          'Versão 0.5, aprovada em 27/11/2026.',
         ],
       },
     ],

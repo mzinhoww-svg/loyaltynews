@@ -74,6 +74,8 @@ describe('institucional do lançamento', () => {
     expect(p).toMatch(/Cloudflare[^]*Vertra/);
     expect(p).not.toMatch(/DP-\d|HMAC/);
     expect(INFO_DOCS['privacidade']?.draftNotice).toBe('Minuta v0.5, sujeita à validação jurídica.');
+    expect(INFO_DOCS['privacidade']!.sections.at(-1)!.paragraphs).toEqual(['Versão 0.5, aprovada em 27/11/2026.']);
+    expect(p).not.toMatch(/quando o texto for aprovado|Esta política é uma minuta/);
   });
 
   it('o código sustenta o que a privacidade diz sobre o login: o e-mail digitado não vai à auditoria', () => {
