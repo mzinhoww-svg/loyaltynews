@@ -127,19 +127,41 @@ describe('ADR-022 resolveFlags', () => {
     expect(FLAG_DEFAULTS.adServerVendas).toBe(false); // padrão do código continua desligado
   });
 
-  it('DP-57: portalFormularios liga em produção POR COMMIT, sem variável; log e on corretos', () => {
+  it('DP-57 e DP-76: produção liga EXATAMENTE portalFormularios e publicacaoPortal POR COMMIT, sem variável; log e on corretos', () => {
     for (const APP_ENV of ['production', 'PRODUCAO', ' producao ']) {
       const r = resolveFlags({ APP_ENV });
       expect(r.ambiente).toBe('production');
-      expect(r.on).toEqual(['portalFormularios']);
-      expect(r.state.portalFormularios).toBe(true);
-      expect(Object.entries(r.state).filter(([, v]) => v).map(([k]) => k)).toEqual(['portalFormularios']);
-      expect(r.logLine).toBe('flags ligadas: portalFormularios (DP-57, production, por commit)');
+      expect(r.on).toEqual(['portalFormularios', 'publicacaoPortal']);
+      expect(r.state).toEqual({ ...FLAG_DEFAULTS, portalFormularios: true, publicacaoPortal: true });
+      expect(r.logLine).toBe('flags ligadas: portalFormularios (DP-57, production, por commit), publicacaoPortal (DP-76, production, por commit)');
       expect(r.warnings).toEqual([]);
     }
     expect(FLAG_RELEASES.portalFormularios).toEqual({ staging: 'DP-57', production: 'DP-57' });
-    expect([...PRODUCTION_FLAGS_ON]).toEqual(['portalFormularios']);
+    expect([...PRODUCTION_FLAGS_ON]).toEqual(['portalFormularios', 'publicacaoPortal']);
     expect(FLAG_DEFAULTS.portalFormularios).toBe(false); // o padrão do código continua desligado
+  });
+
+  it('DP-76: publicacaoPortal tem a decisão nos dois ambientes; publicacaoAutonoma e intelligencePessoas não ligam em produção', () => {
+    expect(FLAG_RELEASES.publicacaoPortal).toEqual({ staging: 'DP-76', production: 'DP-76' });
+    expect(FLAG_DEFAULTS.publicacaoPortal).toBe(false);
+    const prod = resolveFlags({ APP_ENV: 'production' });
+    expect(prod.state.publicacaoAutonoma).toBe(false);
+    expect(prod.state.intelligencePessoas).toBe(false);
+    expect(FLAG_RELEASES.intelligencePessoas.production).toBeNull();
+    expect((FLAG_RELEASES as Record<string, unknown>).publicacaoAutonoma).toBeUndefined();
+    expect(() => resolveFlags({ APP_ENV: 'production', LN_FLAGS_ON: 'publicacaoAutonoma' })).toThrow(/publicacaoAutonoma sem decisão para production/);
+  });
+
+  it('DP-76: LN_FLAGS_ON continua recusada em produção para publicacaoPortal; no staging liga por variável, para ensaiar', () => {
+    for (const APP_ENV of ['production', 'PRODUCAO', ' producao ']) {
+      for (const LN_FLAGS_ON of ['publicacaoPortal', 'portalFormularios,publicacaoPortal']) {
+        expect(() => resolveFlags({ APP_ENV, LN_FLAGS_ON })).toThrow(/por LN_FLAGS_ON em production; em produção a flag liga só por commit/);
+      }
+    }
+    expect(resolveFlags({ APP_ENV: 'staging' }).state.publicacaoPortal).toBe(false);
+    const stg = resolveFlags({ APP_ENV: 'staging', LN_FLAGS_ON: 'publicacaoPortal' });
+    expect(stg.on).toEqual(['publicacaoPortal']);
+    expect(stg.logLine).toBe('flags ligadas: publicacaoPortal (DP-76, staging)');
   });
 
   it('DP-57: adServerVendas continua DESLIGADA em produção e fora de PRODUCTION_FLAGS_ON', () => {
@@ -169,6 +191,7 @@ describe('ADR-022 resolveFlags', () => {
 
   it('DP-57: productionFlagsByCommit falha fechada (flag sem decisão de produção, desconhecida ou fora do formato)', () => {
     expect(productionFlagsByCommit(['portalFormularios', 'portalFormularios'])).toEqual([{ nome: 'portalFormularios', decisao: 'DP-57' }]);
+    expect(productionFlagsByCommit(PRODUCTION_FLAGS_ON)).toEqual([{ nome: 'portalFormularios', decisao: 'DP-57' }, { nome: 'publicacaoPortal', decisao: 'DP-76' }]);
     expect(productionFlagsByCommit([])).toEqual([]);
     expect(() => productionFlagsByCommit(['adServerVendas'])).toThrow(
       new Error('Subida recusada: flag adServerVendas em PRODUCTION_FLAGS_ON sem decisão para production (ADR-022)'),
