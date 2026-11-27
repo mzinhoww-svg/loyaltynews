@@ -109,14 +109,14 @@ type Handler = (req: Request, ctx?: { params?: Promise<Record<string, string>> }
 export async function call(
   handler: Handler,
   method: string,
-  opts: { path?: string; body?: unknown; as?: Actor | null; params?: Record<string, string>; query?: Record<string, string> } = {},
+  opts: { path?: string; body?: unknown; as?: Actor | null; params?: Record<string, string>; query?: Record<string, string>; ip?: string } = {},
 ): Promise<{ status: number; body: any; headers: Headers }> { // eslint-disable-line @typescript-eslint/no-explicit-any
   const url = new URL(`http://localhost:3000${opts.path ?? '/api/x'}`);
   for (const [k, v] of Object.entries(opts.query ?? {})) url.searchParams.set(k, v);
   const res = await handler(
     new Request(url, {
       method,
-      headers: { 'content-type': 'application/json', 'x-forwarded-for': '10.9.0.2', ...(opts.as ? { cookie: opts.as.cookie } : {}) },
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': opts.ip ?? '10.9.0.2', ...(opts.as ? { cookie: opts.as.cookie } : {}) },
       body: opts.body === undefined || method === 'GET' ? undefined : JSON.stringify(opts.body),
     }),
     { params: Promise.resolve(opts.params ?? {}) },

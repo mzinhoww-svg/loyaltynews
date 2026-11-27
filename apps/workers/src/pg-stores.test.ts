@@ -28,8 +28,13 @@ class FakeRedis implements QueueSink {
   wipe() { this.jobs.clear(); }
 }
 
+// Cada caso começa num banco NOVO (createTestDb clona o modelo já migrado, em PGlite e em PostgreSQL real).
+// Não se limpa com TRUNCATE: desde a 0037 o effect_ledger é append-only também por gatilho de STATEMENT
+// (effect_ledger_no_truncate), e o teste não desliga gatilho nenhum: roda contra o banco como ele é em produção.
 const clear = async () => {
-  await t.client.exec('TRUNCATE outbox; ALTER TABLE effect_ledger DISABLE TRIGGER effect_ledger_append_only; TRUNCATE effect_ledger; ALTER TABLE effect_ledger ENABLE TRIGGER effect_ledger_append_only;');
+  await t.close();
+  t = await createTestDb();
+  db = t.db as unknown as Db;
 };
 
 describe('enqueueOutbox', () => {
