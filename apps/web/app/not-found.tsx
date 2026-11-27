@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 import PortalLayout from './(portal)/layout';
 import PortalNotFound from './(portal)/not-found';
 
@@ -9,7 +10,9 @@ import PortalNotFound from './(portal)/not-found';
  */
 export const metadata: Metadata = { title: { absolute: 'Página não encontrada | Loyalty News' }, robots: { index: false, follow: true } };
 
-export default function RootNotFound() {
+export default async function RootNotFound() {
+  // CSP com nonce (lib/csp.ts): página pronta no build sairia com scripts sem nonce e seria bloqueada; o 404 é montado por requisição.
+  await connection();
   return (
     <PortalLayout>
       <PortalNotFound />
