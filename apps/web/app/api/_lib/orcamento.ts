@@ -3,7 +3,7 @@
 // `pg_advisory_xact_lock` por operação do BudgetGate). Nada de tabela de eventos paralela.
 import { z } from 'zod';
 import { desc, like, sql } from 'drizzle-orm';
-import { audit } from '@ln/auth';
+import { audit, sanitizeAuditRow } from '@ln/auth';
 import { BudgetGate, PostgresLedgerStore, gateConfigFromPolicy, microToUsd, monthKey, validatePolicy, type GateConfig, type SqlDatabase } from '@ln/modelops';
 import policyRaw from '@ln/modelops/policy';
 import { schema } from '@ln/db';
@@ -40,7 +40,8 @@ export async function killDetail(db: Db) {
     .from(schema.auditLog)
     .where(like(schema.auditLog.action, 'orcamento.kill_switch%'))
     .orderBy(desc(schema.auditLog.at));
-  const actorOf = (scope: string) => logs.find((l) => l.scope === scope)?.actor ?? null;
+  // o autor vem do audit_log: passa pela mesma barreira da escrita (linha antiga pode ter e-mail como ator)
+  const actorOf = (scope: string) => sanitizeAuditRow({ action: 'orcamento', resource: 'orcamento', actorId: logs.find((l) => l.scope === scope)?.actor }).actorId;
   const g = rows.find((r) => r.scope === 'global');
   return {
     global: { engaged: g?.active ?? false, reason: g?.reason ?? null, at: g?.at.toISOString() ?? null, actor: g ? actorOf('global') : null },
