@@ -179,6 +179,9 @@ async function HomeContent() {
   const now = new Date();
   const upcoming = eventList.items.filter((e) => e.status === 'validado' && isUpcoming(e, now)).slice(0, 4);
   const hasContent = hero.length + latestItems.length + flashItems.length + blocks.length > 0;
+  // N5 (26/11): falha em parte das leituras não some em silêncio. `getHighlights` não informa falha; destaques vazios com as últimas
+  // preenchidas só acontece quando a leitura dos destaques falhou. A agenda tem o próprio aviso no painel lateral.
+  const falhaDeMaterias = [latest, flash, ...byEditoria].some((p) => p.unavailable) || (highlights.length === 0 && latest.items.length > 0);
 
   return (
     <>
@@ -189,7 +192,7 @@ async function HomeContent() {
 
       {!hasContent && (
         <div className="pt-section">
-          {latest.unavailable ? (
+          {falhaDeMaterias ? (
             <ErrorState title="Não conseguimos carregar as matérias agora" retryHref="/">
               O portal não conseguiu falar com a redação digital. Isso não significa que não haja matérias: tente novamente em instantes.
             </ErrorState>
@@ -198,6 +201,14 @@ async function HomeContent() {
               O Loyalty News está se preparando para publicar. Explore as editorias no menu ou veja a <Link href="/sobre">metodologia editorial</Link>.
             </EmptyState>
           )}
+        </div>
+      )}
+
+      {hasContent && falhaDeMaterias && (
+        <div className="pt-section">
+          <ErrorState appearance="inline" title="Parte da página não carregou" retryHref="/">
+            Algumas seções não responderam agora. Isso não significa que não haja matérias: tente novamente em instantes.
+          </ErrorState>
         </div>
       )}
 
