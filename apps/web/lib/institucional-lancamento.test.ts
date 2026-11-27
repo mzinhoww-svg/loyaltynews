@@ -67,6 +67,9 @@ describe('institucional do lançamento', () => {
     expect(p).toContain('depois de 12 meses sem alteração no pedido ou na oportunidade ligada a ele, ou, se foi descartado, 30 dias depois do descarte');
     expect(p).toMatch(/depois a cada 6 horas[^]*marcou como convertido, ou ligou a uma conta de empresa, não é apagado automaticamente, mesmo que depois seja descartado/);
     expect(p).toMatch(/Para pedir a exclusão antes desses prazos, escreva para contato@loyaltynews\.com\.br[^]*quem excluiu, o papel, a data e a origem/);
+    // sem botão no Studio: a frase só descreve o que fica registrado quando a exclusão é feita (PM, DP-69)
+    expect(p).toContain('Quando a exclusão é feita pelo sistema, o registro guarda um código do identificador, quem excluiu, o papel, a data e a origem.');
+    expect(p).not.toMatch(/pode excluir o pedido/);
     expect(p).toContain('Os contatos comerciais registrados pela equipe não têm prazo de exclusão nem rotina de apagamento.');
     expect(p).toMatch(/por conta e por endereço IP[^]*proposta, direito de resposta, pedido de correção ou remoção e sugestão de evento[^]*limitado também por contato/);
     expect(p).toMatch(/iniciadas há mais de 24 horas[^]*de hora em hora/); expect(p).toMatch(/código do endereço IP, nunca o número: esse código é apagado depois de 12 meses, e a linha permanece/);
