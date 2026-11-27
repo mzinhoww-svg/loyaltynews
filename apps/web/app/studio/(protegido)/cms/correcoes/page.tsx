@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { EmptyState } from '@ln/ui';
+import { Recarregar } from '../../../_components/Recarregar';
 import Link from 'next/link';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
@@ -62,7 +63,7 @@ export default async function CorrecoesPage({ searchParams }: { searchParams: Pr
         </button>
       </form>
       {ehErro(r) ? (
-        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} />
+        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} action={<Recarregar />} />
       ) : casos.length === 0 ? (
         <EmptyState title="Nenhum caso registrado" description="Nenhuma errata ou pedido de direito de resposta até agora." />
       ) : (

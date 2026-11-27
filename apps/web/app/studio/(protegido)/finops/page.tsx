@@ -6,6 +6,7 @@ import { POLITICA_ROTULO, carregarPolitica, getPortao } from '@/lib/studio/model
 import { requireModule } from '../../_lib/guard';
 import { SemRotaBackend } from '../../_components/SemBanco';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'FinOps' };
 export const dynamic = 'force-dynamic';
@@ -21,6 +22,7 @@ export default async function FinOpsPage() {
         <h1>FinOps</h1>
         <div className="st-alert err" role="alert">
           Política de modelos inválida ou ausente: orçamento indisponível. {pol.erros.join(' ')}
+          <Recarregar />
         </div>
       </>
     );
@@ -49,6 +51,7 @@ export default async function FinOpsPage() {
       {falha && (
         <div className="st-alert err" role="alert">
           Consumo indisponível. {falha}
+          <Recarregar />
         </div>
       )}
       <div className="st-grid" aria-label="Resumo do mês">

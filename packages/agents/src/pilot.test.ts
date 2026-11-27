@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadRegistries } from './config';
-import { authorOfDeclaredModel, BLOCKING_GATE_REASONS, buildPilotAgents, canDispatchNext, CLASS_C_EXCLUDED, EDITORIAL_PROMPTS_REF, evaluatePilot, highFactOf, INDEPENDENT_STAGES, missingVerdictStreak, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, PilotSession, sheetCsvHeader, stopReasonsOf, validatePilotRow, VERDICT_STREAK_LIMIT, verdictStreakReasons, type PilotRow } from './pilot';
+import { authorOfDeclaredModel, BLOCKING_GATE_REASONS, buildPilotAgents, configInvalidOf, canDispatchNext, CLASS_C_EXCLUDED, EDITORIAL_PROMPTS_REF, evaluatePilot, highFactOf, INDEPENDENT_STAGES, missingVerdictStreak, PILOT_SHEET_COLUMNS, PILOT_SOURCES, PILOT_STAGES, PilotSession, sheetCsvHeader, stopReasonsOf, validatePilotRow, VERDICT_STREAK_LIMIT, verdictStreakReasons, type PilotRow } from './pilot';
 
 const reg = loadRegistries();
 
@@ -396,6 +396,26 @@ describe('etapas novas do piloto (pauta, checagem, revisão separadas) — dados
     expect(e.tariffed.apiCalls).toBe(1);
     expect(e.exit.overall).toBe('stopped');
     expect(canDispatchNext([draft(1, 0), factcheck(1, 3, { tarifada_api_call: true })]).allowed).toBe(false);
+  });
+});
+
+describe('etapa context no protocolo', () => {
+  const ctx = (over: Record<string, unknown> = {}) => ({
+    task_id: 'ctx-1', kind: 'classification', article_id: 'art-1', source_id: 's', stage: 'context', account: 'opencode', declared_model: 'deepseek-v4.1-flash',
+    prompt_version: 'editorial-0.3', started_at: '2026-11-26T10:00:00.000Z', ended_at: '2026-11-26T10:01:00.000Z', attempt: 1, outcome: 'completed',
+    packet_chars: 100, tokens_measured: false, published_attempt: false, tarifada_api_call: false, secret_in_log: false, tool_outside_contract: false, ...over,
+  }) as PilotRow;
+  it('aceita context em opencode+deepseek e recusa claude na mesma etapa', () => {
+    expect(validatePilotRow(ctx())).toEqual([]);
+    expect(validatePilotRow(ctx({ account: 'claude', declared_model: 'claude-haiku-5-5' }))).toEqual(expect.arrayContaining([expect.stringMatching(/etapa context deve rodar em opencode/)]));
+  });
+});
+
+describe('configInvalidOf: execução sem modelo', () => {
+  it('linha não determinística sem declared_model é invalidade de configuração', () => {
+    expect(configInvalidOf({ stage: 'triage', account: 'opencode', declared_model: null })).toEqual(expect.arrayContaining([expect.stringMatching(/modelo declarado ausente/)]));
+    expect(configInvalidOf({ stage: 'triage', account: 'opencode', declared_model: 'deepseek-v4.1-flash' })).toEqual([]);
+    expect(configInvalidOf({ stage: 'rights_seo_qa', account: 'deterministic', declared_model: null })).toEqual([]);
   });
 });
 

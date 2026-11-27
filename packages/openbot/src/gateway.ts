@@ -56,6 +56,8 @@ export interface TaskIo {
 
 export interface TaskInputMeta {
   taskClass: GatewayTaskClass;
+  /** Etapa declarada no despacho (a mesma classe; a linha do piloto usa `--stage` e precisa dela, ex.: `context`). */
+  stage?: string;
   promptVersion: string;
   /** Id da tarefa do rascunho que esta checagem/revisão recebe (prova de independência). Lido de `input.reviewedDraftTaskId`, se houver. */
   reviewedDraftTaskId?: string;
@@ -129,6 +131,7 @@ export class OpenBotModelGateway {
     try {
       await c.io.putInput(key, req.input, {
         taskClass: req.taskClass,
+        stage: req.taskClass,
         promptVersion: req.promptVersion,
         ...(typeof reviewed === 'string' && ID_RE.test(reviewed) ? { reviewedDraftTaskId: reviewed } : {}),
         ...(articleId ? { articleId } : {}),

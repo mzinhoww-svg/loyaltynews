@@ -4,6 +4,7 @@ import { findModule } from '@/lib/studio/modules';
 import { api } from '@/lib/studio/rotas-api';
 import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
+import { Recarregar } from '../../_components/Recarregar';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { EstadoLista } from '../../_components/EstadoLista';
@@ -73,7 +74,9 @@ export default async function CrmPage({ searchParams }: { searchParams: Promise<
       <Flash tipo={tipo} aviso={aviso} />
       {filtroLeadsInvalido ? (
         <div className="st-alert err" role="alert">
-          Filtro inválido.
+          {/* 400 = filtro recusado; qualquer outro erro é falha de leitura (não é "filtro inválido"). */}
+          {resLeads.status === 400 ? 'Filtro inválido.' : `Não foi possível carregar os leads: ${mensagemErro(resLeads)}`}
+          {resLeads.status === 400 ? null : <Recarregar />}
         </div>
       ) : null}
 

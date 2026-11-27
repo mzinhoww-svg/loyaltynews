@@ -12,7 +12,7 @@ import type { Db } from '@ln/auth';
 import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFromPolicy, loadPolicyFile, type ModelPolicy } from '@ln/modelops';
 import { TavilyReader, parseTavilyKeys } from '@ln/editorial';
 import { pilotWiringImporter } from './openbot-wiring';
-import { createFactoryPool, loadPilotWiring, loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
+import { createFactoryPool, loadPilotWiring, loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory, runEditorialReprocess, ReprocessRefused, REPROCESS_STAGES } from './editorial-factory';
 
 // Nenhum erro de conexão pode sair com o objeto inteiro (ca/cert/key do TLS): filtro de PEM na saída e saída com código ≠ 0 em erro não tratado.
 installOutputFilter();
@@ -24,6 +24,8 @@ async function main() {
   const run = args.includes('--run');
   const simulate = args.includes('--simulate');
   const max = Number(args[args.indexOf('--max') + 1]) || undefined;
+  const argOf = (k: string): string | undefined => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
+  const reprocess = argOf('--reprocess');
   if (!DATABASE_URL) { console.error('[fábrica] DATABASE_URL é obrigatório'); process.exit(1); }
   const flags = parseFactoryFlags(LN_FACTORY_FLAGS);
   if (flags.modelosHabilitados) { console.error('[fábrica] modelosHabilitados recusada: ledger de orçamento persistente ainda não existe'); process.exit(1); }
@@ -49,6 +51,26 @@ async function main() {
     const shadow = await loadShadow(process.env);
     const tavilyKeys = parseTavilyKeys(process.env);
     const reader = tavilyKeys.length ? new TavilyReader({ apiKeys: tavilyKeys }) : undefined;
+    if (reprocess) {
+      // F (aprovado pelo PM em 26/11): reprocessa UMA etapa de UMA matéria já gravada, com operador e motivo na trilha.
+      if (!run) { console.error('[fábrica] --reprocess exige --run (é uma ação de operador, não dry-run)'); process.exit(1); }
+      if (!gateway && !pilot) { console.error('[fábrica] --reprocess chama modelo: use --run --simulate ou o piloto do OpenBot'); process.exit(1); }
+      const stage = argOf('--stage');
+      if (!stage || !REPROCESS_STAGES.includes(stage as never)) { console.error(`[fábrica] --stage obrigatório: ${REPROCESS_STAGES.join('|')}`); process.exit(1); }
+      try {
+        const report = await runEditorialReprocess({
+          db, flags, articleId: reprocess, stage: stage as never,
+          motivo: argOf('--motivo') ?? '', operatorId: argOf('--operator') ?? '',
+          ...(pilot ? { modelGateway: pilot.gateway, pilotSink: pilot.sink } : {}),
+          ...(gateway ? { gateway } : {}),
+        });
+        console.log(JSON.stringify(report, null, 2));
+      } catch (e) {
+        if (e instanceof ReprocessRefused) { console.error(`[fábrica] reprocessamento recusado (${e.code}): ${e.message}`); process.exit(2); }
+        throw e;
+      }
+      return;
+    }
     if (args.includes('--autoral')) {
       // pautas autorais pendentes (DP-29): exige --run --simulate enquanto não houver chamada real de modelo autorizada
       if (!gateway && !pilot) { console.error('[fábrica] --autoral chama modelo: use --run --simulate'); process.exit(1); }

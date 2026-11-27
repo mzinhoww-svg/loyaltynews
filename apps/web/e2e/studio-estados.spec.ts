@@ -14,7 +14,7 @@ test('estado vazio: EmptyState com título, texto e status (role=status), sem a 
     [`/studio/cms?q=${nada}`, /Nenhuma matéria com esses filtros/],
     [`/studio/fontes/fabrica?q=${nada}`, /Nenhuma fonte encontrada/],
     [`/studio/midia?vencendo=1`, /Nenhum ativo com esses filtros/],
-    [`/studio/entidades?q=${nada}`, /Nenhum resultado/],
+    [`/studio/entidades?q=${nada}`, /Nenhuma empresa ou executivo encontrado/],
   ];
   for (const [rota, titulo] of telas) {
     await page.goto(rota);

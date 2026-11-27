@@ -8,8 +8,8 @@ import { anyPemSet, pgPoolConfig, selfCheckPemSet } from '@ln/db/tls';
 import { onClientError } from '@ln/db/safe-log';
 import { FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import {
-  type ModelGateway, type PilotRowSink, Collector, type CollectorOptions, type Fetcher, type Resolver, type ReaderPort, type ShadowPort, StoreReadBudget, shadowReader, shadowObserver, drainShadow, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
-  type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass,
+  type ModelGateway, type PilotRowSink, Collector, type CollectorOptions, type Fetcher, type Resolver, type ReaderPort, type ShadowPort, StoreReadBudget, shadowReader, shadowObserver, drainShadow, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, runStage, applyOutcome, systemResolver,
+  type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass, type StageDeps, type ArticleJob, type Stage,
 } from '@ln/editorial';
 import { callModel, type GatewayCall, type GatewayDeps } from '@ln/modelops';
 import { PgEditorialStore } from './editorial-store';
@@ -209,4 +209,63 @@ export function createFactoryPool(env: Record<string, string | undefined>, opts:
   const pool = new Pool(pgPoolConfig({ ...env, DB_SSL_MODE: env['DB_SSL_MODE'] ?? 'verify-full' }, { max: opts.max ?? 4 })); // lança sem os PEM ou com DB_SSL_MODE inválido
   pool.on('error', onClientError('[fábrica] pg (conexão ociosa)', opts.log ? (l) => opts.log!(l) : undefined)); // C1
   return pool;
+}
+
+// ------------------------------------------------------------------------------------------------------------------
+// Reprocessamento por articleId + etapa (F, aprovado pelo PM em 26/11): caminho de OPERADOR, uma matéria, uma etapa.
+// Nasceu da art_5d5557a6: o status voltou para collected, mas runFactory só processa o que coletou na rodada, e o id é
+// estável pela URL canônica. Aqui a matéria vem do store (não da coleta), roda UMA etapa e grava a trilha com operador e motivo.
+// Recusa bloqueio editorial real (finding unsupported_*); idempotente por articleId+etapa (trilha editorial.reprocess).
+export type ReprocessStage = Extract<Stage, 'triage' | 'context' | 'draft' | 'factcheck' | 'review'>;
+export const REPROCESS_STAGES: readonly ReprocessStage[] = ['triage', 'context', 'draft', 'factcheck', 'review'];
+
+export class ReprocessRefused extends Error {
+  constructor(readonly code: string, message: string) { super(message); this.name = 'ReprocessRefused'; }
+}
+
+export function reprocessRefusal(a: { status: string; findings: Array<{ code: string }> }): string[] {
+  const out: string[] = [];
+  if (['aprovado', 'publicado', 'corrigido', 'despublicado'].includes(a.status)) out.push(`status ${a.status}: use o fluxo próprio (publicação/correção), não o reprocessamento`);
+  // Bloqueio editorial é por FINDING, não por lista de status: fato não suportado, duplicidade e âncora ausente
+  // exigem decisão editorial, não reprocessamento de infraestrutura.
+  const editorial = [...new Set(a.findings.filter((f) => /^unsupported_/.test(f.code) || f.code === 'duplicate' || f.code === 'unanchored').map((f) => f.code))];
+  if (editorial.length) out.push(`falha editorial real (${editorial.join(', ')}): só bloqueio de infraestrutura ou falso positivo se reprocessa`);
+  return out;
+}
+
+export interface ReprocessReport { articleId: string; stage: ReprocessStage; status: string; findings: string[]; operatorId: string; motivo: string }
+
+export async function runEditorialReprocess(
+  i: Omit<RunEditorialFactoryInput, 'options' | 'dryRun'> & { articleId: string; stage: ReprocessStage; motivo: string; operatorId: string },
+): Promise<ReprocessReport> {
+  const flags: FlagState = { ...FLAG_DEFAULTS, ...(i.flags ?? {}) };
+  if (!i.modelGateway && !i.gateway) throw new ReprocessRefused('NO_GATEWAY', 'reprocessar chama modelo: informe o gateway');
+  if (!REPROCESS_STAGES.includes(i.stage)) throw new ReprocessRefused('BAD_STAGE', `etapa inválida: ${String(i.stage)} (use ${REPROCESS_STAGES.join('|')})`);
+  if (i.motivo.trim().length < 10) throw new ReprocessRefused('BAD_MOTIVO', 'motivo curto: explique em 10 a 500 caracteres por que o bloqueio é de infraestrutura/falso positivo');
+  if (!i.operatorId.trim()) throw new ReprocessRefused('NO_OPERATOR', 'operador identificado é obrigatório');
+  const store = new PgEditorialStore(i.db);
+  const article = await store.getArticle(i.articleId);
+  if (!article) throw new ReprocessRefused('NOT_FOUND', `matéria ${i.articleId} não encontrada`);
+  const refusal = reprocessRefusal(article);
+  if (refusal.length) throw new ReprocessRefused('REFUSED', refusal.join(' | '));
+  const target = `${i.articleId}:${i.stage}`;
+  const jaPedido = (await store.listAudit()).some((a) => a.action === 'editorial.reprocess' && a.target === target);
+  if (jaPedido) throw new ReprocessRefused('ALREADY_REQUESTED', `${target} já foi reprocessado uma vez; a mesma etapa não duplica tarefa`);
+  const now = i.now ?? (() => new Date());
+  const registry = i.registry ?? new SourceRegistry(SEED_SOURCES);
+  const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'sem transporte' }) };
+  const modelGateway = i.modelGateway ?? createLlmGateway(llm);
+  const stageDeps: StageDeps = {
+    gateway: modelGateway, registry, audit: new InMemoryAuditLog(), flags, now,
+    slugExists: async (slug) => (await store.listArticles()).some((a) => a.draft?.slug === slug),
+    ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}),
+  };
+  const job: ArticleJob = { articleId: article.articleId, editoria: article.editoria, evidences: article.evidences, ...(article.draft ? { draft: article.draft } : {}), attempt: 0 };
+  const out = await runStage(stageDeps, { stage: i.stage, jobId: `${target}:rp`, data: job });
+  const rec = await applyOutcome(store, job, out, now().toISOString());
+  await store.appendAudit({
+    at: now().toISOString(), userId: i.operatorId, action: 'editorial.reprocess', target,
+    detail: JSON.stringify({ motivo: i.motivo, status: rec.status, ...(out.kind === 'blocked' ? { blockers: out.blocked.blockers, findings: out.blocked.findings.map((f) => f.code) } : {}) }),
+  });
+  return { articleId: i.articleId, stage: i.stage, status: rec.status, findings: out.kind === 'blocked' ? out.blocked.findings.map((f) => f.code) : [], operatorId: i.operatorId, motivo: i.motivo };
 }

@@ -69,6 +69,96 @@ export function numbersIn(s: string): string[] {
 }
 export function digitsKey(n: string): string { return n.replace(/[^\d]/g, ''); }
 
+/**
+ * Número com moeda e multiplicador, para comparar VALOR e não dígitos literais.
+ * Corrige o falso positivo do piloto: a evidência traz US$ 4,000 e o rascunho escreve "US$ 4 mil".
+ */
+export interface NumericToken {
+  /** Como apareceu no texto (moeda e multiplicador incluídos), para a mensagem do achado. */
+  raw: string;
+  value: number;
+  currency?: string;
+  /** Veio com multiplicador (mil, milhões, K, M, B...), logo é um valor arredondado. */
+  rounded: boolean;
+  /** Menor casa escrita do lado arredondado, já multiplicada (ex.: "4 mil" = 1.000; "4,4 mil" = 100). */
+  unit?: number;
+}
+
+const CURRENCY: Record<string, string> = {
+  'r$': 'BRL', 'us$': 'USD', usd: 'USD', brl: 'BRL', eur: 'EUR', '€': 'EUR', gbp: 'GBP', '£': 'GBP', $: 'USD', jpy: 'JPY',
+  'dólar': 'USD', 'dólares': 'USD', real: 'BRL', reais: 'BRL', libra: 'GBP', libras: 'GBP', iene: 'JPY', ienes: 'JPY', euro: 'EUR', euros: 'EUR',
+};
+const MULTIPLIER: Record<string, number> = {
+  mil: 1e3, milhao: 1e6, milhoes: 1e6, 'milhão': 1e6, 'milhões': 1e6,
+  bilhao: 1e9, bilhoes: 1e9, 'bilhão': 1e9, 'bilhões': 1e9, k: 1e3, m: 1e6, b: 1e9,
+};
+/** Moeda antes ou depois do número (código, símbolo ou palavra por extenso); multiplicador textual ou K/M/B logo depois. */
+const NUM_TOKEN = /(?:(R\$|US\$|USD|BRL|EUR|GBP|JPY|€|£|\$)(?![A-Za-zÀ-ÿ])\s*)?(\d[\d.,]*)(?:\s*(milhões|milhão|milhoes|milhao|bilhões|bilhão|biloes|bilhao|mil|K|M|B)(?![A-Za-zÀ-ÿ]))?(?:\s*(dólares|dólar|reais|real|libras|libra|ienes|iene|euros|euro|USD|BRL|EUR|GBP|JPY)(?![A-Za-zÀ-ÿ]))?/gi;
+
+/** Separador de milhar (vírgula pt-BR, ponto en-US) e decimal, sem saber o idioma do texto. Devolve também as casas escritas. */
+function parseNumber(num: string): { value: number; decimals: number } | null {
+  let s = num.replace(/[.,]+$/, '');
+  const hasComma = s.includes(',');
+  const hasDot = s.includes('.');
+  let decimals = 0;
+  if (hasComma && hasDot) {
+    const decimal = s.lastIndexOf(',') > s.lastIndexOf('.') ? ',' : '.';
+    const thousands = decimal === ',' ? '.' : ',';
+    s = s.split(thousands).join('');
+    decimals = s.length - s.lastIndexOf(decimal) - 1;
+    if (decimal === ',') s = s.replace(',', '.');
+  } else if (hasComma || hasDot) {
+    const sep = hasComma ? ',' : '.';
+    const parts = s.split(sep);
+    // "4,000"/"4.000" e "1.234.567" são milhares; "4,24"/"4.24" são decimais.
+    if (parts.length > 1 && parts.slice(1).every((p) => p.length === 3)) s = parts.join('');
+    else { decimals = parts[1]?.length ?? 0; s = parts.join('.'); }
+  }
+  const v = Number(s);
+  return Number.isFinite(v) ? { value: v, decimals } : null;
+}
+
+export function parseNumbersIn(s: string): NumericToken[] {
+  const out: NumericToken[] = [];
+  for (const m of s.matchAll(NUM_TOKEN)) {
+    const base = parseNumber(m[2]!);
+    if (base === null) continue;
+    const mult = m[3] ? MULTIPLIER[m[3].toLowerCase()] ?? 1 : 1;
+    const currency = CURRENCY[(m[1] ?? m[4] ?? '').toLowerCase()];
+    const rounded = Boolean(m[3]);
+    out.push({
+      raw: m[0].trim(), value: base.value * mult, ...(currency ? { currency } : {}), rounded,
+      ...(rounded ? { unit: mult / 10 ** base.decimals } : {}),
+    });
+  }
+  return out;
+}
+
+/**
+ * Compara o número do TEXTO (a) com o da EVIDÊNCIA (b). O texto só pode representar a evidência por arredondamento
+ * quando escreveu um multiplicador e no máximo metade da menor casa escrita: "4 mil" aceita 4.240 (240 ≤ 500), mas
+ * "11 mil" não aceita 10.000 (1.000 > 500) e "4,4 mil" não aceita 4.000 (400 > 50). Texto sem multiplicador exige o
+ * valor exato; valor inexato que não seja arredondamento válido falha (fail closed). Moeda diferente bloqueia (código,
+ * símbolo ou palavra por extenso: dólar/es, real/is, libra/s, iene/s, euro/s); moeda ausente de um lado compara só o
+ * valor, por desenho.
+ *
+ * Limites conhecidos, NÃO corrigidos aqui: (1) a comparação usa o texto concatenado das evidências citadas, sem amarrar
+ * cada número ao seu trecho/contexto — "7 mil" passa tanto para "7 mil lojas" quanto para "7 mil pontos" quando os
+ * valores coincidem, então o matcher não substitui a checagem humana de contexto; (2) o parser lê "0.500"/"1.234" (três
+ * casas em en-US) como milhar.
+ */
+export function numbersMatch(a: NumericToken, b: NumericToken): boolean {
+  if (a.currency && b.currency && a.currency !== b.currency) return false; // nunca presume câmbio
+  if (a.value === b.value) return true;
+  if (!a.rounded || a.unit === undefined) return false; // texto exato não ganha tolerância
+  return Math.abs(a.value - b.value) <= a.unit / 2;
+}
+
+function evidenceNumbersMatch(text: string, evidenceTextAll: string): string[] {
+  const ev = parseNumbersIn(evidenceTextAll);
+  return parseNumbersIn(text).filter((n) => !ev.some((e) => numbersMatch(n, e))).map((n) => n.raw);
+}
+
 function evidenceText(evs: Evidence[]): string { return evs.map((e) => `${e.title}\n${e.text}`).join('\n'); }
 
 /** Cada claim cita evidências existentes; citações literais e números precisam constar na evidência citada. */
@@ -88,8 +178,7 @@ export function checkClaims(d: Draft, evidences: Evidence[]): CheckResult {
       if (!text.includes(normalizeText(c.quote.speaker))) out.push(f('invented_quote', 'autor da fala não consta na evidência', c.id));
     }
     if (c.kind === 'number' || c.kind === 'date') {
-      const evNums = new Set(numbersIn(evidenceText(evs as Evidence[])).map(digitsKey));
-      for (const n of numbersIn(c.text)) if (!evNums.has(digitsKey(n))) out.push(f('unsupported_metric', `número "${n}" não consta na evidência`, c.id));
+      for (const n of evidenceNumbersMatch(c.text, evidenceText(evs as Evidence[]))) out.push(f('unsupported_metric', `número "${n}" não consta na evidência`, c.id));
     }
   }
   return result(out);
@@ -100,10 +189,9 @@ export function checkBodyGrounding(d: Draft, evidences: Evidence[]): CheckResult
   const out: Finding[] = [];
   const used = evidences.filter((e) => d.evidenceIds.includes(e.id));
   const evNorm = normalizeText(evidenceText(used));
-  const evNums = new Set(numbersIn(evidenceText(used)).map(digitsKey));
   const visible = [mainBody(d.body), d.resumo ?? '', d.subtitulo ?? ''];
-  for (const n of numbersIn(`${d.headline} ${visible.join(' ')}`)) {
-    if (!evNums.has(digitsKey(n))) out.push(f('unsupported_metric', `número "${n}" no texto não consta nas evidências`));
+  for (const n of evidenceNumbersMatch(`${d.headline} ${visible.join(' ')}`, evidenceText(used))) {
+    out.push(f('unsupported_metric', `número "${n}" no texto não consta nas evidências`));
   }
   for (const part of visible) {
     for (const m of part.matchAll(/["“]([^"”]{12,})["”]/g)) {

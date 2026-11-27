@@ -11,6 +11,7 @@ import { SemBanco } from '../../../_components/SemBanco';
 import { CartaoFonte } from './CartaoFonte';
 import { habilitarPaginaAction } from './actions';
 import { Seta } from '../../../_components/Seta';
+import { Recarregar } from '../../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Fontes da Fábrica editorial' };
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,7 @@ export default async function FontesFabricaPage({ searchParams }: { searchParams
         <h1>Fontes da Fábrica editorial</h1>
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       </>
     );

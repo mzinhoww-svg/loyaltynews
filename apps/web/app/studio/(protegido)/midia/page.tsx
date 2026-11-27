@@ -7,6 +7,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { SemBanco } from '../../_components/SemBanco';
+import { Recarregar } from '../../_components/Recarregar';
 import { enviarArquivoAction, registrarMidiaAction, removerMidiaAction, renovarLicencaAction } from './actions';
 
 export const metadata: Metadata = { title: 'Biblioteca de mídia' };
@@ -96,8 +97,10 @@ export default async function MidiaPage({ searchParams }: { searchParams: Promis
       </>
     );
   }
-  const filtroInvalido = ehErro(r);
-  const itens = filtroInvalido ? [] : r.body.data;
+  // 400 = filtro recusado (a pessoa ajusta); qualquer outro erro é falha de leitura (a tela oferece tentar de novo).
+  const filtroInvalido = ehErro(r) && r.status === 400;
+  const falhaLeitura = ehErro(r) && r.status !== 400;
+  const itens = ehErro(r) ? [] : r.body.data;
   const filtrando = Boolean(filtro || vencendo || vencida);
   const podeEscrever = checkAccess(session, ['admin', 'editor_chefe', 'editor']).ok;
   const podeRemover = checkAccess(session, ['admin', 'editor_chefe']).ok;
@@ -131,7 +134,12 @@ export default async function MidiaPage({ searchParams }: { searchParams: Promis
           Filtrar
         </button>
       </form>
-      {filtroInvalido ? (
+      {falhaLeitura ? (
+        <div className="st-alert err" role="alert">
+          Não foi possível carregar a biblioteca de mídia: {mensagemErro(r)}
+          <Recarregar />
+        </div>
+      ) : filtroInvalido ? (
         <div className="st-alert err" role="alert">
           Filtro inválido: {mensagemErro(r)}
         </div>

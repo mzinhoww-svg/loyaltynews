@@ -15,7 +15,7 @@ test.describe('Entity intelligence (@ln/intelligence)', () => {
     await expect(page.locator('[data-vazio="moves"]')).toBeVisible();
     await page.getByLabel('Buscar empresa ou executivo').fill('Banco Inexistente');
     await page.getByRole('button', { name: 'Buscar' }).click();
-    await expect(page.getByRole('heading', { name: 'Nenhum resultado' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Nenhuma empresa ou executivo encontrado' })).toBeVisible();
     await expect(page.getByText('Ausência de registro não prova inexistência.').first()).toBeVisible();
   });
 

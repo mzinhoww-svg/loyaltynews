@@ -9,6 +9,7 @@ import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { fixarMapaAction } from './actions';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Leitura do piloto' };
 export const dynamic = 'force-dynamic';
@@ -34,7 +35,7 @@ export default async function PilotoPage({ searchParams }: { searchParams: Promi
   const b = await searchParams;
   const r = await api.piloto.materias();
   if (naoConfigurado(r)) return (<><Intro /><SemBanco modulo="A leitura do piloto" /></>);
-  if (ehErro(r)) return (<><Intro /><div className="st-alert err" role="alert">{mensagemErro(r)}</div></>);
+  if (ehErro(r)) return (<><Intro /><div className="st-alert err" role="alert">{mensagemErro(r)}<Recarregar /></div></>);
   const itens = r.body.items;
   const f = r.body.fechamento;
   const semMapa = itens.filter((i) => !i.articleId);

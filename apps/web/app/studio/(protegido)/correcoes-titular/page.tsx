@@ -8,6 +8,7 @@ import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Pedidos do titular' };
 export const dynamic = 'force-dynamic';
@@ -60,6 +61,7 @@ export default async function PedidosTitularPage({ searchParams }: { searchParam
       ) : ehErro(r) ? (
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       ) : r.body.items.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio">

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { EmptyState } from '@ln/ui';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import type { MediaKitPage } from '@ln/commercial';
 import { flagAtiva } from '@/lib/studio/flags';
@@ -6,9 +7,10 @@ import { findModule } from '@/lib/studio/modules';
 import { AVISO_VENDA_DESLIGADA, periodo30, vendaLiberadaNoAmbiente } from '@/lib/studio/comercial';
 import { hojeSP } from '@/lib/studio/datas';
 import { api } from '@/lib/studio/rotas-api';
-import { ehErro, naoConfigurado } from '@/lib/studio/backend';
+import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
 import { SemBanco } from '../../_components/SemBanco';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Inventário' };
 export const dynamic = 'force-dynamic';
@@ -35,6 +37,9 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
   const catalogo = await api.comercial.formatos({ section: q.section, status: q.status });
   const view = (ehErro(catalogo) ? null : catalogo.body) as unknown as { total: number; sections: string[]; formats: Formato[]; note: string } | null;
   const filtroOk = view !== null && Array.isArray(view.formats);
+  // 400 = filtro recusado (a pessoa ajusta); qualquer outro erro é falha de leitura (com nova tentativa).
+  const filtroInvalido = ehErro(catalogo) && catalogo.status === 400;
+  const falhaCatalogo = ehErro(catalogo) && catalogo.status !== 400;
   const kitRes = await api.comercial.midiaKit();
   const kit = (ehErro(kitRes) ? null : kitRes.body) as unknown as MediaKitPage | null;
   const vendas = flagAtiva('adServerVendas');
@@ -47,6 +52,11 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
       </div>
 
       <h2>Posições</h2>
+      {ehErro(inv) ? (
+        <EmptyState kind="error" title="Não foi possível carregar as posições" description={mensagemErro(inv)} action={<Recarregar />} />
+      ) : posicoes.length === 0 ? (
+        <EmptyState title="Nenhuma posição no inventário" description="O Backend não devolveu posições do blueprint para este período. Nenhuma capacidade é estimada." />
+      ) : (
       <QuadroRolavel rotulo="Posições do inventário">
 <table className="st-table">
         <caption className="st-hint" style={{ textAlign: 'left' }}>
@@ -82,6 +92,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
         </tbody>
       </table>
 </QuadroRolavel>
+      )}
 
       <h2 style={{ marginTop: 24 }}>Catálogo de formatos</h2>
       <form className="st-filters" method="get" role="search" aria-label="Filtrar formatos">
@@ -109,15 +120,17 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
           Filtrar
         </button>
       </form>
-      {!filtroOk || !view ? (
-        <div className="st-alert err" role="alert">
-          Filtro inválido.
-        </div>
+      {falhaCatalogo || (!filtroInvalido && (!filtroOk || !view)) ? (
+        <EmptyState kind="error" title="Não foi possível carregar o catálogo" description={mensagemErro(catalogo)} action={<Recarregar />} />
+      ) : filtroInvalido ? (
+        <EmptyState kind="error" title="Filtro de seção ou disponibilidade inválido" description="Ajuste os filtros e tente de novo." />
+      ) : view!.formats.length === 0 ? (
+        <EmptyState title="Nenhum formato no catálogo" description="Nenhum formato corresponde a esta seção e disponibilidade. Ajuste os filtros para ver o catálogo." />
       ) : (
         <QuadroRolavel rotulo="Formatos do catálogo">
 <table className="st-table">
           <caption className="st-hint" style={{ textAlign: 'left' }}>
-            {view.total} formato(s). {view.note}
+            {view!.total} formato(s). {view!.note}
           </caption>
           <thead>
             <tr>
@@ -128,7 +141,7 @@ export default async function InventarioPage({ searchParams }: { searchParams: P
             </tr>
           </thead>
           <tbody>
-            {view.formats.map((f) => (
+            {view!.formats.map((f) => (
               <tr key={f.id}>
                 <th scope="row">{f.name}</th>
                 <td>{f.section}</td>

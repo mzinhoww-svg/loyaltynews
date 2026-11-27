@@ -99,6 +99,12 @@ export default async function OrganizacaoPage({ searchParams }: { searchParams: 
           Filtrar
         </button>
       </form>
+      {lista.length === 0 ? (
+        <section className="st-empty" aria-labelledby="vazio-agentes" data-vazio="departamento">
+          <h2 id="vazio-agentes">Nenhum agente neste departamento</h2>
+          <p>A configuração versionada não tem agente no departamento escolhido. Ajuste o filtro para ver todos; nada é estimado.</p>
+        </section>
+      ) : (
       <QuadroRolavel rotulo="Agentes">
       <table className="st-table">
         <caption className="st-hint" style={{ textAlign: 'left' }}>
@@ -128,6 +134,7 @@ export default async function OrganizacaoPage({ searchParams }: { searchParams: 
         </tbody>
       </table>
       </QuadroRolavel>
+      )}
     </>
   );
 }

@@ -13,6 +13,7 @@ import { gerarPacotesAction } from './actions';
 import { metricasVista, rotuloEstado } from '@/lib/studio/social-metricas';
 import { flagAtiva } from '@/lib/studio/flags'; // ADR-022: flag pelo resolvedor de runtime, só no servidor (página force-dynamic)
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Social dashboard' };
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
         <h1>Social dashboard</h1>
         <div className="st-alert err" role="alert">
           {mensagemErro(resumo)}
+          <Recarregar />
         </div>
       </>
     );

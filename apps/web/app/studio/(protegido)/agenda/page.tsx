@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { EmptyState } from '@ln/ui';
+import { Recarregar } from '../../_components/Recarregar';
 import { EDITORIAS } from '@ln/contracts';
 import { checkAccess, findModule } from '@/lib/studio/modules';
 import { api, type EventoAgenda } from '@/lib/studio/rotas-api';
@@ -114,7 +115,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
     return (
       <>
         <h1>Agenda e eventos</h1>
-        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} />
+        <EmptyState kind="error" title="Não foi possível carregar" description={mensagemErro(r)} action={<Recarregar />} />
       </>
     );
   }

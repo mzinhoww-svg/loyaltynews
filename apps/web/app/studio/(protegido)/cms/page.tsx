@@ -11,6 +11,7 @@ import { requireStudio } from '../../_lib/guard';
 import { SemBanco } from '../../_components/SemBanco';
 import { QuadroRolavel } from '../../_components/QuadroRolavel';
 import { StatusArtigo } from '../../_components/StatusArtigo';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'CMS editorial' };
 export const dynamic = 'force-dynamic';
@@ -38,9 +39,11 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
     return ehErro(x) ? null : x.body.total;
   };
   const [paraRevisar, paraPublicar] = await Promise.all([podeRevisar ? contar('em_checagem') : null, podePublicar ? contar('aprovado') : null]);
-  const filtroInvalido = ehErro(r);
-  const lista = filtroInvalido ? [] : r.body.data;
-  const total = filtroInvalido ? 0 : r.body.total;
+  // 400 = filtro recusado (a pessoa ajusta); qualquer outro erro é falha de leitura (a tela oferece tentar de novo).
+  const filtroInvalido = ehErro(r) && r.status === 400;
+  const falhaLeitura = ehErro(r) && r.status !== 400;
+  const lista = ehErro(r) ? [] : r.body.data;
+  const total = ehErro(r) ? 0 : r.body.total;
   return (
     <>
       <h1>CMS editorial</h1>
@@ -110,7 +113,12 @@ export default async function CmsList({ searchParams }: { searchParams: Promise<
         </button>
       </form>
 
-      {filtroInvalido ? (
+      {falhaLeitura ? (
+        <div className="st-alert err" role="alert">
+          Não foi possível carregar a fila editorial: {mensagemErro(r)}
+          <Recarregar />
+        </div>
+      ) : filtroInvalido ? (
         <div className="st-alert err" role="alert">
           Filtro inválido: {mensagemErro(r)}
         </div>

@@ -4,6 +4,7 @@ import { chamar, ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backe
 import { findModule } from '@/lib/studio/modules';
 import { requireModule } from '../../_lib/guard';
 import { SemBanco } from '../../_components/SemBanco';
+import { Recarregar } from '../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Auditoria' };
 export const dynamic = 'force-dynamic';
@@ -63,11 +64,12 @@ export default async function AuditoriaPage({ searchParams }: { searchParams: Pr
       {ehErro(r) ? (
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       ) : itens.length === 0 ? (
         <section className="st-empty" aria-labelledby="vazio">
-          <h3 id="vazio">Nenhum registro</h3>
-          <p>O publicador social ainda não recebeu nenhum pedido neste processo.</p>
+          <h3 id="vazio">Nenhuma ação de auditoria</h3>
+          <p>O publicador social ainda não registrou nenhuma tentativa de geração ou publicação neste processo.</p>
         </section>
       ) : (
         <table className="st-table">

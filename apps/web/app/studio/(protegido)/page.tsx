@@ -8,6 +8,7 @@ import { api } from '@/lib/studio/rotas-api';
 import { ehErro, naoConfigurado } from '@/lib/studio/backend';
 import { STATUS_LABEL } from '@/lib/studio/cms/status';
 import { requireStudio } from '../_lib/guard';
+import { Recarregar } from '../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Visão geral' };
 export const dynamic = 'force-dynamic';
@@ -32,7 +33,7 @@ export default async function StudioHome() {
   return (
     <>
       <h1>LN Studio</h1>
-      <p className="st-hint">Visão geral do painel administrativo do Loyalty News: daqui você chega a todas as áreas. Módulos sem backend mostram uma tela sem dados: nenhum número aqui é estimado ou fictício.</p>
+      <p className="st-hint">Visão geral do painel administrativo do Loyalty News: daqui você chega a todas as áreas. Módulos sem backend mostram o que falta: nenhum número aqui é estimado ou fictício.</p>
 
       <section aria-labelledby="atalhos">
         <h2 id="atalhos">Atalhos</h2>
@@ -57,6 +58,12 @@ export default async function StudioHome() {
         <p className="st-hint" role="note">
           Banco de dados não configurado neste ambiente: contagens indisponíveis (nunca estimadas).
         </p>
+      ) : null}
+      {contagens.some((c) => ehErro(c)) ? (
+        <div className="st-alert err" role="alert">
+          Não foi possível ler as contagens da fila editorial. Nenhum número foi estimado.
+          <Recarregar />
+        </div>
       ) : null}
       <p className="st-hint">Audiência, receita e custos: não disponível.</p>
 

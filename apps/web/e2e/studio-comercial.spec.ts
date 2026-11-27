@@ -33,7 +33,7 @@ test.describe('Comercial (@ln/commercial)', () => {
     const filtrados = await page.getByRole('table').nth(1).locator('tbody tr').count();
     expect(filtrados).toBeLessThan(47);
     await page.goto('/studio/inventario?status=xyz');
-    await expect(page.getByText('Filtro inválido.')).toBeVisible();
+    await expect(page.getByText('Filtro de seção ou disponibilidade inválido')).toBeVisible();
   });
 
   test('CRM: estado vazio, validação, lead → qualificado → oportunidade → estágios', async ({ page, context }) => {

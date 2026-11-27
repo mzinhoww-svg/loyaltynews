@@ -42,6 +42,12 @@ describe('cliente do agente: lane opencode', () => {
     expect(i.seen.body!.usage).toMatchObject({ lane: 'subscription', account: 'claude' });
   });
 
+  it('aceita a etapa context (classe do despacho) e a envia no trace', async () => {
+    const i = io();
+    await run(done.map((x) => (x === 'draft' ? 'context' : x)), env('opencode'), i as never);
+    expect(i.seen.body.trace.stage).toBe('context');
+  });
+
   it('antigravity continua recusada pelo cliente', async () => {
     await expect(run(done, env('antigravity'), io() as never)).rejects.toMatchObject({ code: 'config' });
   });

@@ -70,6 +70,9 @@ export async function openbotDeps(c: RouteCtx, env: Record<string, string | unde
   const pilot: PilotControl | undefined = kit
     ? { enabled: true, rows: new PgPilotRowStore(db, c.deps.now), state: new PgPilotStateStore(db), gate: kit.gate, verdictStreak: kit.verdictStreak, resolved: () => new PgPilotResolutionStore(db, c.deps.now).keys() }
     : undefined;
+  // Lease por execução (uma etapa de LLM não cabe nos 120 s do padrão): env válida em ms > 0; ausente/inválida = DEFAULT_LEASE_MS.
+  const leaseRaw = Number(env['LN_OPENBOT_LEASE_MS']);
+  const leaseMs = Number.isInteger(leaseRaw) && leaseRaw > 0 ? leaseRaw : undefined;
   return {
     queue: new PgLeaseQueue(db),
     ledger: new PgCostLedger(db, c.deps.now),
@@ -78,6 +81,7 @@ export async function openbotDeps(c: RouteCtx, env: Record<string, string | unde
     secrets: () => openbotSecrets(env),
     flags: () => flags,
     now: c.deps.now,
+    ...(leaseMs ? { leaseMs } : {}),
     // o agente não escolhe o resultRef: o callback de `completed` só aceita `res-<taskId>-a<tentativa>` (o mesmo que a rota io/result devolve)
     requireDerivedResultRef: true,
     ...(pilot ? { pilot } : {}),

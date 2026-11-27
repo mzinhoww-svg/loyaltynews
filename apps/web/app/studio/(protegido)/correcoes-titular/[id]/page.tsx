@@ -10,6 +10,7 @@ import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { atribuirAMimAction, decidirAction } from '../actions';
 import { Seta } from '../../../_components/Seta';
+import { Recarregar } from '../../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Pedido do titular' };
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,7 @@ export default async function PedidoTitularPage({ params, searchParams }: { para
         {voltar}
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       </>
     );

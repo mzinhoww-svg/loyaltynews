@@ -20,6 +20,16 @@ async function novaConta(context: BrowserContext, chave: string): Promise<Conta>
   return (await r.json()) as Conta;
 }
 
+// O backend de e2e (PGlite + Better Auth real) monta no primeiro uso da rota /api/e2e/login. Sem esta semeadura, o 1º caso
+// deste spec — que abre /studio/conta e chama a rota de senha SEM sessão — encontra o runtime ainda nulo e recebe 503 em vez
+// de 401. A chamada usa um contexto próprio, fechado em seguida: não autentica a página e a asserção de 401 segue intacta.
+test.beforeAll(async ({ browser }) => {
+  const ctx = await browser.newContext();
+  const r = await ctx.request.get('/api/e2e/login?user=conta-seed&role=admin&mfa=1');
+  expect(r.ok(), `semeadura do backend de e2e: ${r.status()}`).toBe(true);
+  await ctx.close();
+});
+
 // O limitador próprio do Better Auth conta por IP e os testes saem do mesmo IP: cada requisição de auth leva um IP distinto (como em studio-login).
 let ipSeq = 0;
 test.beforeEach(async ({ page }) => {

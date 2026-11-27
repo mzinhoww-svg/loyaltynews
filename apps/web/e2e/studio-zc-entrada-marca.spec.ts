@@ -70,7 +70,7 @@ test('entrada (e-mail e senha) e 2º fator com o logo da marca: axe, sem rolagem
     await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
     await imagemCarregada(page, '[data-entrada] img.st-entrada__logo');
     await expect(page.getByRole('img', { name: 'Loyalty News' })).toBeVisible();
-    await expect(page.locator('[data-etapa-rotulo]')).toHaveText('Etapa 1 de 2 · e-mail e senha');
+    await expect(page.locator('[data-etapa-rotulo]')).toHaveText('E-mail e senha');
     await semRolagemHorizontal(page);
     await tituloInteiro(page);
     if (largura !== 768) await axeLimpo(page, `entrada ${largura}px`);
@@ -90,6 +90,9 @@ test('entrada (e-mail e senha) e 2º fator com o logo da marca: axe, sem rolagem
     await page.getByRole('button', { name: 'Continuar' }).click();
     await expect(page.getByLabel('Código do aplicativo autenticador')).toBeFocused();
     await expect(page.locator('[data-etapa-rotulo]')).toHaveText('Etapa 2 de 2 · verificação em duas etapas');
+    // o h1 do 2º fator descreve a etapa, não o motivo da entrada
+    await expect(page.getByRole('heading', { level: 1, name: 'Verificação em duas etapas' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Acesso restrito' })).toHaveCount(0);
     await imagemCarregada(page, '[data-entrada] img.st-entrada__logo');
     await semRolagemHorizontal(page);
     if (largura !== 768) await axeLimpo(page, `2º fator ${largura}px`);

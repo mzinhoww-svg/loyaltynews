@@ -102,4 +102,12 @@ describe('POST /api/studio/openbot/pilot/rows/:taskId/:attempt/config-invalid', 
     const sheet = await listar(admin);
     expect(sheet.body.sampleStartedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/); // fronteira da amostra = último resume auditado
   });
+  it('linha failed sem modelo declarado é excluível por configuração; failed com modelo coerente não', async () => {
+    await rows().upsert(row('cfg-sem-modelo', 1, { account: 'opencode', declared_model: null, outcome: 'failed' }));
+    await rows().upsert(row('cfg-failed-com-modelo', 1, { account: 'opencode', declared_model: 'deepseek-v4.1-flash', outcome: 'failed' }));
+    const sem = await excluir('cfg-sem-modelo', '1', admin);
+    expect(sem).toMatchObject({ status: 201, body: { taskId: 'cfg-sem-modelo', tratada: { acao: 'config_invalid' } } });
+    expect(sem.body.config.join(' ')).toMatch(/modelo declarado ausente/);
+    expect((await excluir('cfg-failed-com-modelo', '1', admin)).body.error.code).toBe('NOT_CONFIG_INVALID');
+  });
 });

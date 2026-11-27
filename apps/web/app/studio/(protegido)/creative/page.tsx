@@ -9,6 +9,7 @@ import { ehErro, mensagemErro, naoConfigurado } from '@/lib/studio/backend';
 import { requireModule } from '../../_lib/guard';
 import { Flash } from '../../_components/Flash';
 import { SemBanco } from '../../_components/SemBanco';
+import { Recarregar } from '../../_components/Recarregar';
 import { criarCardAction, transicaoCardAction } from './actions';
 
 export const metadata: Metadata = { title: 'Creative studio' };
@@ -196,6 +197,7 @@ export default async function CreativePage({ searchParams }: { searchParams: Pro
         {ehErro(lista) ? (
           <div className="st-alert err" role="alert">
             Não foi possível carregar os cards: {mensagemErro(lista)}
+            <Recarregar />
           </div>
         ) : cards.length === 0 ? (
           <section className="st-empty" aria-labelledby="vazio-cards" data-vazio={estado ? 'filtro' : 'cards'}>

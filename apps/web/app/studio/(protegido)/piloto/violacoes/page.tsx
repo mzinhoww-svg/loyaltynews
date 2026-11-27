@@ -8,6 +8,7 @@ import { Flash } from '../../../_components/Flash';
 import { SemBanco } from '../../../_components/SemBanco';
 import { resolverViolacaoAction } from './actions';
 import { Seta } from '../../../_components/Seta';
+import { Recarregar } from '../../../_components/Recarregar';
 
 export const metadata: Metadata = { title: 'Violações do piloto' };
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,7 @@ export default async function ViolacoesPilotoPage({ searchParams }: { searchPara
       ) : ehErro(r) ? (
         <div className="st-alert err" role="alert">
           {mensagemErro(r)}
+          <Recarregar />
         </div>
       ) : (
         <Lista linhas={r.body.items} />
