@@ -242,6 +242,7 @@ test('as mensagens de NO_MFA e FORBIDDEN seguem na tela, com o formulário para 
 // Este caso testava o limitador embutido do Better Auth (10 s, segundos), removido de propósito; o teste estava desatualizado (QAs 9 e 12).
 test('gate do app (várias tentativas rápidas no mesmo IP e conta): 429 com Retry-After de 900 s, mensagem em minutos, sem revelar a conta', async ({ page }) => {
   await page.unroute('**/api/auth/**');
+  await page.route('**/api/auth/**', (route) => route.continue({ headers: { ...route.request().headers(), 'x-forwarded-for': '10.250.250.250' } }));
   await page.goto('/studio/entrar?motivo=NO_SESSION');
   await expect(page.getByRole('button', { name: 'Continuar' })).toBeEnabled();
   const erro = page.locator('[data-login-erro]');
