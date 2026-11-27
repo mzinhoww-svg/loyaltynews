@@ -1,10 +1,11 @@
 // Leitura da trilha de auditoria (audit_log) para o Studio. Só leitura: a escrita é de `audit()` (@ln/auth), nunca daqui.
 //  - Papéis: admin e editor-chefe (RBAC `auditoria:read`). O IP (dado pessoal) só aparece para o admin.
 //  - Filtros: recurso, id do recurso, ação (exata) ou prefixo de ação (`orcamento.`), autor, período; ordem do mais novo ao mais velho.
-//  - `detalhe` já foi limpo de segredos na escrita (`redact`); aqui sai como está.
+//  - Linhas antigas guardam o e-mail digitado no login e outros contatos (a tabela é append-only): a leitura passa pela MESMA barreira da escrita
+//    (`sanitizeAuditRow` de @ln/auth). O banco não é alterado.
 //  - A própria consulta é auditada (`auditoria.consultada`) com os filtros, sem o resultado.
 import { and, count, desc, eq, gte, like, lte } from 'drizzle-orm';
-import { audit } from '@ln/auth';
+import { audit, sanitizeAuditRow } from '@ln/auth';
 import { schema } from '@ln/db';
 import { z } from 'zod';
 import { json, parse, queryObject, type RouteFn } from './http';
@@ -55,7 +56,7 @@ export const listAuditoria: RouteFn = async (_req, c) => {
   });
   return json({
     data: rows.map((r) => ({
-      id: r.id, at: r.at, actorId: r.actorId, actorRole: r.actorRole, action: r.action, resource: r.resource, resourceId: r.resourceId, ip: verIp ? r.ip : null, detalhe: r.detalhe,
+      id: r.id, at: r.at, ...sanitizeAuditRow(r), ip: verIp ? r.ip : null,
     })),
     total: total?.n ?? 0,
     limit: q.limit,

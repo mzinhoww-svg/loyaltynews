@@ -3,7 +3,7 @@
 // auditoria de login. Não confie em x-forwarded-for fora de um proxy da Vertra que o reescreva.
 import { apiError } from '@ln/contracts';
 import { audit } from './audit';
-import { acquireAttempt, releaseAttempt, resetAccount, type Acquire } from './attempts';
+import { acquireAttempt, auditEmail, releaseAttempt, resetAccount, type Acquire } from './attempts';
 import { chargePasswordAttempt, passwordNotChecked, passwordOk, type PasswordCharge } from './password-attempts';
 import { clientIp, trustedProxyHops } from './client-ip';
 import type { Auth } from './server';
@@ -111,6 +111,8 @@ export function createAuthHandler({ auth, db, basePath = '/api/auth', now = () =
       } catch {
         return Response.json(apiError('INVALID_REQUEST', 'Corpo JSON inválido.'), { status: 400 });
       }
+      // A auditoria nunca recebe o e-mail digitado: só o código (auditEmail), que é diferente do sujeito do limite.
+      const emailRef = auditEmail(email);
       // Pré-cobra a tentativa (atômico por sujeito) ANTES de verificar a senha: N simultâneas não passam de 5.
       const byAccount: Acquire = email ? await acquireAttempt(db, 'conta', email, t) : { allowed: true };
       const byIp: Acquire = ip ? await acquireAttempt(db, 'ip', ip, t) : { allowed: true };
@@ -119,7 +121,7 @@ export function createAuthHandler({ auth, db, basePath = '/api/auth', now = () =
         if (byAccount.allowed && email) await releaseAttempt(db, 'conta', email);
         if (byIp.allowed && ip) await releaseAttempt(db, 'ip', ip);
         const until = !byAccount.allowed ? byAccount.until : (byIp as { until: Date }).until;
-        await audit(db, { action: 'login.bloqueado', resource: 'sessao', ip, detalhe: { email, ate: until.toISOString() }, at: t });
+        await audit(db, { action: 'login.bloqueado', resource: 'sessao', ip, detalhe: { emailRef, ate: until.toISOString() }, at: t });
         const retry = Math.max(1, Math.ceil((until.getTime() - t.getTime()) / 1000));
         return Response.json(apiError('TOO_MANY_ATTEMPTS', 'Muitas tentativas. Tente novamente mais tarde.'), {
           status: 429,
@@ -135,11 +137,11 @@ export function createAuthHandler({ auth, db, basePath = '/api/auth', now = () =
           action: twoFactor?.twoFactorRedirect ? 'login.senha_ok_aguarda_2fa' : 'login.ok_sem_2fa',
           resource: 'sessao',
           ip,
-          detalhe: { email },
+          detalhe: { emailRef },
           at: t,
         });
       } else {
-        await audit(db, { action: 'login.falha', resource: 'sessao', ip, detalhe: { email, status: res.status }, at: t });
+        await audit(db, { action: 'login.falha', resource: 'sessao', ip, detalhe: { emailRef, status: res.status }, at: t });
       }
       return res;
     }

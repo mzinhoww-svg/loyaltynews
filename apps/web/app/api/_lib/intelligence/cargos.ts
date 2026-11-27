@@ -7,6 +7,7 @@
 //    quem confirma é a pessoa (editor ou superior), com auditoria;
 //  - descartar e confirmar são auditados (`intelligence.cargo_confirmado` / `intelligence.cargo_descartado`) com quem, o quê e o motivo, sem segredo.
 import { randomUUID } from 'node:crypto';
+import { sanitizeAuditRow } from '@ln/auth';
 import {
   SECONDARY_HOSTS, confirmRoleHandler as pkgConfirm, discardRoleHandler as pkgDiscard, listRoleViews,
   type ApiResult, type Db as IntelDb, type RoleView, type SourceLevel,
@@ -61,9 +62,10 @@ const hostOf = (u: string): string => {
 const sameSite = (candidate: string, official: string): boolean => candidate === official || candidate.endsWith(`.${official}`);
 
 async function audit(db: IntelDb, actor: string, action: string, roleId: string, detalhe: Record<string, unknown>): Promise<void> {
+  const r = sanitizeAuditRow({ actorId: actor || null, action, resource: 'intelligence', resourceId: roleId, detalhe });
   await db.query(
-    `INSERT INTO public.audit_log (id, at, actor_id, actor_role, action, resource, resource_id, detalhe) VALUES ($1, now(), $2, NULL, $3, 'intelligence', $4, $5::jsonb)`,
-    [randomUUID(), actor || null, action, roleId, JSON.stringify(detalhe)],
+    `INSERT INTO public.audit_log (id, at, actor_id, actor_role, action, resource, resource_id, detalhe) VALUES ($1, now(), $2, NULL, $3, $4, $5, $6::jsonb)`,
+    [randomUUID(), r.actorId, r.action, r.resource, r.resourceId, JSON.stringify(r.detalhe)],
   );
 }
 

@@ -7,6 +7,7 @@
 // Janela: só Moves detectados nos últimos LN_ALERTS_WINDOW_DAYS dias (padrão 30), para uma lista nova não despejar o histórico inteiro.
 // Intervalo: LN_ALERTS_INTERVAL_MIN (padrão 15; piso 5). Logs: só contagens (nunca nome de pessoa, lista ou dono).
 import { randomUUID } from 'node:crypto';
+import { sanitizeAuditRow } from '@ln/auth';
 import { errLine } from '@ln/db/safe-log';
 import { generateAlerts, type Db as IntelDb } from '@ln/intelligence';
 
@@ -32,9 +33,10 @@ export async function runAlertCycle(db: IntelDb, opts: { now?: Date; windowDays?
     const at = now.toISOString();
     const vals: unknown[] = [];
     const rows = created.map((a, i) => {
-      vals.push(randomUUID(), at, 'intelligence.alerta_gerado', 'intelligence_alerts', a.id, JSON.stringify({ moveId: a.move_id, watchlistId: a.watchlist_id, origem: 'job' }));
-      const b = i * 6;
-      return `($${b + 1}, $${b + 2}::timestamptz, NULL, 'sistema', $${b + 3}, $${b + 4}, $${b + 5}, NULL, $${b + 6}::jsonb)`;
+      const l = sanitizeAuditRow({ actorRole: 'sistema', action: 'intelligence.alerta_gerado', resource: 'intelligence_alerts', resourceId: a.id, detalhe: { moveId: a.move_id, watchlistId: a.watchlist_id, origem: 'job' } });
+      vals.push(randomUUID(), at, l.actorRole, l.action, l.resource, l.resourceId, JSON.stringify(l.detalhe));
+      const b = i * 7;
+      return `($${b + 1}, $${b + 2}::timestamptz, NULL, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6}, NULL, $${b + 7}::jsonb)`;
     });
     await db.query(`INSERT INTO public.audit_log (id, at, actor_id, actor_role, action, resource, resource_id, ip, detalhe) VALUES ${rows.join(', ')}`, vals);
   }

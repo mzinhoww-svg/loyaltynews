@@ -105,7 +105,7 @@ export function PedidoTitularForm() {
         <p style={{ margin: 0 }}>
           <strong>O que este canal cobre:</strong> correção ou remoção de dados pessoais exibidos nas páginas do portal.{' '}
           <strong>Não cobre</strong> acesso, confirmação de tratamento, portabilidade, eliminação de dados fora do portal, revogação de
-          consentimento nem descadastro da newsletter; para esses direitos, use o canal do encarregado indicado na página de{' '}
+          consentimento nem descadastro da newsletter; para esses direitos, escreva para contato@loyaltynews.com.br, como indica a página de{' '}
           <Link href="/privacidade">Privacidade e LGPD</Link>.
         </p>
         <p className="pt-meta" data-testid="pedido-prazo" style={{ margin: 0 }}>

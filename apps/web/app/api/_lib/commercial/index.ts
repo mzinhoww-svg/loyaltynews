@@ -92,7 +92,7 @@ export const dispatchCommercial = createDispatcher({
   // quem entra nas rotas de Studio: sessão com MFA e leitura de campanhas; o handler exige canManageCommercial
   studioPerm: ['campanhas', 'read'],
   auditResource: 'comercial',
-  limitPublicPosts: true,
+  limitedForm: (r) => r.path === LEADS_PATH,
   // O pedido de proposta só existe com a flag portalFormularios ligada (lida em EXECUÇÃO, o mesmo helper que mostra o formulário no portal):
   // desligada, a rota responde 404 sem ler o corpo, sem gravar lead e sem contar tentativa por IP.
   closed: (r) => r.method === 'POST' && r.path === LEADS_PATH && !formulariosAtivos(),

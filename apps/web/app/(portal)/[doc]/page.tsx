@@ -33,7 +33,7 @@ export default async function InfoPage({ params }: Props) {
         </p>
       )}
       {d.sections.map((s) => (
-        <section key={s.heading} id={s.heading === 'Cookies e medição' ? 'cookies' : undefined} className="pt-section" style={{ margin: '24px 0' }}>
+        <section key={s.heading} id={s.id} className="pt-section" style={{ margin: '24px 0' }}>
           <h2>{s.heading}</h2>
           {s.paragraphs?.map((p) => <p key={p}>{p}</p>)}
           {s.items && (
