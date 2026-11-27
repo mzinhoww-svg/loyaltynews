@@ -187,7 +187,7 @@ export default async function ArticlePage({ params }: Props) {
                 {a.sources.map((s) => (
                   <li key={s.url}>
                     <a href={s.url} rel="noopener noreferrer" target="_blank">{s.label}</a>
-                    {s.publishedAt && <span className="pt-meta"> · {formatDate(s.publishedAt)}</span>}
+                    {s.collectedAt && <span className="pt-meta"> · coletada em <time dateTime={s.collectedAt}>{formatDate(s.collectedAt)}</time></span>}
                   </li>
                 ))}
               </ul>

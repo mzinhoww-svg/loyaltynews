@@ -392,9 +392,16 @@ export function createIntelligenceSlice(baseUrl: string, fetchImpl: typeof fetch
       const r = await one('/api/publico/intelligence/moves', id, mapMove, true);
       return r.status === 'ok' ? { status: 'ok', move: r.value } : r;
     },
+    /** TODAS as empresas (sitemap e contagem do hub), página a página. Falha em qualquer uma = [], nunca uma lista parcial. */
     async listCompanies() {
-      const d = await getCompanyDirectory();
-      return d.status === 'ok' ? d.items.map((c) => ({ slug: c.id, name: c.name, segment: KIND_LABEL[c.kind], lastReviewedAt: c.validatedAt, mock: c.mock })) : [];
+      const todas: CompanyListItem[] = [];
+      for (let offset = 0; offset < 100 * DIRETORIO_PAGINA; offset += DIRETORIO_PAGINA) {
+        const d = await getCompanyDirectory({ offset });
+        if (d.status !== 'ok') return [];
+        todas.push(...d.items);
+        if (offset + DIRETORIO_PAGINA >= d.total) break;
+      }
+      return todas.map((c) => ({ slug: c.id, name: c.name, segment: KIND_LABEL[c.kind], lastReviewedAt: c.validatedAt, mock: c.mock }));
     },
   };
 }

@@ -146,7 +146,7 @@ export function mapArticle(r: RawArticle): Article {
     updatedAt: erratas.at(-1)?.em,
     image: mapImage(r.imagem),
     body: bodyToBlocks(r.corpo),
-    sources: fontes.map((f) => ({ label: host(f.url), url: httpHref(f.url) as string, publishedAt: isDate(f.capturadoEm) ? f.capturadoEm : undefined })),
+    sources: fontes.map((f) => ({ label: host(f.url), url: httpHref(f.url) as string, collectedAt: isDate(f.capturadoEm) ? f.capturadoEm : undefined })),
     corrections: erratas.map((e) => ({ at: e.em, text: e.nota as string })),
   };
 }
