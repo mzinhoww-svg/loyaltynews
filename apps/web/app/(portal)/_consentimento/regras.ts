@@ -7,7 +7,7 @@
  */
 
 /** Versão da política de cookies. Mudou o texto da política: suba a versão, e o consentimento antigo deixa de valer. */
-export const POLITICA_COOKIES_VERSAO = '2026-11-25';
+export const POLITICA_COOKIES_VERSAO = '2026-11-27';
 export const CHAVE_CONSENTIMENTO = 'ln-consentimento';
 
 export interface Consentimento {

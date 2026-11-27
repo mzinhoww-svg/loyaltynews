@@ -1,10 +1,14 @@
 /**
  * Conteúdo das páginas institucionais. Fonte: Blueprint 2.0 §2/§3 e Blueprint 2.1 §6.
- * Textos jurídicos são MINUTAS: dependem de parecer (R0-10/F-090) e nunca afirmam fatos não definidos
- * (CNPJ, demais e-mails, redes, o que a hospedagem registra de IP e prazos de resposta ainda não confirmados).
+ * Textos jurídicos são MINUTAS: dependem de validação jurídica (R0-10/F-090) e nunca afirmam fatos não definidos
+ * (endereço e nome do encarregado, demais e-mails, redes, o que a hospedagem registra de IP). Razão social e CNPJ: DP-68.
  */
+import { EMPRESA } from './contato';
+
 export interface InfoSection {
   heading: string;
+  /** Âncora da seção (ex.: /privacidade#cookies). */
+  id?: string;
   paragraphs?: string[];
   items?: string[];
 }
@@ -157,7 +161,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: 'Direito de resposta e pedidos de remoção',
         paragraphs: [
-          'Pessoas e empresas citadas podem pedir correção de um dado, remoção de um dado ou direito de resposta. Cada pedido é analisado pela redação, e a decisão e a data ficam registradas. Quando a resposta é cabível, ela é publicada junto da matéria.',
+          'Pessoas e empresas citadas podem pedir correção de um dado, remoção de um dado ou direito de resposta. Correção e remoção são pedidas pelo formulário desta página; o direito de resposta, por contato@loyaltynews.com.br. Cada pedido é analisado pela redação, e a decisão e a data ficam registradas. Quando a resposta é cabível, ela é publicada junto da matéria.',
           'A resposta chega ao e-mail informado no pedido.',
         ],
       },
@@ -169,7 +173,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Pedidos de titulares de dados',
-        paragraphs: ['Para pedir correção ou remoção de dados pessoais exibidos no portal, use o formulário desta página (/correcoes#pedido). A resposta chega ao e-mail informado em até 15 dias corridos, com um protocolo para acompanhar. O formulário não cobre acesso, confirmação de tratamento, portabilidade, eliminação de dados fora do portal, revogação de consentimento nem descadastro da newsletter; para esses direitos, use o canal do encarregado indicado na página de Privacidade e LGPD, que lista os direitos e as bases legais.'],
+        paragraphs: ['Para pedir correção ou remoção de dados pessoais exibidos no portal, use o formulário desta página (/correcoes#pedido). Ele pede só seu nome, um e-mail para resposta, o endereço da página, o tipo do pedido e a descrição. A resposta chega ao e-mail informado em até 15 dias corridos, com um protocolo para acompanhar. O formulário não cobre acesso, confirmação de tratamento, portabilidade, eliminação de dados fora do portal, revogação de consentimento nem descadastro da newsletter; para esses direitos, escreva para contato@loyaltynews.com.br, como indica a página de Privacidade e LGPD.'],
       },
       {
         heading: 'Histórico de correções',
@@ -181,63 +185,94 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
     slug: 'privacidade',
     title: 'Privacidade e LGPD',
     lead: 'Como tratamos dados pessoais de leitores, assinantes e pessoas citadas.',
-    draftNotice: DRAFT,
+    // Texto aprovado pelo proprietário (DP-68); desvios por mudança de código ou de decisão estão em institucional-lancamento.test.ts.
+    draftNotice: 'Minuta v0.5, sujeita à validação jurídica.',
     sections: [
       {
-        heading: 'Controlador e contato do encarregado',
+        heading: '1. Quem responde pelos seus dados',
         paragraphs: [
-          'O controlador dos dados pessoais tratados neste portal é, por ora, o proprietário do Loyalty News, Aurimar Nogueira, pessoa física. Esta identificação será substituída pela da empresa quando os dados dela forem informados.',
-          'O encarregado pelo tratamento de dados pessoais e o canal para falar sobre privacidade é contato@loyaltynews.com.br. Os pedidos de titulares também podem ser feitos pelo formulário em /correcoes#pedido.',
+          'O controlador dos dados pessoais tratados neste portal é a REINERS MEDIA LTDA, CNPJ 66.084.338/0001-87.',
+          'O canal para falar sobre privacidade é contato@loyaltynews.com.br. O nome da pessoa encarregada ainda não foi informado.',
         ],
       },
       {
-        heading: 'Quais dados tratamos',
+        heading: '2. Quais dados tratamos',
         items: [
-          'Leitura do portal: dados técnicos de acesso necessários ao funcionamento e à segurança. A medição de audiência só será ativada com aviso e controle de preferências.',
-          'Pedidos de titulares e de correção: nome, e-mail para resposta, endereço da página, tipo e descrição do pedido, usados apenas para analisar e responder.',
-          'Pedido de proposta ou de mídia kit (formulário comercial): nome, empresa, e-mail, WhatsApp (opcional), formatos de interesse, objetivo, mensagem, a escolha sobre a newsletter e a data desse consentimento.',
-          'Pessoas citadas na seção Intelligence: nome, cargo, empresa e período, só quando publicados por fonte oficial, relevantes e verificados.',
-          'Newsletter e preferências, quando existirem: e-mail e escolhas, com consentimento específico.',
+          'Leitura do portal: dados técnicos de acesso necessários ao funcionamento e à segurança. A medição de audiência depende da sua escolha (item 8).',
+          'Pedido de correção ou remoção: nome, e-mail para resposta, endereço da página, tipo e descrição do pedido.',
+          'Direito de resposta: matéria, trecho contestado, data e histórico do pedido, nome, contato (se informado), texto enviado e, se houver, a verificação de identidade (item 5).',
+          'Pedido de proposta ou de mídia kit: nome, empresa, e-mail, WhatsApp (opcional), objetivo, mensagem (opcional), sua marcação sobre a newsletter, data, hora e situação do pedido.',
+          'Contatos comerciais registrados pela nossa equipe: nome, e-mail, WhatsApp, cargo, base legal, data e quem registrou.',
+          'Pessoas citadas na seção Intelligence: nome, cargo, empresa e período. Publicamos apenas dados profissionais de fonte oficial, relevantes e verificados.',
+          'Painel interno: dados das pessoas autorizadas a publicar e um código do e-mail digitado em cada tentativa de acesso (item 7).',
+          'Newsletter: a inscrição na The Loyal está fechada. No pedido comercial registramos, se você marcar, o interesse na newsletter. Nada é enviado hoje.',
         ],
       },
       {
-        heading: 'Pedidos comerciais (mídia kit e propostas)',
-        items: [
-          'Para que usamos: responder ao pedido de proposta ou de mídia kit e conduzir a negociação comercial.',
-          'Base legal: procedimentos preliminares a um contrato, a pedido do titular (LGPD, art. 7º, V). A newsletter, que é opcional, só é enviada com consentimento separado (art. 7º, I), e o descadastro é possível a qualquer momento.',
-          'Quanto tempo guardamos: nossa política é guardar o pedido que não vira contrato por até 12 meses depois do último contato, e o pedido descartado por 30 dias; o apagamento é automático. Quem se torna cliente tem os dados guardados conforme o contrato e as obrigações legais.',
-          'Quem acessa: só a equipe comercial e a administração do portal. Não vendemos esses dados.',
-        ],
-      },
-      {
-        heading: 'Endereço IP e segurança',
+        heading: '3. Pedidos comerciais',
         paragraphs: [
-          'Para limitar tentativas de login e de envio dos formulários públicos e proteger o portal contra abuso, usamos o endereço IP de quem acessa, com base no legítimo interesse em segurança e prevenção a fraude (LGPD, art. 7º, IX). Nas contagens de tentativas de login e de envio dos formulários, o IP não é guardado em claro: ele vira um código irreversível, apagado em até 24 horas depois do fim da contagem ou do bloqueio.',
-          'No registro de auditoria do sistema (quem fez o quê no painel interno) guardamos só o código do IP, nunca o número, por 12 meses. Esse código é um pseudônimo e continua sendo dado pessoal: quem tem a chave do sistema consegue ligá-lo ao IP original.',
-          'A empresa que hospeda o portal pode registrar IPs nos registros de acesso dela. O que ela guarda e por quanto tempo ainda será confirmado e informado aqui.',
+          'Usamos os dados para responder ao pedido de proposta ou de mídia kit e conduzir a negociação. A base legal são os procedimentos preliminares a um contrato, a seu pedido (LGPD, art. 7º, V). Uma newsletter só poderá ser enviada com o seu consentimento separado (art. 7º, I).',
+          'Têm acesso a equipe comercial e a administração do portal. Não vendemos esses dados.',
+          'Hoje não há apagamento automático em funcionamento nem opção no painel para excluir um pedido: os dados permanecem guardados. Para pedir a exclusão, escreva para contato@loyaltynews.com.br; o atendimento é manual.',
+          'Os contatos comerciais registrados pela equipe também não têm prazo de exclusão nem rotina de apagamento.',
         ],
       },
       {
-        heading: 'Princípios',
-        items: [
-          'Finalidade e minimização: coletamos apenas o necessário.',
-          'Newsletter e preferências dependem de consentimento específico, com descadastro em um clique.',
-          'Intelligence só publica dados profissionais públicos, relevantes e verificáveis; hierarquia não é inferida como fato.',
-          'Não vendemos lista de e-mails.',
-        ],
-      },
-      {
-        heading: 'Direitos do titular',
-        paragraphs: ['Confirmação, acesso, correção, anonimização, portabilidade, eliminação e revogação do consentimento, nos termos da LGPD. O pedido é feito pelo formulário em /correcoes#pedido, e a resposta chega ao e-mail informado. Quem aparece na seção de pessoas pode pedir correção ou remoção do dado por esse mesmo caminho.'],
-      },
-      {
-        heading: 'Cookies e medição',
+        heading: '4. Correção e remoção de dados',
         paragraphs: [
-          'Medimos a audiência com o Google Analytics 4 (Google LLC) para saber quais páginas são lidas e de onde vêm os leitores, em números agregados. Ele grava cookies no seu navegador (como _ga e _ga_<ID>, por até 2 anos) e envia dados de navegação ao Google.',
-          'Os cookies analíticos só são ativados se você clicar em "Aceitar cookies analíticos" no aviso. Sem o aceite, ou se o seu navegador enviar o sinal Global Privacy Control ou Do Not Track, nada é enviado ao Google. A medição não roda fora do site de produção.',
-          'Configuramos o GA4 sem dado pessoal: endereço IP anonimizado, sem sinais de publicidade nem personalização de anúncios, e o endereço da página é enviado sem os parâmetros (o que você digita em busca ou formulário não vai ao Google).',
-          'Você pode mudar ou revogar a escolha a qualquer momento pelo link "Preferências de cookies" no rodapé. Revogar desliga a coleta a partir dali; os cookies já gravados podem ser apagados nas configurações do navegador.',
-          'Versão desta política de cookies: 25/11/2026. Quando ela mudar, pediremos sua escolha de novo.',
+          'Use o formulário em /correcoes#pedido. Usamos os dados para analisar e responder. Um pedido idêntico que ainda esteja em aberto não é registrado duas vezes, e há limite de envios por contato. Têm acesso aos pedidos a administração e a chefia de redação.',
+          'O portal informa um protocolo e prazo de resposta de até 15 dias corridos. A resposta é feita por uma pessoa, no e-mail informado; não há envio automático.',
+          'A decisão pode corrigir ou ocultar a exibição pública de uma pessoa, de um cargo ou de uma movimentação identificada pelo endereço da página. O registro continua armazenado. Não há prazo nem rotina para apagar o pedido.',
+          'No registro de auditoria, o recebimento guarda o identificador e o tipo do pedido, sem nome, e-mail ou texto. A decisão guarda também o motivo escrito pela equipe. As linhas da auditoria não são apagadas.',
+        ],
+      },
+      {
+        heading: '5. Direito de resposta',
+        paragraphs: [
+          'Pessoas e empresas citadas podem pedir direito de resposta escrevendo para contato@loyaltynews.com.br. Quando o pedido é registrado no sistema, guardamos a matéria, o trecho contestado, a data, o histórico do caso, o nome, o contato (se informado) e o texto enviado. Se confirmarmos sua identidade, registramos como e por quem; esse registro entra numa auditoria que não é apagada. Ainda não há prazo definido nem rotina de exclusão para o pedido. Se o direito de resposta for aceito, publicamos junto da matéria um aviso datado, que pode trazer o seu nome e o texto enviado.',
+        ],
+      },
+      {
+        heading: '6. Seus direitos',
+        paragraphs: [
+          'A LGPD garante, entre outros, confirmação de tratamento, acesso, correção, anonimização, portabilidade, eliminação e revogação do consentimento. Correção e remoção de dado exibido no portal: formulário em /correcoes#pedido. Os demais direitos: contato@loyaltynews.com.br. O atendimento é manual, e alguns registros, como a auditoria, não são apagados. Para mudar sua escolha sobre cookies, use "Preferências de cookies" no rodapé.',
+        ],
+      },
+      {
+        heading: '7. Painel interno',
+        paragraphs: [
+          'Para as pessoas autorizadas a publicar, guardamos nome, e-mail, papel, situação de bloqueio, a senha em forma protegida (hash), os dados do segundo fator, o token da sessão e a identificação do navegador usado. A sessão não guarda o endereço IP. Ela expira após 12 horas sem uso e é renovada enquanto usada; sessões vencidas não são apagadas automaticamente.',
+          'Cada tentativa de login (certa, errada ou bloqueada) grava na auditoria um código no lugar do e-mail digitado, mesmo que não exista conta com ele. Esse código é um pseudônimo e continua sendo dado pessoal. Registros anteriores a essa mudança guardam o e-mail digitado; eles não são apagados, e a consulta pelo painel o oculta.',
+          'A auditoria registra quem fez o quê: autor, papel, ação, item afetado e detalhes. Senhas, códigos de acesso e textos com endereço de e-mail são removidos; os detalhes podem conter motivos escritos pela equipe. Essas linhas não são apagadas. Podem lê-la a administração e a chefia de redação, e a leitura também é registrada. A conta de administrador pode ser removida por procedimento técnico; para os demais papéis ainda não há rotina de exclusão.',
+        ],
+      },
+      {
+        heading: '8. Cookies e medição de audiência',
+        id: 'cookies',
+        paragraphs: [
+          'Usamos o Google Analytics 4 (Google LLC) para saber quais páginas são lidas e de onde vêm os leitores. Ele só é ativado se você clicar em "Aceitar cookies analíticos". Sem o aceite, ou com o sinal Global Privacy Control ou Do Not Track ligado no navegador, não o carregamos. A medição não roda fora do site de produção.',
+          'Quando ativado, ele grava cookies (como _ga e _ga_<ID>) e envia ao Google dados de navegação e identificadores, que são dados pessoais. Não ativamos sinais de publicidade nem personalização de anúncios. Informamos o endereço da página atual sem os parâmetros; o endereço da página anterior pode ser enviado pela ferramenta e conter, por exemplo, um termo de busca. O prazo dos cookies depende da configuração do Google Analytics e ainda será confirmado.',
+          'Sua escolha fica guardada no próprio navegador, com a data e a versão da política. Você pode mudá-la pelo link "Preferências de cookies". Revogar interrompe a coleta dali em diante; os cookies já gravados podem ser apagados nas configurações do navegador. O envio ao Google pode transferir dados para fora do Brasil; a base legal e as garantias dessa transferência ainda serão definidas.',
+        ],
+      },
+      {
+        heading: '9. Segurança e endereço IP',
+        paragraphs: [
+          'Usamos senha protegida por hash, segundo fator obrigatório no painel, controle de acesso por papel e auditoria. Para segurança e prevenção a fraude, com base no legítimo interesse (art. 7º, IX), limitamos tentativas de acesso ao painel por conta e envios do formulário de correção por contato. Essas contagens guardam um código no lugar do e-mail. Esse código é um pseudônimo e continua sendo dado pessoal. A limpeza periódica dessas contagens ainda não está ativa. A auditoria de login também guarda um código no lugar do e-mail e não é apagada (item 7).',
+          'Hoje o sistema do portal não usa o seu endereço IP para limitar tentativas nem registra código de IP na auditoria. As empresas que fazem o site funcionar podem registrar o IP nos registros de acesso delas; o que guardam e por quanto tempo ainda será confirmado.',
+          'Nenhum sistema é infalível.',
+        ],
+      },
+      {
+        heading: '10. Quem mais processa os dados',
+        paragraphs: [
+          'O site passa pela rede da Cloudflare e usa a hospedagem e os bancos de dados da Vertra. O Google recebe dados de medição quando você aceita. Os países de processamento, os contratos e a existência e o prazo de cópias de segurança ainda serão confirmados. Também será confirmado se nomes de pessoas citadas passam por fornecedores de inteligência artificial na produção das matérias.',
+        ],
+      },
+      {
+        heading: '11. Alterações',
+        paragraphs: [
+          'Esta política é uma minuta. A versão e a data serão exibidas quando o texto for aprovado.',
         ],
       },
     ],
@@ -263,6 +298,10 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       {
         heading: 'Responsabilidade',
         paragraphs: ['Corrigimos erros quando os identificamos ou quando nos são informados, nos termos da política de correções. O portal pode ficar indisponível temporariamente por manutenção ou falha.'],
+      },
+      {
+        heading: 'Empresa',
+        paragraphs: [`Razão social: ${EMPRESA.razaoSocial}. CNPJ: ${EMPRESA.cnpj}.`],
       },
       {
         heading: 'Alterações',
@@ -293,20 +332,25 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
   contato: {
     slug: 'contato',
     title: 'Contato',
-    lead: 'Fale com a redação, o comercial ou o encarregado de dados.',
+    lead: 'Fale com a redação ou o comercial e trate de privacidade e dados pessoais.',
     sections: [
       {
         heading: 'Pedidos que já têm canal',
         paragraphs: [
-          'Correção ou remoção de um dado, direito de resposta, notificação de direitos autorais e pedidos de titulares de dados: use o formulário de pedidos em /correcoes#pedido. A resposta chega ao e-mail informado no formulário.',
+          'Correção ou remoção de um dado e notificação de direitos autorais: use o formulário de pedidos em /correcoes#pedido. A resposta chega ao e-mail informado no formulário.',
+          'Direito de resposta e demais pedidos de titulares de dados: escreva para contato@loyaltynews.com.br.',
         ],
       },
       {
         heading: 'Demais canais',
         paragraphs: [
-          'Assuntos comerciais e de privacidade: contato@loyaltynews.com.br, que também é o canal do encarregado de dados.',
+          'Assuntos comerciais e de privacidade: contato@loyaltynews.com.br.',
           'Os demais e-mails e as redes sociais oficiais ainda não foram confirmados e não serão exibidos até a configuração oficial. Esta página será atualizada na ativação.',
         ],
+      },
+      {
+        heading: 'Empresa',
+        paragraphs: [`Razão social: ${EMPRESA.razaoSocial}. CNPJ: ${EMPRESA.cnpj}.`],
       },
       {
         heading: 'Assuntos',
