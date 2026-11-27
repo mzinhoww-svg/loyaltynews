@@ -122,8 +122,8 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
           ) : paginas > 0 ? (
             // Página fora do intervalo (link antigo, total encolheu): não finge que o filtro não tem resultado.
             <EmptyState title="Esta página não existe mais">
-              O diretório tem {dir.total} {dir.total === 1 ? 'organização publicada' : 'organizações publicadas'} em {paginas} {paginas === 1 ? 'página' : 'páginas'}.
-              {' '}<Link href={hrefFor(kind, q, paginas)} style={{ textDecoration: 'underline' }}>Ir para a última página</Link>.
+              O diretório tem {dir.total} {dir.total === 1 ? 'organização publicada' : 'organizações publicadas'}{q || kind ? ' com este filtro' : ''} em {paginas} {paginas === 1 ? 'página' : 'páginas'}.
+              {' '}<Link className={s.touch} href={hrefFor(kind, q, paginas)} style={{ textDecoration: 'underline' }}>Ir para a última página</Link>.
             </EmptyState>
           ) : vazio ? (
             <EmptyState title="Ainda não há perfis publicados">
@@ -131,7 +131,7 @@ export default async function EmpresasPage({ searchParams }: { searchParams: Pro
             </EmptyState>
           ) : (
             <EmptyState title="Nenhuma empresa com esse filtro">
-              <Link href="/intelligence/empresas" style={{ textDecoration: 'underline' }}>Ver todas as empresas</Link>
+              <Link className={s.touch} href="/intelligence/empresas" style={{ textDecoration: 'underline' }}>Ver todas as empresas</Link>
             </EmptyState>
           )}
         </>

@@ -1,6 +1,7 @@
 /* Ajustes visuais das páginas da Frontend 2 (revisão visual do staging da int/012, P2-4 e P3-3).
-   Mesmo padrão do V-11 (portal.css): alvo de toque >= 44px só no mobile; o desktop não muda. */
-@media (max-width: 767px) {
+   Mesmo padrão do V-11 (portal.css): alvo de toque >= 44px até 1023px (celular e tablet); o desktop não muda.
+   Até 26/11 as classes paravam em 767px: a 768px a paginação media 24px de altura (parecer do Auditor, P3). */
+@media (max-width: 1023px) {
   .touch {
     display: inline-flex;
     align-items: center;

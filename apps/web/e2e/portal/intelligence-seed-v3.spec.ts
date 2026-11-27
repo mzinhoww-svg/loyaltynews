@@ -143,6 +143,38 @@ test.describe('seed v3 real: o que a página mostra', () => {
     await expect(page.getByText('Esta página não existe mais')).toBeVisible();
     await expect(page.getByText(/29 organizações publicadas em 2 páginas/)).toBeVisible();
     await expect(page.getByTestId('company-card-link')).toHaveCount(0);
+    // Sem filtro, o total é o do diretório: nada de "com este filtro".
+    await expect(page.getByText(/com este filtro/)).toHaveCount(0);
+  });
+
+  test('página fora do intervalo com filtro: o total é anunciado como o do filtro', async ({ page, request }) => {
+    const total = (await pagina(request, 'tipo=company&limit=100')).total;
+    await page.goto('/intelligence/empresas?tipo=company&pagina=9');
+    await expect(page.getByText(new RegExp(`${total} (organização publicada|organizações publicadas) com este filtro em`))).toBeVisible();
+  });
+
+  // Parecer de empresas 26/11 (P3-2) e do Auditor (P3): alvos de borda e paginação com 44 px no celular E no tablet.
+  test('alvos de toque do diretório >= 44px a 390 e 768; o desktop não muda', async ({ page }) => {
+    test.skip(test.info().project.name !== 'desktop', 'as larguras são fixadas aqui');
+    const alvos = [
+      { rota: '/intelligence/empresas', nome: /Próxima página/ },
+      { rota: '/intelligence/empresas?pagina=9', nome: 'Ir para a última página' },
+      { rota: `/intelligence/empresas?q=zzz-sem-empresa`, nome: 'Ver todas as empresas' },
+    ] as const;
+    for (const width of [390, 768]) {
+      await page.setViewportSize({ width, height: 900 });
+      for (const a of alvos) {
+        await page.goto(a.rota);
+        const caixa = (await page.getByRole('link', { name: a.nome }).boundingBox())!;
+        expect(caixa.height, `${width}px ${a.rota}: altura`).toBeGreaterThanOrEqual(44);
+        expect(caixa.width, `${width}px ${a.rota}: largura`).toBeGreaterThanOrEqual(44);
+      }
+    }
+    await page.setViewportSize({ width: 1440, height: 900 });
+    for (const a of alvos) {
+      await page.goto(a.rota);
+      expect(await page.getByRole('link', { name: a.nome }).evaluate((e) => getComputedStyle(e).minHeight), `desktop ${a.rota}`).not.toBe('44px');
+    }
   });
 
   test('empresa com mais vínculos: tabela com todas as fontes reais e navegação para a relacionada', async ({ page, request }) => {
