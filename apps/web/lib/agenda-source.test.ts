@@ -107,6 +107,34 @@ describe('agenda pública: leitura da API', () => {
   });
 });
 
+describe('N7: falha ao ler um evento fora da lista de próximos não vira "não encontrado"', () => {
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+  afterEach(() => errorSpy.mockRestore());
+  /** A lista de próximos responde (sem o evento pedido); a rota por id se comporta como `detalhe`. */
+  const com = (detalhe: () => Response | Promise<Response>) =>
+    createApiSlice('http://api.test', (async (url: string | URL | Request) => (String(url).includes('/agenda/') ? detalhe() : json({ data: [raw()] }))) as unknown as typeof fetch);
+
+  it('500, 503, rede caída, JSON inválido, formato errado e id trocado = indisponível', async () => {
+    const casos: Array<[string, () => Response | Promise<Response>]> = [
+      ['500', () => json({}, 500)],
+      ['503', () => json({}, 503)],
+      ['rede', () => Promise.reject(new TypeError('fetch failed'))],
+      ['html', () => new Response('<html>', { status: 200 })],
+      ['formato', () => json({ data: { id: 'ev-encerrado' } })],
+      ['id trocado', () => json({ data: raw({ id: 'outro' }) })],
+    ];
+    for (const [nome, d] of casos) expect(await com(d).getEvent('ev-encerrado'), nome).toEqual({ event: null, unavailable: true });
+  });
+
+  it('controle negativo: 404 da rota por id continua "não encontrado"; evento presente na lista abre mesmo com a rota por id em erro', async () => {
+    expect(await com(() => json({ error: { code: 'NOT_FOUND' } }, 404)).getEvent('ev-encerrado')).toEqual({ event: null, unavailable: undefined });
+    expect((await com(() => json({}, 500)).getEvent('ev-1')).event?.slug).toBe('ev-1');
+  });
+});
+
 describe('formatação de eventos só com data', () => {
   const ev = (over = {}) => mapEvent(raw(over) as never);
 

@@ -32,3 +32,14 @@ export function eventWhere(ev: EventItem): string {
   if (ev.online === true) return 'Online';
   return ev.city ?? ev.place ?? 'Local a confirmar';
 }
+
+export type FiltroAgenda = 'todos' | 'presencial' | 'online';
+
+/**
+ * Filtros por modalidade só existem quando a fonte informa a modalidade de algum evento (N2, 26/11: a API publicada não informa, e os
+ * filtros escondiam a agenda inteira). Sem a informação não há filtros, e um `?filtro=` antigo mostra tudo.
+ */
+export function filtroDaAgenda(eventos: readonly Pick<EventItem, 'online'>[], pedido: string | undefined): { mostrarFiltros: boolean; filtro: FiltroAgenda } {
+  const mostrarFiltros = eventos.some((e) => e.online !== undefined);
+  return { mostrarFiltros, filtro: mostrarFiltros && (pedido === 'presencial' || pedido === 'online') ? pedido : 'todos' };
+}

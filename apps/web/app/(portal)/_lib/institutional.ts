@@ -173,7 +173,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
       },
       {
         heading: 'Histórico de correções',
-        paragraphs: ['Ainda não há correções registradas: o portal não publicou matérias.'],
+        paragraphs: ['Cada correção fica registrada na própria matéria corrigida, no aviso “Matéria corrigida” e no histórico ao fim do texto, com a data e a descrição do que mudou.'],
       },
     ],
   },
