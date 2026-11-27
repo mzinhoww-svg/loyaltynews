@@ -164,6 +164,7 @@ const config = (phase: string): NextConfig => {
   return {
     // Pacotes do monorepo são TypeScript-fonte (sem build próprio).
     transpilePackages: [
+      '@ln/analytics',
       '@ln/contracts',
       '@ln/ui',
       '@ln/auth',

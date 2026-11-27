@@ -4,6 +4,8 @@ import '@ln/ui/styles.css';
 import './portal.css';
 import { DemoBanner } from '@ln/ui';
 import { ConsentimentoCookies } from './_consentimento/Consentimento';
+import { MedicaoPagina } from './_medicao/Medicao';
+import { medicaoAtiva } from '../../lib/portal-medicao';
 import { SiteFooter } from './_components/SiteFooter';
 import { SiteHeader } from './_components/SiteHeader';
 import { EDITORIAS } from './_lib/editorias';
@@ -65,6 +67,7 @@ export default async function PortalLayout({ children }: { children: ReactNode }
       <SiteFooter />
       {/* GA4 só na produção indexável (mesma regra da indexação: nunca staging, vitrine ou MOCK) e só depois do aceite (LGPD). */}
       <ConsentimentoCookies producao={!indexingBlocked()} />
+      <MedicaoPagina ligada={medicaoAtiva()} />
     </div>
   );
 }

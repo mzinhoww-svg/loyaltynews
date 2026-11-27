@@ -6,6 +6,8 @@ import { WithSidebar } from '../_components/Sidebar';
 import { ErrorState } from '../_components/states';
 import { ArticleGrid, EmptyState, PageHead, Pager } from '../_components/ui';
 import { getSource } from '../_lib/source';
+import { MedicaoBusca } from '../_medicao/Medicao';
+import { medicaoAtiva } from '../../../lib/portal-medicao';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -27,6 +29,8 @@ export default async function BuscaPage({ searchParams }: { searchParams: Promis
       <PageHead title="Busca" lead="Pesquise por matérias, empresas, programas ou temas." crumbs={[{ label: 'Busca' }]} />
       {/* Sem termo o campo já vem com foco (autofocus do HTML): a lupa do cabeçalho sem JavaScript leva a esta página e cai direto no campo. */}
       <SearchInput action="/busca" defaultValue={q} label="Buscar no portal" autoFocus={!q} />
+      {/* Só busca respondida e na primeira página. Vai o termo inteiro da URL: a redação acontece antes de qualquer corte. */}
+      {result && !result.unavailable && parsePage(sp.page) === 1 && <MedicaoBusca ligada={medicaoAtiva()} termo={sp.q ?? ''} total={result.total} />}
       <WithSidebar>
         <div aria-live="polite">
           {!result ? (

@@ -14,6 +14,8 @@ import { jsonLdString } from '../../_lib/jsonld';
 import { breadcrumbLd, ogImagemDaEditoria, ogImagemDaMateria, PUBLISHER_LD } from '../../_lib/seo';
 import { SITE_URL } from '../../_lib/site';
 import { getSource } from '../../_lib/source';
+import { MedicaoLeitura } from '../../_medicao/Medicao';
+import { medicaoAtiva } from '../../../../lib/portal-medicao';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -97,6 +99,8 @@ export default async function ArticlePage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(crumbs) }} />
       <AdSlot slot="topo" />
+      {/* Matéria de demonstração não é leitura. */}
+      {!a.mock && <MedicaoLeitura ligada={medicaoAtiva()} slug={a.slug} editoria={a.editoriaSlug} />}
       <WithSidebar>
         <article className="pt-article">
           <Breadcrumb linkAs={Link} items={[{ label: 'Início', href: '/' }, { label: editoriaName(a.editoriaSlug), href: `/editoria/${a.editoriaSlug}` }, { label: a.title }]} />
