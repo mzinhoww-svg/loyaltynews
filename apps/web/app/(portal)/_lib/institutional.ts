@@ -215,7 +215,7 @@ export const INFO_DOCS: Record<string, InfoDoc> = {
           'Têm acesso a equipe comercial e a administração do portal. Não vendemos esses dados.',
           'O sistema apaga automaticamente o pedido que não foi marcado como convertido nem ligado a uma conta de empresa: depois de 12 meses sem alteração no pedido ou na oportunidade ligada a ele, ou, se foi descartado, 30 dias depois do descarte. Essa limpeza roda quando o programa de rotinas do sistema inicia e depois a cada 6 horas.',
           'O pedido que a equipe marcou como convertido, ou ligou a uma conta de empresa, não é apagado automaticamente, mesmo que depois seja descartado. Marcar como convertido não significa que há contrato. Quando um pedido é apagado, a conta e a oportunidade da empresa, se existirem, permanecem sem ligação com ele. Cada limpeza que apaga algum pedido registra na auditoria apenas as quantidades.',
-          'Para pedir a exclusão antes desses prazos, escreva para contato@loyaltynews.com.br; o atendimento é manual. Quando a exclusão é feita pelo sistema, o registro guarda um código do identificador, quem excluiu, o papel, a data e a origem.',
+          'Para pedir a exclusão antes desses prazos, escreva para contato@loyaltynews.com.br; o atendimento é manual. Quando alguém da administração ou da equipe comercial exclui um pedido pela função de exclusão do sistema, o registro guarda um código do identificador do pedido, quem excluiu, o papel, a data e a origem.',
           'Os contatos comerciais registrados pela equipe não têm prazo de exclusão nem rotina de apagamento.',
         ],
       },

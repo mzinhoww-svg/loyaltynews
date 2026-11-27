@@ -67,8 +67,10 @@ describe('institucional do lançamento', () => {
     expect(p).toContain('depois de 12 meses sem alteração no pedido ou na oportunidade ligada a ele, ou, se foi descartado, 30 dias depois do descarte');
     expect(p).toMatch(/depois a cada 6 horas[^]*marcou como convertido, ou ligou a uma conta de empresa, não é apagado automaticamente, mesmo que depois seja descartado/);
     expect(p).toMatch(/Para pedir a exclusão antes desses prazos, escreva para contato@loyaltynews\.com\.br[^]*quem excluiu, o papel, a data e a origem/);
-    // sem botão no Studio: a frase só descreve o que fica registrado quando a exclusão é feita (PM, DP-69)
-    expect(p).toContain('Quando a exclusão é feita pelo sistema, o registro guarda um código do identificador, quem excluiu, o papel, a data e a origem.');
+    // o registro por pedido só existe na exclusão manual: o sujeito faz parte da afirmação (PM, DP-69; QA 6, F1 e F3)
+    expect(p).toContain('Quando alguém da administração ou da equipe comercial exclui um pedido pela função de exclusão do sistema, o registro guarda um código do identificador do pedido, quem excluiu, o papel, a data e a origem.');
+    expect(p.match(/quem excluiu/g)).toHaveLength(1);
+    expect(p).not.toMatch(/exclusão é feita pelo sistema/);
     expect(p).not.toMatch(/pode excluir o pedido/);
     expect(p).toContain('Os contatos comerciais registrados pela equipe não têm prazo de exclusão nem rotina de apagamento.');
     expect(p).toMatch(/por conta e por endereço IP[^]*proposta, direito de resposta, pedido de correção ou remoção e sugestão de evento[^]*limitado também por contato/);
@@ -105,7 +107,12 @@ describe('institucional do lançamento', () => {
     expect(ler('../app/api/_lib/editorial/index.ts')).toMatch(/limitedForm: \(r\) => r\.path === `\$\{PUB\}\/right-of-reply`/);
     expect(ler('../app/api/_lib/titular.ts')).toMatch(/titular:\$\{c\.ip\}[^]*titular-contato:/);
     expect(ler('../app/api/_lib/agenda.ts')).toContain('`agenda:${c.ip}`');
-    expect(ler('../app/api/_lib/commercial/index.ts')).toContain("origin: 'studio'");
+    // registro por pedido: só a função de exclusão, restrita a quem gerencia o comercial; a limpeza automática grava só quantidades
+    const rota = ler('../app/api/_lib/commercial/index.ts');
+    expect(rota).toContain('if (!actor?.canManageCommercial) return { status: 403');
+    expect(rota).toContain("deleteLeadById(db, leadId, { at: now, actorId: actor.id, actorRole: c.session?.role ?? null, origin: 'studio' }, salt)");
+    expect(ler('../../../packages/commercial/src/lead-deletion.ts')).toContain('values({ id: randomUUID(), leadRefHash: hash, at: meta.at, actorId: meta.actorId, actorRole: meta.actorRole, origin: meta.origin })');
+    for (const [nome, fonte] of [['lead-retention.ts', lead], ['main.ts', main]] as const) expect(fonte, nome).not.toMatch(/commercialLeadDeletions|commercial_lead_deletions|deleteLeadById|retainDiscardedLeads|leadAuditSalt/);
   });
 
   it('o código sustenta o que a privacidade diz sobre o login: o e-mail digitado não vai à auditoria', () => {
