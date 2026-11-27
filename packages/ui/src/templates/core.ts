@@ -3,7 +3,7 @@ import { logoData, monogramData } from "../components/logo-data";
 import type { LogoVariant } from "../components/Logo";
 
 /**
- * Núcleo dos templates visuais por código (brandkit 2.0-draft.1, "proposal_not_approved").
+ * Núcleo dos templates visuais por código (brandkit do token: versão e status vêm de `meta`, hoje "approved").
  * Funções puras: mesma entrada → mesmo SVG, sem acesso a arquivos nem DOM.
  * Os formatos sociais (feed/story/OG/LinkedIn) pertencem a `packages/growth`; aqui ficam
  * thumbnail, capa, lower third e vinheta (portal, Studio e vídeo).

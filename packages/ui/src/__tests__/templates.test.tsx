@@ -15,7 +15,7 @@ import {
   wrapText,
   type TemplateAsset,
 } from "../index";
-import { brandColors, motion, social } from "../tokens/tokens";
+import { brandColors, meta, motion, social } from "../tokens/tokens";
 
 const parse = (svg: string) => new DOMParser().parseFromString(svg, "image/svg+xml");
 const assertWellFormed = (a: TemplateAsset) => {
@@ -25,7 +25,10 @@ const assertWellFormed = (a: TemplateAsset) => {
   expect(root.getAttribute("width")).toBe(String(a.width));
   expect(root.getAttribute("height")).toBe(String(a.height));
   expect(root.getAttribute("viewBox")).toBe(`0 0 ${a.width} ${a.height}`);
-  expect(root.getAttribute("data-brand-status")).toBe("proposal_not_approved");
+  // O status de marca é o do token do brandkit (hoje "approved"); o template só o repete, nunca o afirma por conta própria.
+  expect(meta.status).toBe("approved");
+  expect(root.getAttribute("data-brand-status")).toBe(meta.status);
+  expect(a.brandStatus).toBe(meta.status);
   return doc;
 };
 
