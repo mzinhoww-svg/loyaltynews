@@ -337,6 +337,9 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
       // Rota por id (Backend): evento aprovado em qualquer data. Enquanto ela não existir, procura na lista pública,
       // que traz só eventos que ainda não terminaram.
       const res = await get(`/api/publico/agenda/${encodeURIComponent(id)}`, 'evento');
+      // Só o 404 diz que o evento não existe. Rede, outro status ou resposta inválida na leitura por id não provam nada: se a lista
+      // (que só tem os próximos) também não trouxer o evento, o estado é "indisponível", nunca "não encontrado".
+      let falhou = !res || (!res.ok && res.status !== 404);
       if (res?.ok) {
         try {
           const data = ((await res.json()) as { data?: unknown }).data;
@@ -344,11 +347,13 @@ export function createApiSlice(baseUrl: string, fetchImpl: typeof fetch = fetch)
         } catch {
           /* cai para a lista */
         }
+        falhou = true;
       }
+      if (res && falhou) logFalha('evento', res.ok ? 'resposta inválida' : `status ${res.status}`);
       const all = await fetchEvents();
       const found = all.items.find((e) => e.slug === id);
       if (found) return { event: found };
-      return { event: null, unavailable: all.unavailable };
+      return { event: null, unavailable: all.unavailable || falhou || undefined };
     },
     async getRelated(article, limit = 3) {
       const r = await page({ pageSize: limit + 1, editoriaSlug: article.editoriaSlug });
