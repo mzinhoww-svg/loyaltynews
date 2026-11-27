@@ -25,7 +25,7 @@ export { runStage, triage, context, draft, factcheck, review, socialPack, InMemo
 export type { DraftRevision } from './pipeline/stages';
 export * from './pipeline/pilot-sink';
 export * from './factory/output-schemas';
-export type { StageDeps, AuditLog, AuditEntry } from './pipeline/stages';
+export type { StageDeps, AuditLog, AuditEntry, IndependenceMode } from './pipeline/stages';
 export { InMemoryQueue, createBullmqPipeline, makeProcessor, jobOptions } from './pipeline/queue';
 export type { JobQueue, BullmqLike, PipelineHooks } from './pipeline/queue';
 export * from './corrections/corrections';

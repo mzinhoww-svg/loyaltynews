@@ -3,7 +3,7 @@ import type { EditorialFlagOverrides } from '../flags';
 import { requireFlag } from '../flags';
 import type { ModelGateway } from '../gateway';
 import { InMemoryQueue, makeProcessor } from '../pipeline/queue';
-import type { AuditLog, StageDeps } from '../pipeline/stages';
+import type { AuditLog, IndependenceMode, StageDeps } from '../pipeline/stages';
 import type { PilotRowSink } from '../pipeline/pilot-sink';
 import type { ArticleJob, BlockerCode, Stage, StageOutcome } from '../pipeline/jobs';
 import type { SourceRegistry } from '../sources/registry';
@@ -30,6 +30,8 @@ export interface FactoryDeps {
   flags?: EditorialFlagOverrides;
   /** Linha do piloto (planilha): veredito do gate e output_valid. Só com o piloto ligado; ausente = nada é gravado. */
   pilotSink?: PilotRowSink;
+  /** Ver `IndependenceMode`. Ausente = por provedor. Só a montagem do piloto passa `agent`. */
+  independence?: IndependenceMode;
   now?: () => Date;
 }
 export interface FactoryOptions { maxArticles?: number; limitPerSource?: number; onlySourceIds?: readonly string[]; dryRun?: boolean }
@@ -74,6 +76,7 @@ export async function runFactory(deps: FactoryDeps, opts: FactoryOptions = {}): 
     gateway: deps.gateway, registry: collected.effective, audit: deps.audit, ...(deps.flags ? { flags: deps.flags } : {}),
     now, slugExists: async (slug) => (await deps.store.listArticles()).some((a) => a.draft?.slug === slug),
     ...(deps.pilotSink ? { pilotSink: deps.pilotSink } : {}),
+    ...(deps.independence ? { independence: deps.independence } : {}),
   };
   for (const item of items) {
     if (report.haltedBy) { report.deferred.push(item.articleId); continue; }

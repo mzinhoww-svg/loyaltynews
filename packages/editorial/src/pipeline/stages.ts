@@ -38,7 +38,16 @@ export class InMemoryAuditLog implements AuditLog {
   record(e: AuditEntry): void { this.entries.push(e); }
 }
 
+/**
+ * Como a checagem e a revisão provam que são independentes do redator.
+ * `provider` (padrão, vale para tudo o que não for o piloto): o modelo é de outro provedor.
+ * `agent` (só o piloto no OpenBot, DP-71: "não precisa ser diferente"): outro AGENTE e outra execução; o provedor pode ser o mesmo.
+ */
+export type IndependenceMode = 'provider' | 'agent';
+
 export interface StageDeps {
+  /** Ausente = `provider`. */
+  independence?: IndependenceMode;
   gateway: ModelGateway;
   registry: SourceRegistry;
   audit: AuditLog;
@@ -52,6 +61,26 @@ export interface StageDeps {
 }
 
 const PROMPT_VERSION = 'editorial-0.3';
+
+type NotIndependent = 'same_agent' | 'same_execution' | 'agent_unproven';
+const INDEPENDENCE_MESSAGE: Record<NotIndependent, string> = {
+  same_agent: 'a etapa foi feita pelo mesmo agente que redigiu (autoaprovação)',
+  same_execution: 'a etapa é a mesma execução da redação (autoaprovação)',
+  agent_unproven: 'sem agente e tarefa do redator e desta etapa: não dá para provar independência',
+};
+const agentId = (s: string) => s.trim().toLowerCase();
+/** `null` = outro agente e outra execução. Falta de qualquer prova recusa (falha fechada). */
+function notIndependentByAgent(job: ArticleJob, r: { agent?: string; taskId?: string }): NotIndependent | null {
+  const author = agentId(job.draftAgent ?? '');
+  const other = agentId(r.agent ?? '');
+  if (!author || !other || !job.draftTaskId || !r.taskId) return 'agent_unproven';
+  if (r.taskId === job.draftTaskId) return 'same_execution';
+  return other === author ? 'same_agent' : null;
+}
+const notIndependent = (job: ArticleJob, stage: JobSpec['stage'], why: NotIndependent): StageOutcome =>
+  blocked(job, stage, ['cross_provider_check_failed'], [{ code: why, message: INDEPENDENCE_MESSAGE[why] }]);
+/** Motivo gravado na linha do piloto: autoaprovação é `same_author` (reprova a independência no avaliador). */
+const rowReason = (why: NotIndependent) => (why === 'agent_unproven' ? 'cross_provider_check_failed' : 'same_author');
 
 function blocked(job: ArticleJob, stage: JobSpec['stage'], blockers: BlockerCode[], findings: Finding[] = []): StageOutcome {
   return { kind: 'blocked', blocked: { articleId: job.articleId, stage, blockers, findings } };
@@ -232,18 +261,21 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
     // (ensaio do piloto: 3 chamadas por matéria barrada). Não há nova tentativa; nova tentativa é só para falha transitória (fila/gateway).
     return blocked(job, 'draft', toBlockers(chk.findings), chk.findings);
   }
-  return next('factcheck', { ...job, slug, draft: d, feedback: undefined, ...(r.taskId ? { draftTaskId: r.taskId } : { draftTaskId: undefined }) });
+  return next('factcheck', { ...job, slug, draft: d, feedback: undefined, draftTaskId: r.taskId || undefined, draftAgent: r.agent || undefined });
 }
 
-// ---------------- 4. checagem em provedor distinto ----------------
+// ---------------- 4. checagem independente (outro provedor; no piloto, outro agente) ----------------
 export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
   requireFlag(deps.flags, 'editorialPipeline');
   const d = job.draft;
   if (!d) return blocked(job, 'factcheck', ['approval_missing'], [{ code: 'no_draft', message: 'sem rascunho' }]);
   const used = job.evidences.filter((e) => d.evidenceIds.includes(e.id));
   const rev = draftRevision(job, d);
+  const byAgent = deps.independence === 'agent';
+  // sem saber quem redigiu nada prova a independência: recusa antes de gastar a chamada
+  if (byAgent && (!job.draftAgent || !job.draftTaskId)) return notIndependent(job, 'factcheck', 'agent_unproven');
   const r = await call(deps, job, 'factcheck', 'factcheck', 'review', 'WF02',
-    { reviewedDraft: rev, ...reviewedRef(job), claims: d.claims, evidences: untrusted(used), headline: d.headline, body: d.body }, [d.modelProvider], rev);
+    { reviewedDraft: rev, ...reviewedRef(job), claims: d.claims, evidences: untrusted(used), headline: d.headline, body: d.body }, byAgent ? [] : [d.modelProvider], rev);
   if (!r.ok) {
     // Motivo registrado na linha do piloto: sem isso o timeout some como `budget_blocked` e a revisão não nasce.
     if (r.detail?.startsWith('pending_timeout')) {
@@ -252,7 +284,14 @@ export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<Stage
     return refused(job, 'factcheck', r);
   }
   await markOutput(deps, job, 'factcheck', 'factcheck', r, { claimIds: d.claims.map((c) => c.id) });
-  if (r.provider === d.modelProvider) {
+  const crossProvider = r.provider !== d.modelProvider; // fato registrado na linha; na independência por agente não decide sozinho
+  if (byAgent) {
+    const why = notIndependentByAgent(job, r);
+    if (why) {
+      await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'blocked', gate_reasons: [rowReason(why)], cross_provider_ok: crossProvider });
+      return notIndependent(job, 'factcheck', why);
+    }
+  } else if (!crossProvider) {
     await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'blocked', gate_reasons: ['cross_provider_check_failed'], cross_provider_ok: false });
     return blocked(job, 'factcheck', ['cross_provider_check_failed'], [{ code: 'same_provider', message: `checagem veio do mesmo provedor do redator (${r.provider})` }]);
   }
@@ -270,11 +309,11 @@ export async function factcheck(deps: StageDeps, job: ArticleJob): Promise<Stage
     else if (v.verdict !== 'pass') findings.push({ code: 'unsupported_claim', message: `veredito ${v.verdict}`, claimId: c.id });
   }
   if (findings.length) {
-    await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'blocked', gate_reasons: ['unsupported_claim'], cross_provider_ok: true });
+    await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'blocked', gate_reasons: ['unsupported_claim'], cross_provider_ok: crossProvider });
     return blocked(job, 'factcheck', ['unsupported_claim'], findings);
   }
-  await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: true });
-  return next('review', { ...job, factcheck: { provider: r.provider, model: r.model, verdicts, reviewedDraftTaskId: rev.taskId, reviewedDraftSha256: rev.sha256 } });
+  await patchRow(deps, job, 'factcheck', r, { gate_verdict: 'approved', gate_reasons: [], cross_provider_ok: crossProvider });
+  return next('review', { ...job, factcheck: { provider: r.provider, model: r.model, verdicts, reviewedDraftTaskId: rev.taskId, reviewedDraftSha256: rev.sha256, ...(byAgent ? { agent: r.agent, taskId: r.taskId } : {}) } });
 }
 
 // ---------------- 5. revisão (auto_gate_editor) ----------------
@@ -282,10 +321,14 @@ export async function review(deps: StageDeps, job: ArticleJob): Promise<StageOut
   requireFlag(deps.flags, 'editorialPipeline');
   const d = job.draft; const fc = job.factcheck;
   if (!d || !fc) return blocked(job, 'review', ['approval_missing'], [{ code: 'missing_prior_stage', message: 'rascunho/checagem ausentes' }]);
-  // O gate NÃO confia no estágio anterior: refaz as verificações determinísticas e a independência do provedor.
+  // O gate NÃO confia no estágio anterior: refaz as verificações determinísticas e a independência da checagem.
   const chk = runDeterministicChecks(d, job.evidences);
   if (chk.verdict !== 'pass') return blocked(job, 'review', toBlockers(chk.findings), chk.findings);
-  if (fc.provider === d.modelProvider) return blocked(job, 'review', ['cross_provider_check_failed'], [{ code: 'same_provider', message: 'redator e checador no mesmo provedor' }]);
+  const byAgent = deps.independence === 'agent';
+  if (byAgent) {
+    const why = notIndependentByAgent(job, fc);
+    if (why) return notIndependent(job, 'review', why);
+  } else if (fc.provider === d.modelProvider) return blocked(job, 'review', ['cross_provider_check_failed'], [{ code: 'same_provider', message: 'redator e checador no mesmo provedor' }]);
   const ok = d.claims.every((c) => fc.verdicts.some((v) => v.claimId === c.id && v.verdict === 'pass'));
   if (!ok) return blocked(job, 'review', ['unsupported_claim'], [{ code: 'factcheck_incomplete', message: 'nem todo claim aprovado' }]);
   const rev = draftRevision(job, d);
@@ -297,6 +340,13 @@ export async function review(deps: StageDeps, job: ArticleJob): Promise<StageOut
   if (!r.ok) return refused(job, 'review', r);
   await markOutput(deps, job, 'review', 'review', r);
   const crossOk = fc.provider !== d.modelProvider && r.provider !== d.modelProvider;
+  if (byAgent) {
+    const why = notIndependentByAgent(job, r);
+    if (why) {
+      await patchRow(deps, job, 'review', r, { gate_verdict: 'blocked', gate_reasons: [rowReason(why)], cross_provider_ok: crossOk });
+      return notIndependent(job, 'review', why);
+    }
+  }
   if (!isObj(r.output) || typeof r.output['approve'] !== 'boolean') return bad(job, 'review', 'review: esperado {approve:boolean}');
   if (!r.output['approve']) {
     const issues = Array.isArray(r.output['issues']) ? r.output['issues'].map(String) : [];

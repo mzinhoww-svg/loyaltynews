@@ -30,6 +30,8 @@ export type GatewayResponseLike =
     ok: true; provider: string; model: string; output: unknown; usage: { inputTokens: number; outputTokens: number; costMicrosUsd: number };
     /** Tarefa e tentativa que concluíram: a Editorial usa `taskId` como `reviewedDraftTaskId` e (taskId, attempt) para achar a linha do piloto. */
     taskId: string; attempt: number;
+    /** Agente (`workerId`) que tinha o lease da tarefa concluída; declarado por ele no pull e gravado pela fila. A Editorial o usa na independência por agente (DP-71). */
+    agent?: string;
   }
   | { ok: false; refusal: GatewayRefusal; detail?: string; /** a tarefa, quando já existe (ex.: `pending_timeout`: repetir a chamada retoma a mesma). */ taskId?: string };
 
@@ -187,7 +189,7 @@ export class OpenBotModelGateway {
     const output = await c.io.getResult(resultRef);
     if (output === null || output === undefined) return { ok: false, refusal: 'model_disabled', detail: 'resultado não encontrado', taskId };
     return {
-      ok: true, provider, model: entry.model, output, taskId, attempt: t.attempts,
+      ok: true, provider, model: entry.model, output, taskId, attempt: t.attempts, ...(t.leaseHolder ? { agent: t.leaseHolder } : {}),
       usage: { inputTokens: entry.promptTokens ?? 0, outputTokens: entry.completionTokens ?? 0, costMicrosUsd: entry.costMicro },
     };
   }
