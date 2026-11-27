@@ -28,7 +28,9 @@ test.describe('empty', () => {
 
   test('diretório, pessoas e Moves vazios e honestos; perfil inexistente é 404', async ({ page }) => {
     await page.goto('/intelligence/empresas');
-    await expect(page.getByText('Ainda não há perfis publicados')).toBeVisible();
+    // Copy do estado vazio do diretório (mesma que o pages.spec valida em 'intelligence-empresas'): é o texto do produto
+    // desde a implementação do Intelligence; não é o mesmo título de /intelligence/pessoas.
+    await expect(page.getByText('Em breve: primeiros perfis verificados')).toBeVisible();
     await expect(page.getByTestId('company-list')).toHaveCount(0);
     await axe(page);
     await page.goto('/intelligence/empresas?tipo=company');

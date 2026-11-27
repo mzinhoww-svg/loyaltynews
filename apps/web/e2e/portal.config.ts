@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { appEnvDoServidor } from './ambiente-servidor';
 
 /**
  * E2E do portal público (Frente 03).
@@ -92,7 +93,7 @@ export default defineConfig({
             PORTAL_SOURCE: mode,
             ...(mode === 'api' ? { PORTAL_API_BASE_URL: `http://localhost:${fakeApiPort}`, PORT: String(port) } : {}),
             // Mock nunca roda com APP_ENV=production (resolveSourceKind recusa): o servidor de mock usa staging.
-            APP_ENV: mode === 'mock' ? 'staging' : appEnv,
+            APP_ENV: appEnvDoServidor(process.env),
             // Interruptor de indexação de produção (DP-24); em staging/mock nunca é definido.
             ...(indexavel && mode !== 'mock' ? { PORTAL_INDEXAVEL: '1' } : {}),
             NEXT_PUBLIC_SITE_URL: 'https://portal.example.test',

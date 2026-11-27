@@ -7,15 +7,17 @@ import { aguardarHidratacao } from './hidratacao';
 /**
  * Mídia kit para o lançamento: pedido de proposta e "Salvar em PDF".
  *
- * 1) Com a flag portalFormularios DESLIGADA (o padrão de todos os ambientes): nada é coletado, o botão principal leva a /contato.
+ * 1) Com a flag portalFormularios DESLIGADA: nada é coletado, o botão principal leva a /contato. Depois do DP-57 (flag liberada em
+ *    produção POR COMMIT, `PRODUCTION_FLAGS_ON`) esse estado só existe numa subida SEM a liberação — em staging, sem LN_FLAGS_ON.
  * 2) "Salvar em PDF" abre a impressão; no papel saem as tabelas de preço e não saem botões, atalhos nem formulário.
- * 3) Com a flag LIGADA o formulário aparece e envia. A flag é de EXECUÇÃO (ADR-022): o mesmo build sobe com ou sem ela. Ela só liga num
- *    ambiente com decisão registrada (FLAG_RELEASES) e hoje `portalFormularios` não tem decisão (o mecanismo de liberação é do Architect):
- *    este bloco só roda com PORTAL_FORMS_E2E=1 e LN_FLAGS_ON=portalFormularios (o portal.config.ts repassa ao servidor), com uma liberação
- *    LOCAL TEMPORÁRIA em packages/contracts (nunca commitada).
+ * 3) Com a flag LIGADA o formulário aparece e envia. A flag é de EXECUÇÃO (ADR-022): o mesmo build sobe com ou sem ela; quem liga é a
+ *    tabela de decisões do contrato. Na suíte de produção (APP_ENV=production) o DP-57 já a liga sem variável nenhuma; em staging (e no
+ *    modo mock, que sobe como staging) é LN_FLAGS_ON=portalFormularios. O estado é o do servidor: e2e/ambiente-servidor.ts.
  *    A rota de envio é simulada com page.route (MOCK de teste) no formato do Backend (201, 400, 429).
  */
-const FORMS_ON = process.env.PORTAL_FORMS_E2E === '1';
+import { formulariosNoServidor } from '../ambiente-servidor';
+
+const FORMS_ON = formulariosNoServidor(process.env);
 
 async function axe(page: Page) {
   await page.waitForLoadState('load');
@@ -25,7 +27,8 @@ async function axe(page: Page) {
 }
 
 test.describe('mídia kit com a flag portalFormularios desligada', () => {
-  test.skip(FORMS_ON, 'este bloco confere o estado desligado');
+  // DP-57: em produção a flag liga por commit; desligada só numa subida sem a liberação (staging sem LN_FLAGS_ON).
+  test.skip(FORMS_ON, 'portalFormularios está ligada nesta subida (DP-57 em produção; LN_FLAGS_ON em staging)');
 
   test('sem formulário: nada é coletado, o botão principal leva a /contato e não há atalho para a proposta', async ({ page }) => {
     await page.goto('/midia-kit');
@@ -108,7 +111,7 @@ test.describe('Salvar em PDF', () => {
 });
 
 test.describe('pedido de proposta (flag portalFormularios ligada)', () => {
-  test.skip(!FORMS_ON, 'precisa do servidor com a flag ligada (PORTAL_FORMS_E2E=1)');
+  test.skip(!FORMS_ON, 'o servidor precisa subir com portalFormularios ligada (DP-57 em produção ou LN_FLAGS_ON em staging)');
   const ROTA = '**/api/commercial/leads';
 
   async function pronto(page: Page) {
