@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { CSP_REPORT_GROUP, CSP_REPORT_PATH, ehDocumento, gerarNonce, modoCsp, politicaCsp } from './lib/csp';
+import { ehDocumento, gerarNonce, modoCsp, politicaCsp } from './lib/csp';
 import { caminhoDoPedido } from './lib/studio/login';
 import { NOINDEX_HEADER, indexingBlocked } from './app/(portal)/_lib/indexing';
 
@@ -31,10 +31,7 @@ export function proxy(req: NextRequest) {
     // API e arquivos: a requisição segue intocada (a mídia tem a própria CSP `sandbox`).
     res = NextResponse.next();
   }
-  if (csp) {
-    res.headers.set(modo === 'enforce' ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only', csp);
-    res.headers.set('Reporting-Endpoints', `${CSP_REPORT_GROUP}="${CSP_REPORT_PATH}"`);
-  }
+  if (csp) res.headers.set(modo === 'enforce' ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only', csp);
   if (indexingBlocked()) res.headers.set('X-Robots-Tag', NOINDEX_HEADER);
   return res;
 }

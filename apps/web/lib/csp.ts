@@ -14,8 +14,12 @@
  */
 export type ModoCsp = 'off' | 'report' | 'enforce';
 
+/**
+ * Só `report-uri`, de propósito. Com `report-to` o Chromium ignora o `report-uri` e entrega pela Reporting API, em lote e depois: na
+ * medição de 27/11 nenhum relato chegou em 80 s, e um relatório "vazio" no staging não provaria nada. `report-uri` envia na hora e é o
+ * único que o Firefox entende.
+ */
 export const CSP_REPORT_PATH = '/api/csp-report';
-export const CSP_REPORT_GROUP = 'csp';
 
 export function modoCsp(valor: string | undefined): ModoCsp {
   const v = String(valor ?? '').trim().toLowerCase();
@@ -48,6 +52,5 @@ export function politicaCsp(nonce: string, { dev = false }: { dev?: boolean } = 
     "base-uri 'self'",
     "object-src 'none'",
     `report-uri ${CSP_REPORT_PATH}`,
-    `report-to ${CSP_REPORT_GROUP}`,
   ].join('; ');
 }

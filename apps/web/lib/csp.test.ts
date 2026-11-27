@@ -19,7 +19,9 @@ describe('política CSP dos documentos', () => {
 
   it('mantém as demais travas e aponta o relatório', () => {
     const p = politicaCsp('n');
-    for (const d of ["default-src 'self'", "object-src 'none'", "base-uri 'self'", "frame-ancestors 'self'", "form-action 'self'", 'report-uri /api/csp-report', 'report-to csp']) expect(p).toContain(d);
+    for (const d of ["default-src 'self'", "object-src 'none'", "base-uri 'self'", "frame-ancestors 'self'", "form-action 'self'", 'report-uri /api/csp-report']) expect(p).toContain(d);
+    // Com report-to o Chromium deixa de usar o report-uri e entrega em lote, tarde: o relatório do staging pareceria vazio.
+    expect(p).not.toContain('report-to');
     expect(p).not.toMatch(/[\r\n]/);
   });
 
@@ -55,7 +57,7 @@ describe('proxy: cabeçalhos por modo', () => {
     expect(csp).toContain("'strict-dynamic'");
     expect(r.headers.get('content-security-policy')).toBeNull();
     expect(repassado(r, 'content-security-policy')).toBe(csp);
-    expect(r.headers.get('reporting-endpoints')).toBe('csp="/api/csp-report"');
+    expect(r.headers.get('reporting-endpoints')).toBeNull();
   });
 
   it('enforce: bloqueia, com nonce novo por requisição', () => {
