@@ -41,8 +41,8 @@ test('conteúdo: colunas do AgentOps na ordem, uma linha por tarefa, unsupported
   expect(linhas[0]).toMatch(/^# amostra_desde=\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/);
   const linhasDados = linhas.slice(1);
   const cab = linhasDados[0]!.split(',');
-  expect(cab.slice(0, 31)).toEqual(COLUNAS_AGENTOPS);
-  expect(cab.slice(31)).toEqual(['materia', 'leitor1_veredito', 'leitor2_veredito', 'leitor2_unsupported_high', 'leitor2_unsupported_medium', 'leitor2_unsupported_low', 'leitor2_origem']);
+  expect(cab.slice(0, 32)).toEqual(COLUNAS_AGENTOPS);
+  expect(cab.slice(32)).toEqual(['materia', 'leitor1_veredito', 'leitor2_veredito', 'leitor2_unsupported_high', 'leitor2_unsupported_medium', 'leitor2_unsupported_low', 'leitor2_origem']);
   const porTarefa = (id: string) => {
     const l = linhasDados.find((x) => x.startsWith(`${id},`));
     expect(l, `linha ${id}`).toBeTruthy();

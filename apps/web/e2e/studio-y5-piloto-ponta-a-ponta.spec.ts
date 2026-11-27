@@ -85,11 +85,11 @@ test('leitura do editor-chefe → CSV com as colunas do AgentOps, coluna a colun
   while (linhas[0]?.length === 1 && linhas[0]![0]!.startsWith('#')) linhas.shift();
   const cab = linhas[0]!;
 
-  // 3) cabeçalho coluna a coluna: as 31 do AgentOps na ordem, depois exatamente as 7 do Studio
+  // 3) cabeçalho coluna a coluna: as 32 do AgentOps na ordem (a última é worker_id, DP-71), depois exatamente as 7 do Studio
   expect(PILOT_SHEET_COLUMNS).toHaveLength(32);
-  expect(cab).toHaveLength(31 + 7);
+  expect(cab).toHaveLength(32 + 7);
   PILOT_SHEET_COLUMNS.forEach((c, i) => expect(cab[i], `coluna ${i + 1}`).toBe(c));
-  expect(cab.slice(31)).toEqual(EXTRAS);
+  expect(cab.slice(32)).toEqual(EXTRAS);
   for (const l of linhas.slice(1)) expect(l, 'toda linha com o mesmo número de colunas do cabeçalho').toHaveLength(cab.length);
   const a1 = linhas.find((l) => l[0] === 'mock-a1-review')!;
   expect(a1[cab.indexOf('materia')]).toBe('a1');
