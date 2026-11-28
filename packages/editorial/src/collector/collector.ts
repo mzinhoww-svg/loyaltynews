@@ -2,6 +2,9 @@ import type { Evidence, Source } from '../types';
 import { ACESSO_VIA_PROVEDOR, sourceTier } from '../types';
 import { eligibility } from '../sources/registry';
 import { canonicalUrl, sha256 } from '../dedupe/dedupe';
+import { isAllowedSource } from './allowlist';
+import type { CollectorAllowlist } from './allowlist';
+import { extractAuthor } from './author';
 import { assertAllowedUrl, UrlRejected } from './ssrf';
 import { isAllowedByRobots, parseRobots } from './robots';
 import { detectGate } from './paywall';
@@ -100,7 +103,7 @@ const MAX_REDIRECTS = 3;
 const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
-  | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
+  | 'source_not_eligible' | 'source_not_allowed' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
   | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable'
   /** sitemap .xml.gz corrompido, ou que descomprime acima do teto (proteção contra zip bomb) */
   | 'gzip_invalid' | 'decompressed_too_large' | 'sitemap_index_too_large'
@@ -162,6 +165,13 @@ export interface CollectorOptions {
   reader?: ReaderPort;
   /** DP-31: contador GLOBAL de leituras por host (ex.: StoreReadBudget, no banco). Padrão: em memória (por instância; só para testes/dev). */
   readBudget?: ReadBudget;
+  /** Trava das fontes permitidas (decisão registrada). Presente: só elas são lidas, qualquer que seja o cadastro. Os workers sempre passam. */
+  allowlist?: CollectorAllowlist;
+  /**
+   * Teto por hora PERSISTENTE (vale entre rodadas e instâncias): cada requisição direta, inclusive robots.txt e redirecionamento, reserva
+   * uma vaga do host antes de sair, com `maxRequestsPerHour` da fonte. Falha do contador = não requisita. Os workers sempre passam.
+   */
+  hostBudget?: ReadBudget;
   /** DP-31: intervalo mínimo entre leituras do mesmo host (ms). Padrão 10000 (mínimo do proprietário). */
   dp31SpacingMs?: number;
   /** DP-31: páginas por host em 24 h ("poucas por dia"). Padrão 5; acima disso, 'rate_limited'. */
@@ -182,7 +192,7 @@ export interface CollectorOptions {
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Códigos de UrlRejected que viram motivo de skip próprio (os demais viram 'url_rejected'). */
-const OWN_SKIP_CODES = ['too_many_redirects', 'rate_limited', 'crawl_delay_excessive', 'robots_disallow', 'robots_unavailable'] as const;
+const OWN_SKIP_CODES = ['source_not_allowed', 'too_many_redirects', 'rate_limited', 'crawl_delay_excessive', 'robots_disallow', 'robots_unavailable'] as const;
 /** Páginas por fonte de sitemap em cada rodada (decisão do PM): o teto que segura o limite por hora do host. */
 export const SITEMAP_MAX_PAGES_PER_RUN = 5;
 /** Anexos e mídia que aparecem nos sitemaps (gov.br lista as imagens e PDFs de cada matéria): nunca são matéria. */
@@ -209,6 +219,8 @@ export class Collector {
   private readonly sitemapMaxChildren: number;
   private readonly sitemapMaxPagesPerRun: number;
   private readonly readBudget: ReadBudget;
+  private readonly allowlist: CollectorAllowlist | undefined;
+  private readonly hostBudget: ReadBudget | undefined;
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
   private readonly hourWindow = new Map<string, number[]>();
@@ -225,12 +237,20 @@ export class Collector {
     this.reader = opts.reader;
     this.onDirectRead = opts.onDirectRead;
     this.readBudget = opts.readBudget ?? new MemoryReadBudget();
+    this.allowlist = opts.allowlist;
+    this.hostBudget = opts.hostBudget;
     this.dp31SpacingMs = opts.dp31SpacingMs ?? 10_000;
     this.dp31MaxPagesPerDay = opts.dp31MaxPagesPerDay ?? 5;
     this.dp31MaxStoredChars = opts.dp31MaxStoredChars ?? 1500;
     this.sitemapMaxDecompressedBytes = opts.sitemapMaxDecompressedBytes ?? DEFAULT_MAX_DECOMPRESSED_BYTES;
     this.sitemapMaxChildren = opts.sitemapMaxChildren ?? 12;
     this.sitemapMaxPagesPerRun = opts.sitemapMaxPagesPerRun ?? SITEMAP_MAX_PAGES_PER_RUN;
+  }
+
+  /** Motivo de recusa quando a trava está ligada e a fonte (id E host) não está nela. */
+  private notAllowed(source: Source): string | null {
+    if (!this.allowlist || isAllowedSource(source, this.allowlist)) return null;
+    return `fora da lista permitida (decisão ${this.allowlist.decisionId}, ${this.allowlist.decidedOn})`;
   }
 
   /**
@@ -288,6 +308,13 @@ export class Collector {
       if (!isRobots) await this.throttle(source);
       await this.space(source.host);
       const { pinned } = await resolvePublic(new URL(cur).hostname, this.resolver);
+      // última barreira antes da rede: trava das fontes e vaga no contador persistente do host
+      const refused = this.notAllowed(source);
+      if (refused) throw new UrlRejected('source_not_allowed', refused);
+      if (this.hostBudget) {
+        const slot = await this.hostBudget.reserve(source.host, this.now().getTime(), source.maxRequestsPerHour, 3_600_000, 0);
+        if (!slot.allowed) throw new UrlRejected('rate_limited', `limite de ${source.maxRequestsPerHour} requisições/hora atingido para ${source.host} (contador persistente)`);
+      }
       const r = await this.fetcher.get(cur, { userAgent: this.ua, address: pinned.address, family: pinned.family });
       this.record(source.host);
       if (r.status >= 300 && r.status < 400 && r.headers['location']) {
@@ -311,7 +338,11 @@ export class Collector {
       }
       else if (r.status === 404) rules = parseRobots('', this.ua); // sem robots = sem restrição (decide pelo módulo comum)
       else rules = null; // 401/403/5xx: tratar como indisponível => não coletar (fail closed)
-    } catch { rules = null; }
+    } catch (e) {
+      // teto por hora: não é falha do robots.txt; não guarda no cache, para a próxima janela poder ler
+      if (e instanceof UrlRejected && e.code === 'rate_limited') throw e;
+      rules = null;
+    }
     this.robotsCache.set(source.host, rules);
     return rules;
   }
@@ -321,12 +352,15 @@ export class Collector {
     requireFlag(this.flags, 'editorialCollector'); // desligada por padrão (contratos)
     const el = eligibility(source);
     if (!el.ok) return { skip: { url, code: 'source_not_eligible', detail: el.reasons.join(',') } };
+    const refused = this.notAllowed(source);
+    if (refused) return { skip: { url, code: 'source_not_allowed', detail: refused } };
     let u: URL;
     try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
     if (source.acesso === ACESSO_VIA_PROVEDOR) return this.collectUrlViaReader(source, u, hint);
-    const rules = await this.robotsFor(source);
+    let rules: ReturnType<typeof parseRobots> | null;
+    try { rules = await this.robotsFor(source); } catch (e) { return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } }; }
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível; não coletar' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     let r: HttpResponse;
@@ -368,12 +402,14 @@ export class Collector {
     try { canon = canonicalUrl(meta.canonical ? new URL(meta.canonical, u).toString() : u.toString()); } catch { canon = canonicalUrl(u.toString()); }
     const hash = sha256(r.body);
     const fetchedAt = this.now().toISOString();
+    const author = extractAuthor(source.id, r.body);
     const evidence: Evidence = {
       id: `ev_${hash.slice(0, 16)}`, sourceId: source.id, url: u.toString(), canonicalUrl: canon, fetchedAt,
       contentSha256: hash, title: meta.title || hint?.title || '', text: san.text,
       publishedAt: meta.publishedAt ?? hint?.publishedAt ?? null,
       suspicious: san.suspicious, suspiciousReasons: san.reasons,
       sourceTier: sourceTier(source.kind),
+      ...(author ? { author } : {}),
       ...(meta.links.length ? { outboundLinks: meta.links } : {}),
       ...(dp31 ? { acesso: ACESSO_VIA_PROVEDOR } : {}),
     };
@@ -387,6 +423,8 @@ export class Collector {
     const out: CollectResult = { evidences: [], skipped: [] };
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.feedUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
+    const refused = this.notAllowed(source);
+    if (refused) { out.skipped.push({ url: source.feedUrl ?? source.host, code: 'source_not_allowed', detail: refused }); return out; }
     if (source.acesso === ACESSO_VIA_PROVEDOR) return this.collectDp31(source, limit);
     if (!source.feedUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem feedUrl cadastrado' }); return out; }
     const f = await this.collectRaw(source, source.feedUrl);
@@ -409,10 +447,13 @@ export class Collector {
 
   /** robots.txt, janela de 24 h, espaçamento mínimo e leitura pelo serviço. Nunca repete, nunca tenta outro caminho. */
   private async readViaReader(source: Source, url: string): Promise<{ r?: ReaderResult; skip?: Skip }> {
+    const refused = this.notAllowed(source);
+    if (refused) return { skip: { url, code: 'source_not_allowed', detail: refused } };
     const refusal = this.readerRefusal(url);
     if (refusal || !this.reader) return { skip: refusal! };
     const host = source.host;
-    const rules = await this.robotsFor(source);
+    let rules: ReturnType<typeof parseRobots> | null;
+    try { rules = await this.robotsFor(source); } catch (e) { return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } }; }
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível; não coletar' } };
     const target = new URL(url);
     if (!isAllowedByRobots(rules, target.pathname + target.search)) return { skip: { url, code: 'robots_disallow', detail: target.pathname } };
@@ -485,6 +526,8 @@ export class Collector {
     const out: CollectResult = { evidences: [], skipped: [] };
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.sitemapUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
+    const refused = this.notAllowed(source);
+    if (refused) { out.skipped.push({ url: source.sitemapUrl ?? source.host, code: 'source_not_allowed', detail: refused }); return out; }
     if (!source.sitemapUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem sitemapUrl cadastrado' }); return out; }
     // Sem prefixo de caminho verificado para a seção de notícias, o sitemap traria páginas quaisquer (produtos, institucional): não coletar.
     if (!source.sitemapPathPrefix) { out.skipped.push({ url: source.sitemapUrl, code: 'empty_content', detail: 'sitemap sem sitemapPathPrefix verificado (seção de notícias não identificada)' }); return out; }
@@ -579,13 +622,16 @@ export class Collector {
     try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
+    const refused = this.notAllowed(source);
+    if (refused) return { skip: { url, code: 'source_not_allowed', detail: refused } };
     if (source.acesso === ACESSO_VIA_PROVEDOR) {
       const g = await this.readViaReader(source, url);
       if (g.skip) return { skip: g.skip };
       const chal = detectChallenge({ status: g.r!.status, headers: {}, html: g.r!.body, text: g.r!.body });
       return chal ? { skip: { url, code: 'challenge', detail: chal, viaProvider: true } } : { body: g.r!.body };
     }
-    const rules = await this.robotsFor(source);
+    let rules: ReturnType<typeof parseRobots> | null;
+    try { rules = await this.robotsFor(source); } catch (e) { return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } }; }
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     try {

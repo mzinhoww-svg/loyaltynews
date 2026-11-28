@@ -8,7 +8,7 @@ import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
 import {
   COLLECTOR_ROUND_ACTION, GOOD_ROUND_PREFIX,
-  type ArticleRecord, type AuditItem, type CorrectionRecord, type EditorialStore, type OutboxItem, type PublicationCommit, type PublicationCommitStep, type SourceState,
+  type ArticleRecord, type AuditItem, type CorrectionRecord, type EditorialStore, type OutboxItem, type PublicationCommit, type PublicationCommitStep, type ReadReservation, type SourceState,
 } from '@ln/editorial';
 
 /** JSON puro: descarta undefined e garante que nada compartilhe referência com o chamador. */
@@ -139,6 +139,24 @@ export class PgEditorialStore implements EditorialStore {
 
   async appendAudit(a: AuditItem) {
     await this.db.insert(schema.editorialAudit).values({ at: a.at, record: plain(a) });
+  }
+  /**
+   * Contar e gravar na mesma transação, depois de uma trava consultiva por alvo: outra instância só conta quando esta terminar.
+   * Os horários são ISO 8601 em UTC (toISOString), então a comparação de texto segue a ordem do tempo.
+   */
+  async reserveRead(r: ReadReservation) {
+    const t = schema.editorialAudit;
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${r.action}:${r.target}`}))`);
+      const since = new Date(r.atMs - r.windowMs).toISOString();
+      const rows = await tx.select({ id: t.id }).from(t)
+        .where(sql`${t.at} > ${since} and ${t.record}->>'action' = ${r.action} and ${t.record}->>'target' = ${r.target}`)
+        .limit(r.max);
+      if (rows.length >= r.max) return { allowed: false, used: rows.length };
+      const item: AuditItem = { at: new Date(r.atMs).toISOString(), userId: null, action: r.action, target: r.target };
+      await tx.insert(t).values({ at: item.at, record: plain(item) });
+      return { allowed: true, used: rows.length + 1 };
+    });
   }
   async listAudit() {
     return (await this.db.select({ record: schema.editorialAudit.record }).from(schema.editorialAudit).orderBy(asc(schema.editorialAudit.id))).map(

@@ -1,3 +1,4 @@
+import { attributionNameOf } from '../collector/allowlist';
 import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types';
 import { SIGNATURE } from '../types';
 import { normalizeText } from '../dedupe/dedupe';
@@ -164,7 +165,9 @@ export function checkOriginality(d: Draft, evidences: Evidence[]): CheckResult {
 export function buildAttribution(evidences: Evidence[], sources: Source[]): string {
   const lines = evidences.map((e) => {
     const s = sources.find((x) => x.id === e.sourceId);
-    return `- ${s?.name ?? e.sourceId}: ${e.canonicalUrl} (acessado em ${e.fetchedAt.slice(0, 10)})`;
+    const name = attributionNameOf(e.sourceId) ?? s?.name ?? e.sourceId;
+    const author = e.author ? `, reportagem de ${e.author}` : '';
+    return `- ${name}${author}: ${e.canonicalUrl} (acessado em ${e.fetchedAt.slice(0, 10)})`;
   });
   return `Fontes:\n${lines.join('\n')}`;
 }

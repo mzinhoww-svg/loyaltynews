@@ -47,7 +47,7 @@ async function enable(db: Db): Promise<PgEditorialStore> {
 }
 const base = (db: Db, over: Record<string, unknown> = {}) => ({
   db, dryRun: false, flags: { editorialCollector: true, editorialPipeline: true }, registry: registry(), fetcher: web(), resolver: new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]] }),
-  collectorOptions: { minSpacingMs: 0 }, now: () => NOW, gateway: gateway(), ...over,
+  collectorOptions: { minSpacingMs: 0 }, collectorGuards: {}, now: () => NOW, gateway: gateway(), ...over,
 });
 
 class FakeShadow implements ShadowPort {

@@ -1,5 +1,7 @@
 import type { ReadBudget } from '../collector/collector';
 import type { EditorialStore } from '../api/store';
+import { COLLECTOR_ALLOWLIST } from '../collector/allowlist';
+import type { CollectorAllowlist } from '../collector/allowlist';
 
 /**
  * Orçamento GLOBAL de leituras DP-31 (QA 2): o contador mora no banco (trilha de auditoria do EditorialStore, em PostgreSQL),
@@ -27,3 +29,23 @@ export class StoreReadBudget implements ReadBudget {
     return { allowed: true, used: times.length + 1, waitMs };
   }
 }
+
+export const HOST_READ_ACTION = 'collector.host_read';
+
+/**
+ * Teto por hora do coletor direto, persistente: vale entre rodadas, reinícios e instâncias, porque a contagem e a gravação são
+ * uma operação atômica do EditorialStore (no PostgreSQL, sob trava consultiva por host). Uma linha por requisição aprovada.
+ * O espaçamento entre requisições continua por instância (Crawl-delay e intervalo mínimo no próprio coletor).
+ */
+export class StoreHostBudget implements ReadBudget {
+  constructor(private readonly store: EditorialStore) {}
+
+  async reserve(host: string, nowMs: number, max: number, windowMs: number): Promise<{ allowed: boolean; used: number; waitMs: number }> {
+    const r = await this.store.reserveRead({ action: HOST_READ_ACTION, target: host, atMs: nowMs, max, windowMs });
+    return { ...r, waitMs: 0 };
+  }
+}
+
+/** O que todo coletor de worker recebe: a trava das fontes da decisão vigente e o teto por hora no banco. */
+export const registeredCollectorGuards = (store: EditorialStore): { allowlist: CollectorAllowlist; hostBudget: ReadBudget } =>
+  ({ allowlist: COLLECTOR_ALLOWLIST, hostBudget: new StoreHostBudget(store) });
