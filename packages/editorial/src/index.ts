@@ -52,6 +52,7 @@ export * from './factory/prompts';
 export * from './factory/llm-gateway';
 export * from './factory/collect';
 export * from './factory/inbox';
+export * from './factory/status';
 export * from './factory/run';
 export * from './factory/anchor';
 export * from './factory/shadow-port';

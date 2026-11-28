@@ -8,7 +8,7 @@
 import type { Db } from '@ln/auth';
 import type { FlagName } from '@ln/contracts';
 import {
-  COLLECTOR_ALERT_ACTION, COLLECTOR_ROUND_ACTION, Collector, GOOD_ROUND_PREFIX, SEED_SOURCES, SourceRegistry, collectToInbox, createNodeFetcher, describeRound, isGoodRound,
+  COLLECTOR_ALERT_ACTION, COLLECTOR_ROUND_ACTION, Collector, GOOD_ROUND_PREFIX, ROUND_STALE_AFTER_MS, SEED_SOURCES, SourceRegistry, collectToInbox, createNodeFetcher, describeRound, isGoodRound,
   type EditorialStore, type InboxRound,
 } from '@ln/editorial';
 import { PgEditorialStore } from './editorial-store';
@@ -18,7 +18,7 @@ export const COLLECTOR_INTERVAL_MS = 2 * 3_600_000;
 export const COLLECTOR_FIRST_DELAY_MS = 5 * 60_000;
 export const COLLECTOR_LIMIT_PER_SOURCE = 5;
 /** Prazo da "rodada boa", decidido pelo PM: sem nenhuma em mais de 5 h, avisa; persistindo, repete a cada 5 h. */
-export const COLLECTOR_STALE_AFTER_MS = 5 * 3_600_000;
+export const COLLECTOR_STALE_AFTER_MS = ROUND_STALE_AFTER_MS;
 export const COLLECTOR_WATCH_INTERVAL_MS = 15 * 60_000;
 
 export interface EditorialCollectorOptions {
