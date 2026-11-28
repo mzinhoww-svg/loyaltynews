@@ -31,13 +31,17 @@ test.describe('rodapé: texto e links', () => {
     expect(await rodape.innerText()).not.toMatch(/board-level|global network/i);
   });
 
-  test('nenhum link do rodapé é sublinhado em repouso; o hover e o foco sublinham', async ({ page }) => {
+  test('nenhum link de navegação do rodapé é sublinhado em repouso; o hover e o foco sublinham; o link no texto é sublinhado', async ({ page }) => {
     const rodape = await pronto(page, 1280);
     const links = rodape.locator('a');
     const n = await links.count();
     expect(n).toBeGreaterThanOrEqual(mode === 'api' ? 3 : 27);
-    const sublinhados = await links.evaluateAll((els) => els.filter((e) => getComputedStyle(e).textDecorationLine.includes('underline')).length);
+    // Fora da regra só o link no meio do texto (LinkedIn): com a mesma cor da frase, o sublinhado é o que o distingue (WCAG 1.4.1).
+    const sublinhados = await links.evaluateAll((els) => els.filter((e) => !e.closest('.ln-footer__bottom p') && getComputedStyle(e).textDecorationLine.includes('underline')).length);
     expect(sublinhados, 'links sublinhados em repouso').toBe(0);
+    const linkedin = rodape.getByRole('link', { name: 'LinkedIn da Loyalty News (abre em nova aba)' });
+    await expect(linkedin).toHaveAttribute('href', 'https://www.linkedin.com/company/loyalty-news');
+    await expect(linkedin).toHaveCSS('text-decoration-line', 'underline');
     const um = rodape.getByRole('link', { name: mode === 'api' ? 'Nossa metodologia' : 'Sobre', exact: true });
     await um.hover();
     await expect(um).toHaveCSS('text-decoration-line', 'underline');
