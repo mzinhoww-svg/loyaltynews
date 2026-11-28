@@ -53,6 +53,7 @@ export default async function FontePage({ params, searchParams }: { params: Prom
               <th scope="col">URL</th>
               <th scope="col">Capturada em</th>
               <th scope="col">SHA-256</th>
+              <th scope="col">ID da evidência</th>
             </tr>
           </thead>
           <tbody>
@@ -62,6 +63,9 @@ export default async function FontePage({ params, searchParams }: { params: Prom
                 <td>{e.capturadoEm}</td>
                 <td>
                   <code>{e.sha256.slice(0, 16)}…</code>
+                </td>
+                <td style={{ overflowWrap: 'anywhere', minWidth: '18ch' }}>
+                  <code data-id-evidencia={e.id}>{e.id}</code>
                 </td>
               </tr>
             ))}

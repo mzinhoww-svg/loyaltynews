@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState, type ReactNode } from 'react';
 import { EDITORIAS } from '@ln/contracts';
 import { salvarMateriaAction, type FormState } from './actions';
+import { IdEvidencia } from '../../_components/IdEvidencia';
 
 export interface EvidenciaOpcao {
   id: string;
@@ -154,7 +155,8 @@ export function MateriaForm({ id, valor, evidencias, somenteLeitura }: { id?: st
           campo obrigatório para salvar.
         </p>
       )}
-      <fieldset disabled={somenteLeitura} style={{ border: 0, padding: 0, margin: 0 }}>
+      {/* minWidth 0: um fieldset não encolhe abaixo do conteúdo por padrão, e um texto comprido estourava a tela no celular */}
+      <fieldset disabled={somenteLeitura} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <div className="st-field">
           <Rotulo para="titulo" obrigatorio>
             Título
@@ -218,8 +220,10 @@ export function MateriaForm({ id, valor, evidencias, somenteLeitura }: { id?: st
             </p>
           ) : (
             evidencias.map((ev) => (
-              <label key={ev.id}>
+              // nome da fonte e URL não têm espaço para quebrar
+              <label key={ev.id} style={{ overflowWrap: 'anywhere' }}>
                 <input type="checkbox" name="evidenceIds" value={ev.id} defaultChecked={v?.evidenceIds.includes(ev.id)} /> {ev.fonte}: {ev.url}
+                <IdEvidencia id={ev.id} />
               </label>
             ))
           )}
