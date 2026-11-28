@@ -3,11 +3,12 @@
 // UPSERT atômico por chave (last-writer-wins); auditoria em tabela somente-acréscimo lida por ORDER BY id.
 // Limite conhecido: o PostgreSQL não guarda em json/jsonb o caractere NUL (U+0000); texto com NUL é recusado (a promessa rejeita).
 import { randomUUID } from 'node:crypto';
-import { asc, sql } from 'drizzle-orm';
+import { asc, desc, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
-import type {
-  ArticleRecord, AuditItem, CorrectionRecord, EditorialStore, OutboxItem, PublicationCommit, PublicationCommitStep, SourceState,
+import {
+  COLLECTOR_ROUND_ACTION, GOOD_ROUND_PREFIX,
+  type ArticleRecord, type AuditItem, type CorrectionRecord, type EditorialStore, type OutboxItem, type PublicationCommit, type PublicationCommitStep, type SourceState,
 } from '@ln/editorial';
 
 /** JSON puro: descarta undefined e garante que nada compartilhe referência com o chamador. */
@@ -119,6 +120,15 @@ export class PgEditorialStore implements EditorialStore {
   }
   async listSourceStates() {
     return (await this.db.select({ record: schema.editorialSourceState.record }).from(schema.editorialSourceState)).map((r) => r.record as SourceState);
+  }
+
+  /** Horário da última rodada boa da coleta: uma linha, filtrada no banco (a rota pública não pode ler a trilha inteira). */
+  async lastGoodRoundAt(): Promise<string | null> {
+    const t = schema.editorialAudit;
+    const [r] = await this.db.select({ at: t.at }).from(t)
+      .where(sql`${t.record}->>'action' = ${COLLECTOR_ROUND_ACTION} and ${t.record}->>'userId' is null and starts_with(${t.record}->>'detail', ${GOOD_ROUND_PREFIX})`)
+      .orderBy(desc(t.id)).limit(1);
+    return r?.at ?? null;
   }
 
   async appendAudit(a: AuditItem) {
