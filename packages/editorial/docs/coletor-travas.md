@@ -17,7 +17,7 @@ fábrica avulsa (inclui o piloto) e pauta autoral seguem como antes.
 
 ## Em TODOS os usos (coleta contínua, fábrica, pauta autoral)
 
-`collector/restricted.ts`, sem opção de desligar (PM, 28/11, parecer 68):
+`collector/restricted.ts`, sem opção de desligar (PM, 28/11, parecer 68; escolha em `fast-track\decisoes\decisao-pm-travas-fora-da-coleta-20261128.md`, sob a delegação da DP-69, sem número próprio):
 
 - Skift, Cathay (inclusive asiamiles.com), IATA e Bain (inclusive bain.com.br): nenhuma requisição, por id ou domínio.
 - Passageiro de Primeira e Mestre das Milhas: só o coletor direto, com o próprio nome, sem sombra, 6/h e pausa no banco; sem contador persistente não são lidos.

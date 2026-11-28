@@ -260,7 +260,7 @@ export class Collector {
 
   /** Motivo de recusa quando a trava está ligada e a fonte (id E host) não está nela. */
   private notAllowed(source: Source): string | null {
-    if (isExcludedSource(source)) return `fonte excluída por termos (decisão ${EXCLUDED_SOURCES.decisionId}): não é lida em nenhum uso`;
+    if (isExcludedSource(source)) return `fonte excluída por termos (decisão do PM de 28/11, sob a ${EXCLUDED_SOURCES.decisionId}; ver ${EXCLUDED_SOURCES.record}): não é lida em nenhum uso`;
     if (isRestrictedBlog(source)) {
       if (source.acesso === ACESSO_VIA_PROVEDOR) return `leitura por provedor não permitida para este blog (decisão ${RESTRICTED_BLOGS.decisionId}): só o coletor direto`;
       if (!this.budgetFor(source)) return `blog só é lido com contador persistente (decisão ${RESTRICTED_BLOGS.decisionId})`;

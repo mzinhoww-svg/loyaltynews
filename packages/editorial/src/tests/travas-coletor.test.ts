@@ -5,7 +5,7 @@ import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { InMemoryEditorialStore } from '../api/store';
 import { attributionNameOf, COLLECTOR_ALLOWLIST } from '../collector/allowlist';
-import { isExcludedSource, isRestrictedBlog } from '../collector/restricted';
+import { EXCLUDED_SOURCES, isExcludedSource, isRestrictedBlog, RESTRICTED_BLOGS } from '../collector/restricted';
 import { Collector, USER_AGENT } from '../collector/collector';
 import { HOST_PAUSE_ACTION, HOST_READ_ACTION, registeredCollectorGuards, StoreHostBudget } from '../factory/read-budget';
 import { INBOX_FINDING } from '../factory/inbox';
@@ -42,6 +42,12 @@ const T0 = Date.parse('2026-11-28T12:00:00.000Z');
 test.skipIf(!decisaoInscrita(COLLECTOR_ALLOWLIST.decisionId))(`registro: ${COLLECTOR_ALLOWLIST.decisionId} inscrita em decisions.yaml (pulado = ainda não inscrita; 5º ato)`, () => {
   assert.ok(decisaoInscrita(COLLECTOR_ALLOWLIST.decisionId));
 });
+for (const [lista, grupo] of [['fontes excluídas', EXCLUDED_SOURCES], ['blogs com restrição', RESTRICTED_BLOGS]] as const) {
+  test.skipIf(!decisaoInscrita(grupo.decisionId))(`registro: ${grupo.decisionId} (${lista}) inscrita em decisions.yaml (pulado = não inscrita nesta base)`, () => {
+    assert.ok(decisaoInscrita(grupo.decisionId));
+  });
+  test(`registro: ${lista} aponta o documento da escolha`, () => { assert.ok(grupo.record.includes('.md'), grupo.record); });
+}
 test('registro: a conferência reconhece uma decisão inscrita e recusa uma inexistente', () => {
   assert.equal(decisaoInscrita('DP-29'), true);
   assert.equal(decisaoInscrita('DP-999'), false);
