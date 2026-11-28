@@ -33,7 +33,8 @@ export const PolicyRules = z.looseObject({
   hard_monthly_budget_usd: z.literal(50),
   monthly_cap_immutable_by_agents: z.literal(true),
   refill_does_not_increment_monthly_cap: z.literal(true),
-  cross_provider_independent_review: z.literal(true),
+  /** Exigência de provedor diferente entre redação e checagem do produto. `false` a retira (DP-77); ausente é recusado. */
+  cross_provider_independent_review: z.boolean(),
   prompt_cache_required: z.literal(true),
   budget_allocation_usd: z.record(z.string(), z.number().nonnegative()).optional(),
 });
@@ -152,7 +153,7 @@ export const ModelPolicy = z
       const draft = bt.editorial_draft;
       if (!draft || !bt.fact_check)
         ctx.addIssue({ code: 'custom', message: 'canal principal precisa de redação e checagem definidas', path: ['execution', 'primary', 'by_task'] });
-      else {
+      else if (p.rules.cross_provider_independent_review) {
         for (const k of ['fact_check', 'editorial_review'] as const) {
           const t = bt[k];
           if (t && (t.provider === draft.provider || t.account === draft.account))

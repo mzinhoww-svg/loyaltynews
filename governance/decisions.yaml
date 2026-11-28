@@ -21,19 +21,19 @@
   {
     "id": "D04",
     "status": "registrada",
-    "escolha": "Escopo integral, 64 agentes, 28 rituais, Redis/BullMQ, Intelligence e ad server",
+    "escolha": "Escopo integral, 64 perfis, 28 rituais, Redis/BullMQ, Intelligence e ad server",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
   },
   {
     "id": "D05",
     "status": "registrada",
-    "escolha": "The Loyal e Instagram construídos, desativados; LinkedIn pelo mLabs",
+    "escolha": "Adiados só a The Loyal e o Instagram: The Loyal construída com a chave desligada; LinkedIn no lançamento, pelo mLabs",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
   },
   {
     "id": "D06",
     "status": "registrada",
-    "escolha": "Publicação autônoma após gates de lançamento",
+    "escolha": "Autonomia de publicação desde o lançamento; sai a aprovação humana do MVP e a espera de 30 dias",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
   },
   {
@@ -45,25 +45,25 @@
   {
     "id": "D08",
     "status": "registrada",
-    "escolha": "Imagem da fonte, crédito, edição mínima; uso condicionado a base jurídica demonstrável",
+    "escolha": "Imagens: a da fonte, como veio, com edição mínima; sai a regra de licença registrada",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
   },
   {
     "id": "D09",
     "status": "registrada",
-    "escolha": "Assinatura Redação Loyalty News; sem autoria humana fictícia; transparência quando exigida",
+    "escolha": "Transparência: só a assinatura, sem menção ao uso de IA; assinatura 'Redação Loyalty News', sem selo e sem página de metodologia",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
   },
   {
     "id": "D10",
     "status": "registrada",
-    "escolha": "Fontes públicas, sem contornar paywall; originalidade e crédito",
+    "escolha": "Fontes: informação pública, sem permissão por fonte; fica o cadastro das fontes",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
   },
   {
     "id": "D11",
     "status": "registrada",
-    "escolha": "Teto agregado API USD 50/mês; recarga só dentro de teto autorizado",
+    "escolha": "Teto de API de US$ 50 por mês; o responsável recarrega quando for necessário",
     "referencia": "audit-output/12_RESPOSTA_OFICIAL.md §2"
   },
   {
@@ -305,7 +305,7 @@
     "severidade": "P1",
     "recomendacao": "Governanca nao reconhece aceites no Windows: patch POSIX + UTF-8/LF + .gitattributes protegido (proposto pelo PM em 22/11)",
     "gate": "R0-05/R0-11",
-    "referencia": "r0-preparacao/achado-V21-16-portabilidade-windows.md",
+    "referencia": "docs/Divergencias_e_achados.md",
     "nota": "proposta, nao ratificada; ratificacao so por regra protegida; ratificada pela raiz em 2026-11-26"
   },
   {
@@ -831,6 +831,32 @@
     "vinculo": [
       "DP-43",
       "DP-54"
+    ]
+  },
+  {
+    "id": "DP-76",
+    "status": "registrada",
+    "escolha": "o proprietário decidiu, em 27/11/2026, liberar na PRODUÇÃO a publicação pelo Studio (flag `publicacaoPortal`; resposta \"1. liberado\"). Sobre mostrar pessoas na produção (flag `intelligencePessoas`), respondeu \"6. faça\": autorizado, mas a flag continua DESLIGADA até o registro de referência, data e escopo do parecer (V21-14). Os demais itens da resposta ficam no arquivo-fonte e não são registrados aqui.",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-76 (sha256 do arquivo-fonte ea59df118181361f09cbab02ec52257a697cc3e6a52e7e218f5fe8609703578d; sha256 do trecho da DP-76 8980093dc63bc060e9e39dbce268f46cc90b729d6a359c0e878e6f658db797bd)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), resposta ao LN DevOps Engineer relatada ao Program Manager (o sentido de cada item numerado e o texto do DevOps), registro do Program Manager",
+    "efeito": "publicacaoPortal: FLAG_RELEASES.publicacaoPortal = { staging: 'DP-76', production: 'DP-76' } e o nome em PRODUCTION_FLAGS_ON (packages/contracts/src/flags.ts), por commit revisado; ensaio no staging antes; LN_FLAGS_ON continua proibida em produção. intelligencePessoas: production continua null e fora de PRODUCTION_FLAGS_ON até o parecer registrado; depois, commit revisado pode usar 'DP-76'. publicacaoAutonoma, adServerVendas e as demais não mudam. Pronto quando o /api/health da produção mostrar publicacaoPortal em flags.",
+    "vinculo": [
+      "DP-38",
+      "DP-57",
+      "V21-14"
+    ]
+  },
+  {
+    "id": "DP-77",
+    "status": "registrada",
+    "escolha": "o proprietário retirou, em 27/11/2026, a exigência de provedor diferente entre a redação e a checagem do produto. Texto como recebido: \"Restricao de modelo retirada: pode ser qualquer modelo. Isso vale para a exigencia de provedor diferente em redacao e checagem (D3, model.policy, R4-06). Aplique e registre.\"",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-77 (sha256 do arquivo-fonte ea59df118181361f09cbab02ec52257a697cc3e6a52e7e218f5fe8609703578d; sha256 do trecho da DP-77 5e51133dd1f07b8cc2918155be25f90927959f7c26ab3c5cdfba784763985283)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta relatada pelo Finalizador ao Program Manager (texto como recebido, sem a pergunta original), registro do Program Manager",
+    "efeito": "contracts/model.policy.json: cross_provider_independent_review = false e a rota de fact_check sem exigência de provedor. R4-06 (backlog e requisito): \"por provedor diferente\" vira \"por modelo, de qualquer provedor\". Substitui, só nesse ponto, o trecho \"provedor distinto do redator\" da DP-02. Não muda a revisão independente das entregas (autor nunca homologa), o provedor do revisor do verificador, os tetos de gasto nem as classes de dado. O código do produto que ainda exige provedor distinto segue valendo até mudança própria revisada.",
+    "vinculo": [
+      "DP-02"
     ]
   }
 ]
