@@ -14,7 +14,7 @@ Definição aceita por ora pelo Program Manager em 28/11/2026, **a rever depois 
 
 ## Estado público para o vigia externo
 
-`GET /api/status/coleta`, sem login, responde só `{ "estado", "ultimaRodadaBoaEm" }`: **200** em `ok`; **503** em `atrasada` (mais de 5 horas), `nunca` (nenhuma rodada boa gravada) e `indisponivel` (banco ausente, falhando ou lento). Olha o registro gravado, então acusa também worker parado e chave desligada. A leitura é guardada por 60 s (falha: 10 s) em cada processo. Os dois limites acima valem também aqui. Quem consulta e avisa uma pessoa é o vigia externo, que não faz parte do produto.
+`GET /api/status/coleta`, sem login, responde só `{ "estado", "ultimaRodadaBoaEm" }`: **200** em `ok`; **503** em `atrasada` (mais de 5 horas), `nunca` (nenhuma rodada boa gravada) e `indisponivel` (banco ausente, falhando ou lento). Olha o registro gravado, então acusa também worker parado e chave desligada. A leitura é guardada por 60 s (falha: 10 s) em cada processo, com no máximo uma consulta em curso por processo, cancelada pelo banco em 2 s. Não usar esta rota como health check do deploy (é `/api/health`): ela responde 503 de propósito quando a coleta está atrasada. Sem índice próprio: sem rodada boa recente, a consulta percorre a trilha editorial uma vez por minuto (índice parcial fica para uma migração futura). Os dois limites acima valem também aqui. Quem consulta e avisa uma pessoa é o vigia externo, que não faz parte do produto.
 
 ## O que o aviso não cobre
 

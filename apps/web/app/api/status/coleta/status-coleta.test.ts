@@ -1,4 +1,5 @@
 // GET /api/status/coleta sobre o PostgreSQL de teste. Dados MOCK.
+import { sql } from 'drizzle-orm';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createTestDb } from '@ln/db/testing';
 import type { Db } from '@ln/auth';
@@ -88,6 +89,38 @@ describe('GET /api/status/coleta', () => {
     const pedido = GET();
     await vi.advanceTimersByTimeAsync(PRAZO_DA_CONSULTA_MS);
     expect((await pedido).status).toBe(503);
+  });
+
+  it('banco travado: uma só consulta em curso por mais que o cache vença; terminada ela, consulta de novo', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let terminar!: (v: string | null) => void;
+    const consulta = vi.spyOn(PgEditorialStore.prototype, 'lastGoodRoundAt').mockImplementationOnce(() => new Promise((ok) => { terminar = ok; }));
+    vi.useFakeTimers();
+    usar();
+    for (let i = 0; i < 6; i += 1) { // 60 s com o banco travado
+      relogio = new Date(AGORA.getTime() + i * CACHE_FALHA_MS);
+      const pedido = GET();
+      await vi.advanceTimersByTimeAsync(PRAZO_DA_CONSULTA_MS);
+      expect((await pedido).status).toBe(503);
+    }
+    expect(consulta).toHaveBeenCalledTimes(1);
+    expect(consulta).toHaveBeenCalledWith(PRAZO_DA_CONSULTA_MS);
+    vi.useRealTimers();
+    terminar(null);
+    await new Promise((ok) => setTimeout(ok, 0));
+    relogio = new Date(AGORA.getTime() + 6 * CACHE_FALHA_MS);
+    expect((await ler()).corpo).toMatchObject({ estado: 'ok' });
+    expect(consulta).toHaveBeenCalledTimes(2);
+  });
+
+  it('o banco cancela a consulta no prazo, e só nesta transação', async () => {
+    const prazo = async (alvo: Pick<Db, 'execute'>) => ((await alvo.execute(sql`select current_setting('statement_timeout') as v`)) as unknown as { rows: Array<{ v: string }> }).rows[0]!.v;
+    const antesDe = await prazo(db);
+    let dentro = '';
+    const espiao = { transaction: (f: (tx: unknown) => Promise<unknown>) => db.transaction(async (tx) => { const r = await f(tx); dentro = await prazo(tx as unknown as Db); return r; }) } as unknown as Db;
+    expect(await new PgEditorialStore(espiao).lastGoodRoundAt(1500)).not.toBeNull();
+    expect(dentro).toBe('1500ms');
+    expect(await prazo(db)).toBe(antesDe);
   });
 
   it('sem banco configurado: 503 indisponivel', async () => {

@@ -122,13 +122,19 @@ export class PgEditorialStore implements EditorialStore {
     return (await this.db.select({ record: schema.editorialSourceState.record }).from(schema.editorialSourceState)).map((r) => r.record as SourceState);
   }
 
-  /** Horário da última rodada boa da coleta: uma linha, filtrada no banco (a rota pública não pode ler a trilha inteira). */
-  async lastGoodRoundAt(): Promise<string | null> {
+  /**
+   * Horário da última rodada boa da coleta: uma linha, filtrada no banco (a rota pública não pode ler a trilha inteira).
+   * O próprio banco cancela a consulta no prazo (`statement_timeout` só desta transação) e a conexão volta ao pool.
+   */
+  async lastGoodRoundAt(prazoMs = 2000): Promise<string | null> {
     const t = schema.editorialAudit;
-    const [r] = await this.db.select({ at: t.at }).from(t)
-      .where(sql`${t.record}->>'action' = ${COLLECTOR_ROUND_ACTION} and ${t.record}->>'userId' is null and starts_with(${t.record}->>'detail', ${GOOD_ROUND_PREFIX})`)
-      .orderBy(desc(t.id)).limit(1);
-    return r?.at ?? null;
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`select set_config('statement_timeout', ${`${Math.trunc(prazoMs)}ms`}, true)`);
+      const [r] = await tx.select({ at: t.at }).from(t)
+        .where(sql`${t.record}->>'action' = ${COLLECTOR_ROUND_ACTION} and ${t.record}->>'userId' is null and starts_with(${t.record}->>'detail', ${GOOD_ROUND_PREFIX})`)
+        .orderBy(desc(t.id)).limit(1);
+      return r?.at ?? null;
+    });
   }
 
   async appendAudit(a: AuditItem) {
