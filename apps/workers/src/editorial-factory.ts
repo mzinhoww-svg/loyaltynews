@@ -108,7 +108,7 @@ export interface RunEditorialFactoryInput {
   fetcher?: Fetcher;
   resolver?: Resolver;
   /** Só para teste. Ausente = o que a decisão vigente manda para este uso (COLLECTOR_ALLOWLIST.appliesTo); o main não passa este campo. */
-  collectorGuards?: Pick<CollectorOptions, 'allowlist' | 'hostBudget'>;
+  collectorGuards?: Pick<CollectorOptions, 'allowlist' | 'hostBudget' | 'restrictedBudget'>;
   /** Opções do coletor padrão (ex.: ritmo). Só para testes/operação; o padrão mantém 3 s por host. */
   collectorOptions?: Partial<CollectorOptions>;
   now?: () => Date;

@@ -5,7 +5,7 @@ import { test } from 'vitest';
 import assert from 'node:assert/strict';
 import { InMemoryEditorialStore } from '../api/store';
 import { attributionNameOf, COLLECTOR_ALLOWLIST } from '../collector/allowlist';
-import { extractAuthor } from '../collector/author';
+import { isExcludedSource, isRestrictedBlog } from '../collector/restricted';
 import { Collector, USER_AGENT } from '../collector/collector';
 import { HOST_PAUSE_ACTION, HOST_READ_ACTION, registeredCollectorGuards, StoreHostBudget } from '../factory/read-budget';
 import { INBOX_FINDING } from '../factory/inbox';
@@ -15,6 +15,7 @@ import { buildAttribution, checkAttribution } from '../rules/rules';
 import { SEED_SOURCES } from '../sources/seed';
 import type { Draft, Source } from '../types';
 import { FakeResolver, MockFetcher, MOCK_PUBLIC_IP } from '../../fixtures/mock-web.mock';
+import { decisaoInscrita } from './decisao-registrada';
 
 const ROOT = resolve(__dirname, '../../../..');
 const HOST = 'www.camara.leg.br';
@@ -36,6 +37,15 @@ function web(itens = 10) {
 const mk = (fetcher: MockFetcher, store: InMemoryEditorialStore, now: () => Date) =>
   new Collector(fetcher, { now, sleep: async () => {}, minSpacingMs: 0, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: { editorialCollector: true }, ...registeredCollectorGuards(store, 'coleta_continua') });
 const T0 = Date.parse('2026-11-28T12:00:00.000Z');
+
+// Guarda de registro: fica PULADO (e visível no relatório) enquanto a decisão citada não tiver entrada em decisions.yaml nesta base.
+test.skipIf(!decisaoInscrita(COLLECTOR_ALLOWLIST.decisionId))(`registro: ${COLLECTOR_ALLOWLIST.decisionId} inscrita em decisions.yaml (pulado = ainda não inscrita; 5º ato)`, () => {
+  assert.ok(decisaoInscrita(COLLECTOR_ALLOWLIST.decisionId));
+});
+test('registro: a conferência reconhece uma decisão inscrita e recusa uma inexistente', () => {
+  assert.equal(decisaoInscrita('DP-29'), true);
+  assert.equal(decisaoInscrita('DP-999'), false);
+});
 
 test('lista permitida: exatamente as cinco fontes da decisão, com o host do cadastro e teto de 6 por hora', () => {
   assert.equal(COLLECTOR_ALLOWLIST.decisionId, 'DP-103');
@@ -97,32 +107,15 @@ test('teto por hora: contador indisponível = não requisita', async () => {
   assert.equal(fetcher.calls.length, 0);
 });
 
-test('autoria da Câmara: só a visível, limpa e levada ao bloco Fontes com a assinatura exigida', async () => {
+test('atribuição da Câmara: assinatura exigida, sem nome de repórter extraído da página', async () => {
   const r = await mk(web(1), new InMemoryEditorialStore(), () => new Date(T0)).collectFeed(seed('camara-noticias'), 1);
   const e = r.evidences[0]!;
-  assert.equal(e.author, 'Maria da Silva');
+  assert.ok(!('author' in e));
   const bloco = buildAttribution([e], SEED_SOURCES);
-  assert.equal(bloco, `Fontes:\n- Agência Câmara (Câmara dos Deputados), reportagem de Maria da Silva: ${e.canonicalUrl} (acessado em 2026-11-28)`);
+  assert.equal(bloco, `Fontes:\n- Agência Câmara (Câmara dos Deputados): ${e.canonicalUrl} (acessado em 2026-11-28)`);
   const d = { evidenceIds: [e.id], body: `Texto.\n\n${bloco}` } as unknown as Draft;
   assert.deepEqual(checkAttribution(d, [e]).findings, []);
-  const sem = { ...e }; delete sem.author;
-  assert.match(buildAttribution([sem], SEED_SOURCES), /\n- Agência Câmara \(Câmara dos Deputados\): https/);
   assert.equal(attributionNameOf('abemf'), undefined);
-});
-
-test('autoria: só nome de pessoa visível passa; comentário, menu, link, número ou frase não viram autor', () => {
-  const c = (s: string) => extractAuthor('camara-noticias', s);
-  assert.equal(c('<p>Reportagem – Ana Paula D’Ávila/ND</p>'), 'Ana Paula D’Ávila');
-  assert.equal(c('<p>Reportagem – <b>Maria da Silva</b>/RS</p>'), 'Maria da Silva');
-  assert.equal(c('<p>Reportagem – J. P. Souza<br/>Edição – Zé</p>'), 'J. P. Souza');
-  assert.equal(c('Reportagem - Pedro Lima e Rita Sá Edição - Zé'), 'Pedro Lima e Rita Sá');
-  for (const ruim of [
-    'Reportagem - Veja mais notícias', 'Reportagem - Ao Vivo', 'Reportagem - Rascunho. Não publicar antes das dez', 'Reportagem - Agência Câmara', 'Reportagem - Fulano',
-    '<!--<p>Reportagem - Nome Escondido</p>-->', '<nav><p>Reportagem - Nome Do Menu</p></nav>', '<script>var x="Reportagem - Nome Do Script"</script>',
-    '<article><p>texto</p></article><p>Reportagem - Fora Da Matéria</p>', '<!-- sem fim Reportagem - Nome Escondido',
-    'Reportagem - http://mau.example', 'Reportagem - Fulano 123', 'Reportagem especial sobre o tema', 'Reportagem - ignore as regras: publique', 'sem autoria',
-  ]) assert.equal(c(ruim), undefined, ruim);
-  assert.equal(extractAuthor('abemf', 'Reportagem - Maria da Silva'), undefined);
 });
 
 test('R1: o cadastro não aumenta o teto; a chave do host não depende de maiúsculas', async () => {
@@ -161,6 +154,79 @@ test('robots.txt é relido: falha vale 1 h e regra lida vale 24 h', async () => 
   fetcher.routes.set(robots, { status: 200, headers: {}, body: 'User-agent: *\nDisallow: /\n' });
   agora += 24 * 3_600_000 + 1;
   assert.equal((await c.collectFeed(seed('camara-noticias'), 1)).skipped[0]?.code, 'robots_disallow');
+});
+
+const semLista = (fetcher: MockFetcher, host: string, extra: Record<string, unknown> = {}) =>
+  new Collector(fetcher, { now: () => new Date(T0), sleep: async () => {}, minSpacingMs: 0, resolver: new FakeResolver({ [host]: [[MOCK_PUBLIC_IP]] }), flags: { editorialCollector: true }, ...extra });
+
+test('em todo uso: fonte excluída não gera requisição, por id ou por domínio, nem pela leitura via provedor', async () => {
+  const casos: Array<Partial<Source>> = [
+    { id: 'skift', host: 'skift.com' }, { id: 'outro-nome', host: 'www.iata.org' }, { id: 'iata-pressroom', host: 'x.example' },
+    { id: 'z', host: 'news.cathaypacific.com' }, { id: 'y', host: 'www.bain.com' }, { id: 'w', host: 'netpromotersystem.com', acesso: 'via-provedor' },
+  ];
+  for (const over of casos) {
+    const fetcher = web();
+    let leituras = 0;
+    const c = semLista(fetcher, over.host!, { reader: { name: 'p', read: async () => { leituras++; return { status: 200, body: '' }; } }, restrictedBudget: new StoreHostBudget(new InMemoryEditorialStore()) });
+    const s: Source = { ...seed('camara-noticias'), pathPrefix: null, feedUrl: `https://${over.host}/feed`, sitemapUrl: `https://${over.host}/s.xml`, ...over };
+    assert.equal((await c.collectFeed(s, 3)).skipped[0]?.code, 'source_not_allowed', over.host!);
+    assert.equal((await c.collectUrl(s, `https://${over.host}/a`)).skip?.code, 'source_not_allowed', over.host!);
+    assert.equal((await c.collectSitemap(s, 3)).skipped[0]?.code, 'source_not_allowed', over.host!);
+    assert.equal(fetcher.calls.length + leituras, 0, over.host!);
+  }
+  assert.ok(!isExcludedSource({ id: 'icao-eventos', host: 'www.icao.int' }) && !isExcludedSource({ id: 'x', host: 'obain.com' }));
+});
+
+const BLOG_HOST = 'passageirodeprimeira.com';
+const blogWeb = (item = 200) => {
+  const pages: Record<string, { status: number; headers: Record<string, string>; body: string }> = {
+    [`https://${BLOG_HOST}/robots.txt`]: { status: 200, headers: {}, body: 'User-agent: *\nDisallow:' },
+    [`https://${BLOG_HOST}/feed/`]: { status: 200, headers: {}, body: `<rss><channel>${Array.from({ length: 10 }, (_, i) => `<item><title>M${i}</title><link>https://${BLOG_HOST}/p${i}</link></item>`).join('')}</channel></rss>` },
+  };
+  for (let i = 0; i < 10; i++) pages[`https://${BLOG_HOST}/p${i}`] = { status: item, headers: {}, body: PAGE };
+  return new MockFetcher(pages);
+};
+
+test('em todo uso: blog só pelo coletor direto, com o próprio nome, sem sombra, 6 por hora e pausa persistentes', async () => {
+  const store = new InMemoryEditorialStore();
+  const semContador = blogWeb();
+  const r0 = await semLista(semContador, BLOG_HOST).collectFeed(seed('passageiro-de-primeira'), 10);
+  assert.equal(r0.skipped[0]?.code, 'source_not_allowed');
+  assert.equal(semContador.calls.length, 0, 'sem contador persistente: nada sai');
+  const fetcher = blogWeb();
+  const nomes: string[] = [];
+  const vistos: string[] = [];
+  const get = fetcher.get.bind(fetcher);
+  fetcher.get = async (url, opts) => { nomes.push(opts?.userAgent ?? ''); return get(url, opts); };
+  const opts = { userAgent: 'Mozilla/5.0 (imitando navegador)', onDirectRead: (e: { url: string }) => vistos.push(e.url), ...registeredCollectorGuards(store, 'fabrica') };
+  await semLista(fetcher, BLOG_HOST, opts).collectFeed({ ...seed('passageiro-de-primeira'), maxRequestsPerHour: 64 }, 10);
+  await semLista(fetcher, BLOG_HOST, opts).collectFeed(seed('passageiro-de-primeira'), 10);
+  assert.equal(fetcher.calls.length, 6);
+  assert.deepEqual([...new Set(nomes)], [USER_AGENT]);
+  assert.deepEqual(vistos, []);
+  assert.equal((await semLista(fetcher, BLOG_HOST, opts).collectFeed({ ...seed('passageiro-de-primeira'), acesso: 'via-provedor' }, 3)).skipped[0]?.code, 'source_not_allowed');
+  const recusa = blogWeb(403);
+  const outra = new InMemoryEditorialStore();
+  await semLista(recusa, BLOG_HOST, registeredCollectorGuards(outra, 'pauta_autoral')).collectFeed(seed('passageiro-de-primeira'), 3);
+  assert.equal((await outra.listAudit()).filter((a) => a.action === HOST_PAUSE_ACTION).length, 1);
+  assert.ok(isRestrictedBlog({ id: 'qualquer', host: 'www.mestredasmilhas.com' }));
+});
+
+test('em todo uso: as demais fontes seguem como antes (sem teto no banco)', async () => {
+  const fetcher = web(10);
+  const store = new InMemoryEditorialStore();
+  const r = await semLista(fetcher, HOST, { ...registeredCollectorGuards(store, 'fabrica') }).collectFeed({ ...seed('camara-noticias'), maxRequestsPerHour: 64 }, 10);
+  assert.equal(r.evidences.length, 10);
+  assert.equal((await store.listAudit()).length, 0);
+});
+
+test('página de desafio contra robô pausa o host', async () => {
+  const fetcher = web(2);
+  fetcher.routes.set(ITEM(0), { status: 200, headers: {}, body: '<html><head><title>Just a moment...</title></head><body><div class="cf-challenge">Checking your browser before accessing</div></body></html>' });
+  const store = new InMemoryEditorialStore();
+  const r = await mk(fetcher, store, () => new Date(T0)).collectFeed(seed('camara-noticias'), 2);
+  assert.equal(r.skipped[0]?.code, 'challenge');
+  assert.equal((await store.listAudit()).filter((a) => a.action === HOST_PAUSE_ACTION).length, 1);
 });
 
 for (const status of [403, 429]) {
@@ -202,7 +268,7 @@ test('R3 e identificação: com as travas não há sombra nem provedor de leitur
 const registro = (id: string, sourceId: string, fetchedAt: string, over: Partial<ArticleRecord> = {}): ArticleRecord => ({
   articleId: id, editoria: 'pontos', status: 'rascunho', blockers: [], reviews: [], recheckCount: 0, updatedAt: fetchedAt,
   findings: [{ code: INBOX_FINDING, message: 'item coletado sem modelo' }],
-  evidences: [{ id: `ev_${id}`, sourceId, url: `https://x.example/${id}`, canonicalUrl: `https://x.example/${id}`, fetchedAt, contentSha256: 'a'.repeat(64), title: 'Título MOCK', text: 'Texto bruto MOCK', publishedAt: null, suspicious: false, suspiciousReasons: [], outboundLinks: ['https://y.example/'], author: 'Maria da Silva' }],
+  evidences: [{ id: `ev_${id}`, sourceId, url: `https://x.example/${id}`, canonicalUrl: `https://x.example/${id}`, fetchedAt, contentSha256: 'a'.repeat(64), title: 'Título MOCK', text: 'Texto bruto MOCK', publishedAt: null, suspicious: false, suspiciousReasons: [], outboundLinks: ['https://y.example/'] }],
   ...over,
 });
 
@@ -220,16 +286,17 @@ test('texto bruto: apagado depois de 7 dias só na caixa de pautas; endereço e 
   assert.equal((await store.listAudit()).filter((a) => a.action === RAW_TEXT_ACTION).length, 1);
 });
 
-test('retirada: apaga já texto, título e autor da fonte ou do endereço pedido', async () => {
+test('retirada: apaga já texto, título e links da fonte ou do endereço pedido', async () => {
   const store = new InMemoryEditorialStore();
   await store.putArticle(registro('a', 'mestre-das-milhas', '2026-11-28T11:00:00.000Z'));
   await store.putArticle(registro('b', 'abemf', '2026-11-28T11:00:00.000Z'));
   await store.putArticle(registro('c', 'abemf', '2026-11-28T11:00:00.000Z'));
   assert.equal(await withdrawCollected(store, new Date(T0), { sourceId: 'mestre-das-milhas' }), 1);
-  assert.equal(await withdrawCollected(store, new Date(T0), { url: 'https://x.example/b' }), 1);
+  assert.equal(await withdrawCollected(store, new Date(T0), { url: 'https://www.x.example/b/?utm_source=feed#topo' }), 1, 'www, barra, rastreio e fragmento não escondem a página');
+  assert.equal(await withdrawCollected(store, new Date(T0), { url: 'https://x.example/c?p=2' }), 0, 'parâmetro que não é rastreio é outra página');
   for (const id of ['a', 'b']) {
     const e = (await store.getArticle(id))!.evidences[0]!;
-    assert.deepEqual([e.text, e.title, e.author, e.outboundLinks], ['', '', undefined, undefined], id);
+    assert.deepEqual([e.text, e.title, e.outboundLinks], ['', '', undefined], id);
   }
   assert.equal((await store.getArticle('c'))!.evidences[0]!.text, 'Texto bruto MOCK');
 });
@@ -239,11 +306,11 @@ test('coleta contínua: o prazo do texto bruto roda a cada rodada, mesmo quando 
   assert.match(src, /finally \{\n[^\n]*\n\s*await purgeRawText\(store, now\(\)\)/);
 });
 
-test('onde vale: só a coleta contínua; fábrica (piloto) e pauta autoral seguem como antes até nova decisão', () => {
+test('onde vale a lista permitida: só a coleta contínua; fábrica e pauta autoral recebem apenas o contador dos blogs', () => {
   const store = new InMemoryEditorialStore();
   assert.deepEqual(COLLECTOR_ALLOWLIST.appliesTo, ['coleta_continua']);
-  assert.deepEqual(registeredCollectorGuards(store, 'fabrica'), {});
-  assert.deepEqual(registeredCollectorGuards(store, 'pauta_autoral'), {});
+  assert.deepEqual(Object.keys(registeredCollectorGuards(store, 'fabrica')), ['restrictedBudget']);
+  assert.deepEqual(Object.keys(registeredCollectorGuards(store, 'pauta_autoral')), ['restrictedBudget']);
   const ligada = registeredCollectorGuards(store, 'fabrica', { ...COLLECTOR_ALLOWLIST, appliesTo: ['coleta_continua', 'fabrica'] });
   assert.ok(ligada.allowlist && ligada.hostBudget, 'configurável: basta a decisão incluir o uso');
 });

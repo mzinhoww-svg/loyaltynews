@@ -18,11 +18,11 @@ async function strip(store: EditorialStore, now: Date, match: (e: Evidence) => b
     if (!inboxOnly(a)) continue;
     let touched = 0;
     const evidences = a.evidences.map((e) => {
-      if (!match(e) || !(e.text || e.outboundLinks || (dropTitle && (e.title || e.author)))) return e;
+      if (!match(e) || !(e.text || e.outboundLinks || (dropTitle && e.title))) return e;
       touched += 1;
       const rest: Evidence = { ...e, text: '' };
       delete rest.outboundLinks;
-      if (dropTitle) { rest.title = ''; delete rest.author; }
+      if (dropTitle) rest.title = '';
       return rest;
     });
     if (!touched) continue;
@@ -35,14 +35,23 @@ async function strip(store: EditorialStore, now: Date, match: (e: Evidence) => b
   return removed;
 }
 
+/** Mesma página para um pedido de retirada: ignora `www`, barra final, fragmento e parâmetros de rastreamento (os demais contam). */
+export function samePage(url: string): string {
+  try {
+    const u = new URL(url);
+    const query = [...u.searchParams].filter(([k]) => !/^(utm_|fbclid$|gclid$)/i.test(k)).map(([k, v]) => `${k}=${v}`).sort().join('&');
+    return `${u.hostname.replace(/^www\./, '')}${u.pathname.replace(/\/+$/, '')}?${query}`;
+  } catch { return url; }
+}
+
 /** Apaga o texto e os links dos itens da caixa coletados há mais de `days` dias. */
 export function purgeRawText(store: EditorialStore, now: Date, days: number = RAW_TEXT_RETENTION_DAYS): Promise<number> {
   const limit = now.getTime() - days * 86_400_000;
   return strip(store, now, (e) => Date.parse(e.fetchedAt) < limit, false, `prazo de ${days} dias do texto bruto`);
 }
 
-/** Pedido de retirada: apaga já o texto, os links, o título e o autor dos itens da caixa de uma fonte ou de um endereço. */
+/** Pedido de retirada: apaga já o texto, os links, o título dos itens da caixa de uma fonte ou de um endereço. */
 export async function withdrawCollected(store: EditorialStore, now: Date, what: { sourceId: string } | { url: string }, opts: { dryRun?: boolean } = {}): Promise<number> {
-  const match = 'sourceId' in what ? (e: Evidence) => e.sourceId === what.sourceId : (e: Evidence) => e.url === what.url || e.canonicalUrl === what.url;
+  const match = 'sourceId' in what ? (e: Evidence) => e.sourceId === what.sourceId : (e: Evidence) => [e.url, e.canonicalUrl].some((u) => samePage(u) === samePage(what.url));
   return strip(store, now, match, true, 'pedido de retirada', opts.dryRun === true);
 }
