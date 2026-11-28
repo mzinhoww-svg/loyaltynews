@@ -1,7 +1,7 @@
 import type { ReadBudget } from '../collector/collector';
 import type { EditorialStore } from '../api/store';
 import { COLLECTOR_ALLOWLIST } from '../collector/allowlist';
-import type { CollectorAllowlist } from '../collector/allowlist';
+import type { CollectorAllowlist, CollectorUse } from '../collector/allowlist';
 
 /**
  * Orçamento GLOBAL de leituras DP-31 (QA 2): o contador mora no banco (trilha de auditoria do EditorialStore, em PostgreSQL),
@@ -31,6 +31,9 @@ export class StoreReadBudget implements ReadBudget {
 }
 
 export const HOST_READ_ACTION = 'collector.host_read';
+export const HOST_PAUSE_ACTION = 'collector.host_paused';
+/** Depois de um 403 ou 429, o host fica parado este tempo, em todas as instâncias. */
+export const HOST_PAUSE_MS = 24 * 3_600_000;
 
 /**
  * Teto por hora do coletor direto, persistente: vale entre rodadas, reinícios e instâncias, porque a contagem e a gravação são
@@ -41,11 +44,18 @@ export class StoreHostBudget implements ReadBudget {
   constructor(private readonly store: EditorialStore) {}
 
   async reserve(host: string, nowMs: number, max: number, windowMs: number): Promise<{ allowed: boolean; used: number; waitMs: number }> {
-    const r = await this.store.reserveRead({ action: HOST_READ_ACTION, target: host, atMs: nowMs, max, windowMs });
+    const r = await this.store.reserveRead({ action: HOST_READ_ACTION, target: host, atMs: nowMs, max, windowMs, unless: { action: HOST_PAUSE_ACTION, windowMs: HOST_PAUSE_MS } });
     return { ...r, waitMs: 0 };
+  }
+
+  async pause(host: string, nowMs: number): Promise<void> {
+    await this.store.appendAudit({ at: new Date(nowMs).toISOString(), userId: null, action: HOST_PAUSE_ACTION, target: host });
   }
 }
 
-/** O que todo coletor de worker recebe: a trava das fontes da decisão vigente e o teto por hora no banco. */
-export const registeredCollectorGuards = (store: EditorialStore): { allowlist: CollectorAllowlist; hostBudget: ReadBudget } =>
-  ({ allowlist: COLLECTOR_ALLOWLIST, hostBudget: new StoreHostBudget(store) });
+/**
+ * O que um coletor de worker recebe, conforme a decisão vigente: nos usos listados em `appliesTo`, a trava das fontes e o teto por
+ * hora no banco; nos outros, nada (comportamento anterior).
+ */
+export const registeredCollectorGuards = (store: EditorialStore, use: CollectorUse, list: CollectorAllowlist = COLLECTOR_ALLOWLIST): { allowlist?: CollectorAllowlist; hostBudget?: ReadBudget } =>
+  list.appliesTo.includes(use) ? { allowlist: list, hostBudget: new StoreHostBudget(store) } : {};

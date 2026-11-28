@@ -191,6 +191,11 @@ export const EDITORIAL_STORE_CONTRACT: ContractCase[] = [
     assert.equal((await pedir(t0, 'h2.example')).allowed, true, 'cada alvo tem o seu teto');
     assert.equal((await pedir(t0 + 3_600_001)).allowed, true, 'passada a janela, volta a aprovar');
     assert.deepEqual((await s.listAudit())[0], { at: '2026-11-28T12:00:00.000Z', userId: null, action: 'collector.host_read', target: 'h1.example' });
+    await s.appendAudit({ at: new Date(t0).toISOString(), userId: null, action: 'collector.host_paused', target: 'h3.example' });
+    const comPausa = (atMs: number, target: string) => s.reserveRead({ action: 'collector.host_read', target, atMs, max: 6, windowMs: 3_600_000, unless: { action: 'collector.host_paused', windowMs: 86_400_000 } });
+    assert.equal((await comPausa(t0 + 3_600_000, 'h3.example')).allowed, false, 'host em pausa não sai');
+    assert.equal((await comPausa(t0 + 3_600_000, 'h2.example')).allowed, true, 'a pausa é só do host dela');
+    assert.equal((await comPausa(t0 + 86_400_001, 'h3.example')).allowed, true, 'passada a pausa, volta');
   }) },
   { name: 'concorrência: puts paralelos da MESMA chave são atômicos (vence um registro inteiro, sem mistura de campos)', run: (f) => withStore(f, async (s) => {
     const variants = Array.from({ length: 10 }, (_, i) => sampleArticle('same', { status: i % 2 ? 'aprovado' : 'bloqueado', recheckCount: i, updatedAt: `2026-11-23T12:00:0${i}.000Z` }));

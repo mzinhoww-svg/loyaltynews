@@ -27,8 +27,9 @@ class Base implements EditorialStore {
   async appendAudit(a: AuditItem) { this.audit.push(a); }
   async listAudit() { return [...this.audit]; }
   async reserveRead(r: ReadReservation) {
-    const used = this.audit.filter((a) => a.action === r.action && a.target === r.target && Date.parse(a.at) > r.atMs - r.windowMs).length;
-    if (used >= r.max) return { allowed: false, used };
+    const recent = (action: string, windowMs: number) => this.audit.filter((a) => a.action === action && a.target === r.target && Date.parse(a.at) > r.atMs - windowMs).length;
+    const used = recent(r.action, r.windowMs);
+    if (used >= r.max || (r.unless && recent(r.unless.action, r.unless.windowMs) > 0)) return { allowed: false, used };
     this.audit.push({ at: new Date(r.atMs).toISOString(), userId: null, action: r.action, target: r.target });
     return { allowed: true, used: used + 1 };
   }

@@ -1,4 +1,4 @@
-// Decisão do PM de 28/11 (DP-69, pareceres 55 e 59): trava das fontes permitidas, teto por hora persistente e autoria da Câmara.
+// DP-103 (proprietário, 28/11) com os pareceres 64 e 65: trava das cinco fontes, teto e pausa persistentes, autoria visível e prazo do texto bruto.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { test } from 'vitest';
@@ -6,8 +6,11 @@ import assert from 'node:assert/strict';
 import { InMemoryEditorialStore } from '../api/store';
 import { attributionNameOf, COLLECTOR_ALLOWLIST } from '../collector/allowlist';
 import { extractAuthor } from '../collector/author';
-import { Collector } from '../collector/collector';
-import { HOST_READ_ACTION, registeredCollectorGuards, StoreHostBudget } from '../factory/read-budget';
+import { Collector, USER_AGENT } from '../collector/collector';
+import { HOST_PAUSE_ACTION, HOST_READ_ACTION, registeredCollectorGuards, StoreHostBudget } from '../factory/read-budget';
+import { INBOX_FINDING } from '../factory/inbox';
+import { purgeRawText, RAW_TEXT_ACTION, withdrawCollected } from '../factory/raw-text';
+import type { ArticleRecord } from '../api/store';
 import { buildAttribution, checkAttribution } from '../rules/rules';
 import { SEED_SOURCES } from '../sources/seed';
 import type { Draft, Source } from '../types';
@@ -18,8 +21,8 @@ const HOST = 'www.camara.leg.br';
 const FEED = `https://${HOST}/noticias/rss/ultimas-noticias`;
 const ITEM = (n: number) => `https://${HOST}/noticias/${n}-materia-mock`;
 const seed = (id: string): Source => ({ ...SEED_SOURCES.find((s) => s.id === id)!, enabled: true, termsStatus: 'approved', urlVerified: true, paywall: 'none' });
-const PAGE = `<html><head><title>MOCK</title></head><body><article><p>${'Texto de exemplo da matéria MOCK para o teste. '.repeat(20)}</p></article>
-<!--<p>Reportagem - Maria da Silva<br>Edição - João Souza</p>--></body></html>`;
+const PAGE = `<html><head><title>MOCK</title></head><body><article><p>${'Texto de exemplo da matéria MOCK para o teste. '.repeat(20)}</p>
+<!--<p>Reportagem - Nome Escondido</p>--><p><strong>Reportagem - Maria da Silva/RS</strong><br>Edição - João Souza</p></article></body></html>`;
 const rss = (n: number) => `<rss><channel>${Array.from({ length: n }, (_, i) => `<item><title>MOCK ${i}</title><link>${ITEM(i)}</link></item>`).join('')}</channel></rss>`;
 
 function web(itens = 10) {
@@ -31,13 +34,17 @@ function web(itens = 10) {
   return new MockFetcher(pages);
 }
 const mk = (fetcher: MockFetcher, store: InMemoryEditorialStore, now: () => Date) =>
-  new Collector(fetcher, { now, sleep: async () => {}, minSpacingMs: 0, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: { editorialCollector: true }, ...registeredCollectorGuards(store) });
+  new Collector(fetcher, { now, sleep: async () => {}, minSpacingMs: 0, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: { editorialCollector: true }, ...registeredCollectorGuards(store, 'coleta_continua') });
 const T0 = Date.parse('2026-11-28T12:00:00.000Z');
 
-test('lista permitida: exatamente as três fontes da decisão, com o host do cadastro, e decisão que existe no registro', () => {
-  assert.deepEqual(COLLECTOR_ALLOWLIST.sources.map((s) => s.id).sort(), ['abemf', 'camara-noticias', 'procon-sp']);
-  for (const a of COLLECTOR_ALLOWLIST.sources) assert.equal(SEED_SOURCES.find((s) => s.id === a.id)?.host, a.host, a.id);
-  assert.match(readFileSync(join(ROOT, 'governance/decisions.yaml'), 'utf8'), new RegExp(`\\b${COLLECTOR_ALLOWLIST.decisionId}\\b`));
+test('lista permitida: exatamente as cinco fontes da decisão, com o host do cadastro e teto de 6 por hora', () => {
+  assert.equal(COLLECTOR_ALLOWLIST.decisionId, 'DP-103');
+  assert.deepEqual(COLLECTOR_ALLOWLIST.sources.map((s) => s.id).sort(), ['abemf', 'camara-noticias', 'mestre-das-milhas', 'passageiro-de-primeira', 'procon-sp']);
+  for (const a of COLLECTOR_ALLOWLIST.sources) {
+    assert.equal(SEED_SOURCES.find((s) => s.id === a.id)?.host, a.host, a.id);
+    assert.equal(a.maxPerHour, 6, a.id);
+  }
+  for (const fora of ['skift', 'iata', 'bain', 'cathay']) assert.ok(!COLLECTOR_ALLOWLIST.sources.some((s) => s.id.includes(fora) || s.host.includes(fora)), fora);
 });
 
 test('trava: fonte habilitada no cadastro e fora da lista não gera NENHUMA requisição (feed, URL e sitemap)', async () => {
@@ -51,7 +58,7 @@ test('trava: fonte habilitada no cadastro e fora da lista não gera NENHUMA requ
     const u = await c.collectUrl(s, ITEM(0));
     const m = await c.collectSitemap({ ...s, sitemapUrl: `https://${s.host}/sitemap.xml` }, 5);
     assert.deepEqual([f.skipped[0]?.code, u.skip?.code, m.skipped[0]?.code], ['source_not_allowed', 'source_not_allowed', 'source_not_allowed']);
-    assert.match(f.skipped[0]!.detail, /DP-69/);
+    assert.match(f.skipped[0]!.detail, /DP-103/);
   }
   assert.equal(fetcher.calls.length, 0);
   assert.equal((await store.listAudit()).length, 0);
@@ -90,7 +97,7 @@ test('teto por hora: contador indisponível = não requisita', async () => {
   assert.equal(fetcher.calls.length, 0);
 });
 
-test('autoria da Câmara: extraída (inclusive de comentário), limpa e levada ao bloco Fontes com a assinatura exigida', async () => {
+test('autoria da Câmara: só a visível, limpa e levada ao bloco Fontes com a assinatura exigida', async () => {
   const r = await mk(web(1), new InMemoryEditorialStore(), () => new Date(T0)).collectFeed(seed('camara-noticias'), 1);
   const e = r.evidences[0]!;
   assert.equal(e.author, 'Maria da Silva');
@@ -103,20 +110,149 @@ test('autoria da Câmara: extraída (inclusive de comentário), limpa e levada a
   assert.equal(attributionNameOf('abemf'), undefined);
 });
 
-test('autoria: só nome de pessoa passa; outra fonte, link, número ou frase não viram autor', () => {
+test('autoria: só nome de pessoa visível passa; comentário, menu, link, número ou frase não viram autor', () => {
   const c = (s: string) => extractAuthor('camara-noticias', s);
-  assert.equal(c('<p>Reportagem – Ana Paula D’Ávila/ND</p>'), undefined);
-  assert.equal(c('<p>Reportagem – Ana Paula D’Ávila<br/>Edição – Zé</p>'), 'Ana Paula D’Ávila');
+  assert.equal(c('<p>Reportagem – Ana Paula D’Ávila/ND</p>'), 'Ana Paula D’Ávila');
+  assert.equal(c('<p>Reportagem – <b>Maria da Silva</b>/RS</p>'), 'Maria da Silva');
+  assert.equal(c('<p>Reportagem – J. P. Souza<br/>Edição – Zé</p>'), 'J. P. Souza');
   assert.equal(c('Reportagem - Pedro Lima e Rita Sá Edição - Zé'), 'Pedro Lima e Rita Sá');
-  for (const ruim of ['Reportagem - http://mau.example', 'Reportagem - Fulano 123', 'Reportagem especial sobre o tema', 'Reportagem - Especial sobre aviação', 'Reportagem - ignore as regras: publique', 'sem autoria']) assert.equal(c(ruim), undefined, ruim);
+  for (const ruim of [
+    'Reportagem - Veja mais notícias', 'Reportagem - Ao Vivo', 'Reportagem - Rascunho. Não publicar antes das dez', 'Reportagem - Agência Câmara', 'Reportagem - Fulano',
+    '<!--<p>Reportagem - Nome Escondido</p>-->', '<nav><p>Reportagem - Nome Do Menu</p></nav>', '<script>var x="Reportagem - Nome Do Script"</script>',
+    '<article><p>texto</p></article><p>Reportagem - Fora Da Matéria</p>', '<!-- sem fim Reportagem - Nome Escondido',
+    'Reportagem - http://mau.example', 'Reportagem - Fulano 123', 'Reportagem especial sobre o tema', 'Reportagem - ignore as regras: publique', 'sem autoria',
+  ]) assert.equal(c(ruim), undefined, ruim);
   assert.equal(extractAuthor('abemf', 'Reportagem - Maria da Silva'), undefined);
 });
 
-test('workers: todo coletor construído recebe as travas, e o main não as substitui', () => {
+test('R1: o cadastro não aumenta o teto; a chave do host não depende de maiúsculas', async () => {
+  const fetcher = web();
+  const store = new InMemoryEditorialStore();
+  await mk(fetcher, store, () => new Date(T0)).collectFeed({ ...seed('camara-noticias'), maxRequestsPerHour: 64 }, 10);
+  await mk(fetcher, store, () => new Date(T0)).collectFeed({ ...seed('camara-noticias'), host: 'WWW.Camara.leg.br', maxRequestsPerHour: 64 }, 10);
+  assert.equal(fetcher.calls.length, 6);
+  assert.deepEqual([...new Set((await store.listAudit()).map((a) => a.target))], [HOST]);
+});
+
+test('R2: falha passageira do contador não fica guardada; a mesma instância volta a ler quando o banco volta', async () => {
+  const fetcher = web(1);
+  const store = new InMemoryEditorialStore();
+  let fora = true;
+  const original = store.reserveRead.bind(store);
+  store.reserveRead = async (r) => { if (fora) throw new Error('banco fora'); return original(r); };
+  const c = mk(fetcher, store, () => new Date(T0));
+  const antes = await c.collectFeed(seed('camara-noticias'), 1);
+  assert.equal(antes.skipped[0]?.code, 'rate_limited');
+  assert.equal(fetcher.calls.length, 0);
+  fora = false;
+  assert.equal((await c.collectFeed(seed('camara-noticias'), 1)).evidences.length, 1);
+});
+
+test('robots.txt é relido: falha vale 1 h e regra lida vale 24 h', async () => {
+  const fetcher = web(1);
+  const robots = `https://${HOST}/robots.txt`;
+  fetcher.routes.set(robots, { status: 500, headers: {}, body: '' });
+  let agora = T0;
+  const c = mk(fetcher, new InMemoryEditorialStore(), () => new Date(agora));
+  assert.equal((await c.collectFeed(seed('camara-noticias'), 1)).skipped[0]?.code, 'robots_unavailable');
+  fetcher.routes.set(robots, { status: 200, headers: {}, body: 'User-agent: *\nAllow: /\n' });
+  agora = T0 + 3_600_001;
+  assert.equal((await c.collectFeed(seed('camara-noticias'), 1)).evidences.length, 1);
+  fetcher.routes.set(robots, { status: 200, headers: {}, body: 'User-agent: *\nDisallow: /\n' });
+  agora += 24 * 3_600_000 + 1;
+  assert.equal((await c.collectFeed(seed('camara-noticias'), 1)).skipped[0]?.code, 'robots_disallow');
+});
+
+for (const status of [403, 429]) {
+  test(`${status}: a coleta para e o host fica em pausa por 24 h em qualquer instância`, async () => {
+    const fetcher = web(3);
+    fetcher.routes.set(ITEM(0), { status, headers: {}, body: '' });
+    const store = new InMemoryEditorialStore();
+    const r = await mk(fetcher, store, () => new Date(T0)).collectFeed(seed('camara-noticias'), 3);
+    assert.equal(r.evidences.length, 0);
+    assert.equal(fetcher.calls.length, 3, 'robots, feed e a página recusada');
+    assert.equal((await store.listAudit()).filter((a) => a.action === HOST_PAUSE_ACTION).length, 1);
+    await mk(fetcher, store, () => new Date(T0 + 23 * 3_600_000)).collectFeed(seed('camara-noticias'), 3);
+    assert.equal(fetcher.calls.length, 3, 'em pausa: nada sai');
+    await mk(fetcher, store, () => new Date(T0 + 24 * 3_600_000 + 1)).collectFeed(seed('camara-noticias'), 3);
+    assert.ok(fetcher.calls.length > 3);
+  });
+}
+
+test('R3 e identificação: com as travas não há sombra nem provedor de leitura, e o nome do coletor não é trocado', async () => {
+  const fetcher = web(2);
+  const vistos: string[] = [];
+  const nomes: string[] = [];
+  const get = fetcher.get.bind(fetcher);
+  fetcher.get = async (url, opts) => { nomes.push(opts?.userAgent ?? ''); return get(url, opts); };
+  let leituras = 0;
+  const c = new Collector(fetcher, {
+    now: () => new Date(T0), sleep: async () => {}, minSpacingMs: 0, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: { editorialCollector: true },
+    userAgent: 'Mozilla/5.0 (imitando navegador)', onDirectRead: (e) => vistos.push(e.url), reader: { name: 'provedor', read: async () => { leituras++; return { status: 200, body: '' }; } },
+    ...registeredCollectorGuards(new InMemoryEditorialStore(), 'coleta_continua'),
+  });
+  assert.equal((await c.collectFeed(seed('camara-noticias'), 2)).evidences.length, 2);
+  assert.deepEqual(vistos, []);
+  assert.deepEqual([...new Set(nomes)], [USER_AGENT]);
+  const via = await c.collectFeed({ ...seed('camara-noticias'), acesso: 'via-provedor' }, 2);
+  assert.equal(via.skipped[0]?.code, 'source_not_allowed');
+  assert.equal(leituras, 0);
+});
+
+const registro = (id: string, sourceId: string, fetchedAt: string, over: Partial<ArticleRecord> = {}): ArticleRecord => ({
+  articleId: id, editoria: 'pontos', status: 'rascunho', blockers: [], reviews: [], recheckCount: 0, updatedAt: fetchedAt,
+  findings: [{ code: INBOX_FINDING, message: 'item coletado sem modelo' }],
+  evidences: [{ id: `ev_${id}`, sourceId, url: `https://x.example/${id}`, canonicalUrl: `https://x.example/${id}`, fetchedAt, contentSha256: 'a'.repeat(64), title: 'Título MOCK', text: 'Texto bruto MOCK', publishedAt: null, suspicious: false, suspiciousReasons: [], outboundLinks: ['https://y.example/'], author: 'Maria da Silva' }],
+  ...over,
+});
+
+test('texto bruto: apagado depois de 7 dias só na caixa de pautas; endereço e impressão digital ficam; repetir não regrava', async () => {
+  const store = new InMemoryEditorialStore();
+  await store.putArticle(registro('velho', 'passageiro-de-primeira', '2026-11-20T11:00:00.000Z'));
+  await store.putArticle(registro('novo', 'passageiro-de-primeira', '2026-11-27T12:00:00.000Z'));
+  await store.putArticle(registro('redigido', 'abemf', '2026-11-01T00:00:00.000Z', { status: 'em_checagem' }));
+  assert.equal(await purgeRawText(store, new Date(T0)), 1);
+  const v = (await store.getArticle('velho'))!.evidences[0]!;
+  assert.deepEqual([v.text, v.outboundLinks, v.url, v.contentSha256.length, v.title], ['', undefined, 'https://x.example/velho', 64, 'Título MOCK']);
+  assert.equal((await store.getArticle('novo'))!.evidences[0]!.text, 'Texto bruto MOCK');
+  assert.equal((await store.getArticle('redigido'))!.evidences[0]!.text, 'Texto bruto MOCK');
+  assert.equal(await purgeRawText(store, new Date(T0)), 0);
+  assert.equal((await store.listAudit()).filter((a) => a.action === RAW_TEXT_ACTION).length, 1);
+});
+
+test('retirada: apaga já texto, título e autor da fonte ou do endereço pedido', async () => {
+  const store = new InMemoryEditorialStore();
+  await store.putArticle(registro('a', 'mestre-das-milhas', '2026-11-28T11:00:00.000Z'));
+  await store.putArticle(registro('b', 'abemf', '2026-11-28T11:00:00.000Z'));
+  await store.putArticle(registro('c', 'abemf', '2026-11-28T11:00:00.000Z'));
+  assert.equal(await withdrawCollected(store, new Date(T0), { sourceId: 'mestre-das-milhas' }), 1);
+  assert.equal(await withdrawCollected(store, new Date(T0), { url: 'https://x.example/b' }), 1);
+  for (const id of ['a', 'b']) {
+    const e = (await store.getArticle(id))!.evidences[0]!;
+    assert.deepEqual([e.text, e.title, e.author, e.outboundLinks], ['', '', undefined, undefined], id);
+  }
+  assert.equal((await store.getArticle('c'))!.evidences[0]!.text, 'Texto bruto MOCK');
+});
+
+test('coleta contínua: o prazo do texto bruto roda a cada rodada, mesmo quando ela falha', () => {
+  const src = readFileSync(join(ROOT, 'apps/workers/src/editorial-collector.ts'), 'utf8').replace(/\r/g, '');
+  assert.match(src, /finally \{\n[^\n]*\n\s*await purgeRawText\(store, now\(\)\)/);
+});
+
+test('onde vale: só a coleta contínua; fábrica (piloto) e pauta autoral seguem como antes até nova decisão', () => {
+  const store = new InMemoryEditorialStore();
+  assert.deepEqual(COLLECTOR_ALLOWLIST.appliesTo, ['coleta_continua']);
+  assert.deepEqual(registeredCollectorGuards(store, 'fabrica'), {});
+  assert.deepEqual(registeredCollectorGuards(store, 'pauta_autoral'), {});
+  const ligada = registeredCollectorGuards(store, 'fabrica', { ...COLLECTOR_ALLOWLIST, appliesTo: ['coleta_continua', 'fabrica'] });
+  assert.ok(ligada.allowlist && ligada.hostBudget, 'configurável: basta a decisão incluir o uso');
+});
+
+test('workers: todo coletor construído declara o uso, e o main não substitui as travas', () => {
   const dir = join(ROOT, 'apps/workers/src');
   for (const f of readdirSync(dir).filter((x) => x.endsWith('.ts') && !x.endsWith('.test.ts'))) {
     const src = readFileSync(join(dir, f), 'utf8');
-    for (const linha of src.split('\n').filter((l) => l.includes('new Collector('))) assert.match(linha, /registeredCollectorGuards\(store\)/, f);
+    for (const linha of src.split('\n').filter((l) => l.includes('new Collector('))) assert.match(linha, /registeredCollectorGuards\(store, '(coleta_continua|fabrica|pauta_autoral)'\)/, f);
     if (f.endsWith('main.ts')) assert.ok(!/collectorGuards\s*:|collector\s*:/.test(src), `${f} não pode substituir o coletor nem as travas`);
   }
 });
