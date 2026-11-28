@@ -10,6 +10,7 @@ export type { ReaderPort, ReaderResult, ReadBudget, DirectReadEvent } from './co
 export { MemoryReadBudget, StopGuard, ChainedReader } from './collector/collector';
 export { StoreReadBudget, StoreHostBudget, HOST_READ_ACTION, HOST_PAUSE_ACTION, HOST_PAUSE_MS, registeredCollectorGuards } from './factory/read-budget';
 export { purgeRawText, withdrawCollected, RAW_TEXT_RETENTION_DAYS, RAW_TEXT_ACTION } from './factory/raw-text';
+export { BLOG_ANCHOR_ALLOWLIST, isPermittedBlogAnchor } from './rules/blog-anchor';
 export { TavilyReader, parseTavilyKeys } from './collector/tavily-reader';
 export type { Fetcher, FetchOptions, HttpResponse, CollectResult, Skip, CollectorOptions } from './collector/collector';
 export { assertAllowedUrl, isPrivateHost, UrlRejected } from './collector/ssrf';

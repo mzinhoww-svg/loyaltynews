@@ -29,8 +29,7 @@ não o inclui (não alterei `.github/`).
 
 ## O que NÃO está coberto
 
-- **Texto próprio e confirmação no programa** são da redação: a coleta contínua não redige nem confirma. A DP-59 permite o blog como âncora principal, mas a
-  regra `needs_primary_anchor` (`rules.ts`) ainda exige fonte primária; não foi alterada.
+- **Texto próprio e confirmação no programa** são da redação: a coleta contínua não redige nem confirma.
 - As cinco fontes continuam desligadas no cadastro: cada uma precisa da revisão no Studio (inclui "paywall"), por uma pessoa.
 - **O prazo e a retirada não alcançam matéria já redigida nem cópias de segurança (backups) do banco.** O prazo também não roda com a coleta desligada nem alcança a fábrica avulsa.
 - Pedidos da fábrica e da pauta autoral não entram no contador.

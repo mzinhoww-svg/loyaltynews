@@ -1,4 +1,5 @@
 import { attributionNameOf } from '../collector/allowlist';
+import { isPermittedBlogAnchor } from './blog-anchor';
 import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types';
 import { SIGNATURE } from '../types';
 import { normalizeText } from '../dedupe/dedupe';
@@ -273,19 +274,22 @@ export function checkNotices(d: Draft, expected: readonly string[]): CheckResult
 
 /**
  * Blog e imprensa de nicho (fonte SECUNDÁRIA) são pista, não prova. Se qualquer evidência usada for secundária, a matéria
- * precisa de pelo menos uma evidência PRIMÁRIA (RI, regulador, governo, associação, sala de imprensa), e todo número, data
- * ou citação precisa estar sustentado por evidência primária.
+ * precisa de pelo menos uma evidência que ancore: PRIMÁRIA (RI, regulador, governo, associação, sala de imprensa) ou de um blog
+ * autorizado por decisão (DP-59, `blog-anchor.ts`). Número e data precisam de evidência que ancore; citação entre aspas continua
+ * exigindo evidência primária (não reproduzir).
  */
 export function checkAnchoring(d: Draft, evidences: Evidence[]): CheckResult {
   const out: Finding[] = [];
   const byId = new Map(evidences.map((e) => [e.id, e]));
   const used = d.evidenceIds.map((i) => byId.get(i)).filter((e): e is Evidence => !!e);
   if (!used.some(isSecondary)) return result(out);
-  if (!used.some((e) => !isSecondary(e))) out.push(f('needs_primary_anchor', 'matéria só com fonte secundária (blog/imprensa de nicho): falta evidência de fonte primária que confirme os fatos'));
+  const anchors = (e: Evidence): boolean => !isSecondary(e) || isPermittedBlogAnchor(e);
+  if (!used.some(anchors)) out.push(f('needs_primary_anchor', 'matéria só com fonte secundária sem autorização para ancorar (blog/imprensa de nicho): falta evidência de fonte primária que confirme os fatos'));
   for (const c of d.claims) {
     if (c.kind === 'fact') continue;
     const evs = c.evidenceIds.map((i) => byId.get(i)).filter((e): e is Evidence => !!e);
-    if (evs.length && !evs.some((e) => !isSecondary(e))) out.push(f('unanchored_claim', 'número, data ou citação sustentado só por fonte secundária: precisa constar em fonte primária', c.id));
+    const holds = c.kind === 'quote' ? (e: Evidence) => !isSecondary(e) : anchors;
+    if (evs.length && !evs.some(holds)) out.push(f('unanchored_claim', c.kind === 'quote' ? 'citação sustentada só por fonte secundária: precisa constar em fonte primária' : 'número ou data sustentado só por fonte secundária sem autorização para ancorar: precisa constar em fonte primária', c.id));
   }
   return result(out);
 }

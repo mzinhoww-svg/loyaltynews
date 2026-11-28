@@ -12,6 +12,7 @@ import type { EditorialStore } from '../api/store';
 import { collectFromSources } from './collect';
 import { anchorEvidences } from './anchor';
 import type { CollectOutcome, SourceCollectReport } from './collect';
+import { isPermittedBlogAnchor } from '../rules/blog-anchor';
 
 /**
  * Fábrica ponta a ponta até a APROVAÇÃO: coleta (fontes habilitadas) → triagem → contexto → redação → checagem em provedor
@@ -95,11 +96,12 @@ export async function runFactory(deps: FactoryDeps, opts: FactoryOptions = {}): 
     };
     const job: ArticleJob = { articleId: item.articleId, editoria: item.editoria, evidences: [item.evidence], attempt: 0 };
     if (item.evidence.sourceTier === 'secondary') {
-      // DP-29: blog é pista. Sem âncora em fonte primária habilitada, a matéria não segue (nem gasta modelo).
+      // DP-29: blog é pista. Sem âncora em fonte primária habilitada, a matéria não segue (nem gasta modelo), salvo DP-59.
       const anc = await anchorEvidences(deps.collector, collected.effective, item.evidence);
       row.anchors = anc.anchors.map((e) => e.canonicalUrl);
       job.evidences = [item.evidence, ...anc.anchors];
-      if (!anc.anchors.length) {
+      // DP-59: blog autorizado segue mesmo sem página oficial; as que ele linkar (fontes habilitadas) entram como confirmação
+      if (!anc.anchors.length && !isPermittedBlogAnchor(item.evidence)) {
         const why = anc.considered ? `os ${anc.considered} link(s) para fonte primária não puderam ser coletados (${anc.skipped.map((k) => k.code).join(',') || 'sem evidência'})` : 'o post não linka nenhuma fonte primária habilitada';
         const out: StageOutcome = { kind: 'blocked', blocked: { articleId: item.articleId, stage: 'triage', blockers: ['unanchored'], findings: [{ code: 'needs_primary_anchor', message: `fonte secundária sem âncora primária: ${why}` }] } };
         const rec = await applyOutcome(deps.store, job, out, now().toISOString());

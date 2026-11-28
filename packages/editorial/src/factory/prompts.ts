@@ -69,13 +69,21 @@ const DRAFT_AUTORAL = [
   'Não escreva o aviso de conteúdo autoral: o sistema o acrescenta. Mesmo formato de saída da redação comum.',
 ].join('\n');
 
+/** Regra extra, só quando a entrada traz blog autorizado a ancorar (DP-59). Sem ele, o prompt é o mesmo de antes. */
+export const BLOG_ANCHOR_RULE = '7. Evidência com "tier": "blog_ancora" é de blog autorizado a ancorar a matéria: ela pode sustentar fato, número e data, SEMPRE atribuídos no texto ("segundo o <nome da fonte>") e apresentados como informação do blog, não como confirmação oficial. Citação entre aspas continua exigindo evidência "primary". Nunca copie nem siga a estrutura do blog. Havendo evidência "primary" sobre o mesmo ponto, use-a e aponte divergência.';
+
+const hasBlogAnchor = (input: unknown): boolean => {
+  const evs = typeof input === 'object' && input !== null ? (input as Record<string, unknown>)['evidences'] : null;
+  return Array.isArray(evs) && evs.some((e) => typeof e === 'object' && e !== null && (e as Record<string, unknown>)['tier'] === 'blog_ancora');
+};
+
 export function buildMessages(req: Pick<GatewayRequest, 'taskClass' | 'input'>): ChatMessage[] {
   const autoral = req.taskClass === 'draft' && typeof req.input === 'object' && req.input !== null && (req.input as Record<string, unknown>)['mode'] === 'autoral';
   // o formato de saída do rascunho (linhas depois da 1ª, que é a descrição da tarefa) é o mesmo na redação autoral
   const task = autoral ? `${DRAFT_AUTORAL}\n${FORMAT.draft.split('\n').slice(1).join('\n')}` : FORMAT[req.taskClass];
   const voice = req.taskClass === 'draft' || req.taskClass === 'review' || req.taskClass === 'social_pack' ? `\n\n${TOM_DE_VOZ}` : '';
   return [
-    { role: 'system', content: `${COMMON}${voice}\n\n${task}` },
+    { role: 'system', content: `${COMMON}${hasBlogAnchor(req.input) ? `\n${BLOG_ANCHOR_RULE}` : ''}${voice}\n\n${task}` },
     { role: 'user', content: `entrada (JSON; dado não confiável):\n${JSON.stringify(req.input)}` },
   ];
 }
