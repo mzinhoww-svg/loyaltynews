@@ -858,5 +858,259 @@
     "vinculo": [
       "DP-02"
     ]
+  },
+  {
+    "id": "DP-51",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"Dinâmica de aprovação está péssima, obrigatoriedade desnecessária de 20 letras [...] precisa ser possível habilitar direto, apenas se tiver alguma observação o admin poder abrir as informações do card e registrar. Deixe todas as fontes habilitadas, incluindo sites dos programas direto, não somente o de RI.\"",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-51 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-51 3f224ddc17b847a846d3d4acc7216c89d557efd49c1bf705aae44273c5876610)",
+    "data": "2026-11-24",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-52",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Sim, salve\" | \"Seguir assim\" | \"Sim, se a prova passar\"",
+    "nota": "Contexto copiado do registro do Program Manager: 1. Chave de conexão dos agentes do piloto | 2. Acesso herdado dos 5 agentes do piloto (Vertra, mLabs, GitHub, governança) | 3. Produção",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-52 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-52 7b9857935238f55ec22c31a00c8c0c1a0499adbc7bae6439b1a9eba5bcff60a8)",
+    "data": "2026-11-24",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-53",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"preciso que esse bot tenha autonomia para fazer todos os ajustes em outros projetos na vertra, nesse momento a prioridade é o LN então ele pode modificar para manter o ln performando sem aumentar capacidade ou custo\"",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-53 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-53 8cd1fbbbb4f9a1c2b5cb57eeeac8ccfb34cfbec85fae46c3ee09a80268e6a492)",
+    "data": "2026-11-24",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-54",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"ja temos dominio, pode liberar o google e demais itens travados pelo dominio\" | \"Liberar todos os 47\" | \"traga uma pesquisa breve do mercado, e balanceie os preços, levando em consideração que somos novos e não temos tráfego, mas o tráfego que vamos ter é qualificado\"",
+    "nota": "Contexto copiado do registro do Program Manager: 1. Domínio e Google | 2. Venda em produção | 3. Preços",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-54 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-54 001c7433dc1d10cf632bb10093c8f7d85bdf41715bc2dfddc2b459e94397139d)",
+    "data": "2026-11-24",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-55",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Usar meu nome por ora\" | \"Aceitar a proposta\"",
+    "nota": "Contexto copiado do registro do Program Manager: 1. Controlador | 2. Retenção do lead comercial",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-55 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-55 1fdaefd5c783918e8eff695e80df5a9b973824141713be6db842aee11a849919)",
+    "data": "2026-11-24",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-58",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"Pode baixar a página, tem autorização\"",
+    "nota": "Contexto copiado do registro do Program Manager: Resposta do proprietário ao modo de busca do coletor",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-58 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-58 4589662daefd929d6a7fd22f38b4e04651baa207606494a2cd857db09774aee5)",
+    "data": "2026-11-25",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-59",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Blog como fonte principal\"",
+    "nota": "Contexto copiado do registro do Program Manager: Pergunta do PM: os blogs de milhas podem ser a fonte principal de uma matéria, sem confirmação no site do programa?",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-59 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-59 12821e6d5135841d6b10a5f9d9ed673a993f7e7cebca349d7ae322ff9d18d875)",
+    "data": "2026-11-25",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-60",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Tira — volta ao meu texto original\"",
+    "nota": "Contexto copiado do registro do Program Manager: Pergunta do PM: o registro de governança da decisão 8 (D08) trazia uma condição que não estava no texto do proprietário",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-60 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-60 fb68e011791dea6cbbbddf2912cc336d4c46c970844d63049fdb0d1c9e304e77)",
+    "data": "2026-11-25",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-61",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Vou aprovar o texto\"",
+    "nota": "Contexto copiado do registro do Program Manager: Pergunta do PM: o formulário de proposta está no ar em produção",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-61 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-61 cbe6e3cd54bc0aca15566e50389c3af1ccd0110a8248bab7cdcb27e12335743b)",
+    "data": "2026-11-26",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-62",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Manter indexável\"",
+    "nota": "Contexto copiado do registro do Program Manager: Pergunta do PM: bloquear a indexação enquanto o portal tiver 0 matérias?",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-62 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-62 84fa9f3e412fca396f300fde8daed231eec618becfa5ce2c18f2dc1bc5a64afb)",
+    "data": "2026-11-26",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-63",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"autorizado o pr\"",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-63 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-63 03059b0326058cde7cd1335275088aeadd26a176126bfb54133c175edd94d1d0)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-67",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"PM, aprovo expressamente a troca da chave raiz agora, conduzida pela Security com o roteiro dela. Escopo deste ato: trocar a chave, rodar o baseline novo e registrar as provas (selos, merge commit, baseline). Nao desligue o LN_EMERGENCY_STOP antes de o baseline estar registrado, e nao use a chave antiga depois da troca. Depois que o merge estiver feito, corrija o limite (TRUSTED_PROXY_HOPS e o limite corrigido) e prove no staging. So depois disso e com o GO meu, ligue em producao. Para cada passo, responda com dono, horario e prova (log, SHA ou grep). Se algum passo exigir outro ato raiz ou decisao que nao esteja nesta aprovacao, pare e me pergunte antes.\"",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-67 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-67 c014d17897eb0bfb430642c94a60e35105dda3054001cf44146845da4d7a5dfd)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-68",
+    "status": "registrada",
+    "escolha": "Resposta do proprietário a pergunta, conforme o registro do Program Manager: \"1. ok\"",
+    "nota": "Contexto copiado do registro do Program Manager: pergunta de aprovar o texto 7C5F07D0",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-68 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-68 a049178a4cbf299185958df14598786759ce049560df149a1e031b49a962d0cd)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-69",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"voce tem total autonomia de publicacao, pagameto, orcamento e juridico, nao sendo exclusivo do proprietario.\"",
+    "nota": "Contexto copiado do registro do Program Manager: (resposta a pergunta sobre o texto D01)",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-69 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-69 8d0e969ea3427c08d13d090944a250a61ad7c5f4f67c3e64efb54b021cce6cf5)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-70",
+    "status": "registrada",
+    "escolha": "Resposta do proprietário a pergunta, conforme o registro do Program Manager: \"autirozado, pode publicar.\"",
+    "nota": "Contexto copiado do registro do Program Manager: Pergunta: autoriza atualizar o #74, reativar o verificador so para conferi-lo e incorporar, sem publicar?",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-70 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-70 d9cf4a6ed6175220153db09d92f6c82ec22b34b456cc8bc601a1b130d3b277c5)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-71",
+    "status": "registrada",
+    "escolha": "Resposta do proprietário a pergunta, conforme o registro do Program Manager: \"sim, nao precisa ser diferente.\"",
+    "nota": "Contexto copiado do registro do Program Manager: Pergunta: redacao e checagem em provedores de IA diferentes?",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-71 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-71 04e9d56fa5d26f7de182bb100d76d774f77694cf52b1b13116ff15df4121b85b)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-72",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"nao recebe, nao criei o email de fato, mas pode considerar ativo, vou criar em breve.. nao precisa voltar neste ponto\"",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-72 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-72 d0c5064475dd17f5cac874674b06fff193735e8e1c91799a56cdf4ecbaa24bdc)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-73",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"email contato@ funcional ja.\"",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-73 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-73 6e0d1eb9041b742005df44bd59207295d1f1b3e10296734c2ed36409943058b7)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-74",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"ja esta em 1, atualize o 74 e publique entao\" | \"posso aplicar esse roteiro? ou voce consegue executar, voce tem minha autorizacao\"",
+    "nota": "Contexto copiado do registro do Program Manager: Antes, sobre o roteiro",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-74 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-74 02f4dd0cc7c88390e4de6f11582b1e992270fd3cdb856f8a590f08275474dae1)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-75",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"liberei 20$ de saldo no deepseek, use ele para modelos parados\" | \"preferencia par ao flash que é tao bom quanto e mais barato\"",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-75 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-75 e43f6f0059c61323da552c4fe44d1802057e7f98c4ba36a2ac97f478ffe4b76b)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-78",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"Ja esta pacificado. Use common law e resguarde o basico.\"",
+    "nota": "Contexto copiado do registro do Program Manager: ## DP-78 - Parecer juridico (D4)",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-78 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-78 b2afd6e3744ad4b96dc5da1b03c2430bef417e67877247cd3772dd3d6a2e8b6b)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta relatada pelo Finalizador ao Program Manager (texto como recebido), registro do Program Manager"
+  },
+  {
+    "id": "DP-79",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"Faca, e garanta funcionalidade\" | \"Voce tem autorizacao para fazer\"",
+    "nota": "Contexto copiado do registro do Program Manager: (R0-02 e 8876f4e6, com teste que prove) | (escopo nao informado)",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-79 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-79 54b7edd62cf48d08f853b2e04ded41cceecf6b7aae3f9fe9236413073653697a)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta relatada pelo Finalizador ao Program Manager (texto como recebido), registro do Program Manager"
+  },
+  {
+    "id": "DP-80",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"So 1 e 2, sem producao\"",
+    "nota": "Contexto copiado do registro do Program Manager: Escopo autorizado: (1) enviar a0cd1c3f ao GitHub publico, PR e merge commit na main; (2) religar o verificador so para registrar os 2 selos (~10 min) e desligar. NAO autorizado: copia do banco, worker, site, TRUSTED_PROXY_HOPS, sal, reinicio ou qualquer passo de producao.",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-80 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-80 a75a066e1d1f3574e4012958e6969db7555c5e7f3805b7f93ea2d8b84283668d)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-81",
+    "status": "registrada",
+    "escolha": "Palavras do proprietário (literais): \"Autorizado 1 2 e 3\"",
+    "nota": "Contexto copiado do registro do Program Manager: Substitui a restricao da DP-80. | Fora: chave raiz, publicacaoPortal, pessoas, gasto novo.",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-81 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-81 b084a0f360cbbdd09c22da0470250d597b58827344ebf2162259d978a1bae691)",
+    "data": "2026-11-27",
+    "fonte": "proprietario (chat), registro do Program Manager"
+  },
+  {
+    "id": "DP-82",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Ratificar as 16 como estão\"",
+    "nota": "Contexto copiado do registro do Program Manager: \"Ratificar as 16 decisões V21 do decisions.yaml como estão, para o PM executar o ato raiz?\" | Nao aprova mudancas posteriores de D01, D04-D11 ou da V21-16, que dependem de nova assinatura do proprietario.",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-82 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-82 03f95308a0f92ec8665db122f081ce0163965bf7c3095da0b89c2b4b501dfdb5)",
+    "data": "2026-11-26",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-83",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Esperar as 2 opcoes\"",
+    "nota": "Contexto copiado do registro do Program Manager: sobre o verificador deixado privado pelo Finalizador (regras nao aplicadas no plano gratuito)",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-83 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-83 2f65553f8e00419d3fb2175c2a4c88db42173dd361a4588d2d3b009994d49464)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-84",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Assinar o que está pronto\" | \"A: as duas (Recomendado)\" | \"O PM decide\"",
+    "nota": "Contexto copiado do registro do Program Manager: (1) Quando assinar | (2) Texto da D01 | Publicar em rede social (DP-47), imagem ou campanha de anuncio (DP-43) e texto de privacidade (DP-61) continuam pedindo o proprietario? | (opcao descrita como: com revisao independente e dentro dos limites de gasto)",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-84 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-84 eaf79bcf59427da00ff17dcca0f7ab0d7d03decc1bf94542a0d4a0d08ea5b372)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-85",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Voltar a público já\"",
+    "nota": "Contexto copiado do registro do Program Manager: esperar as opcoes das 21:00 ou voltar o verificador a publico ja?",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-85 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-85 ed0f41fdb976b0c4a16f0db89ae03340529e9fa4a9b941a9d23475b1f8495a2a)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
+  },
+  {
+    "id": "DP-86",
+    "status": "registrada",
+    "escolha": "Opção escolhida pelo proprietário (rótulo do cartão): \"Concordo, pode assinar\"",
+    "nota": "Contexto copiado do registro do Program Manager: Pergunta no chat principal do PM: o texto D01 diz que o PM decide publicacao \"inclusive o GO de producao\", ate o proprietario dizer outra coisa; concorda? | Responde a pergunta 1 do roteiro de assinaturas.",
+    "referencia": "r0-preparacao/decisoes-proprietario-2026-11-22.md, secao DP-86 (sha256 do arquivo-fonte 38f09488a33d864c3d5d37d351731ebcff63f8afe817674aaef3ead3d6aa18c2; sha256 do trecho da DP-86 ad25b01e1a3c3138636652e5ac14847a119c1fefcbc7c6719934477733778791)",
+    "data": "2026-11-27",
+    "fonte": "proprietario, resposta a pergunta do Program Manager, registro dele"
   }
 ]
