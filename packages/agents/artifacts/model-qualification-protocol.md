@@ -100,7 +100,7 @@ Um modelo só é **qualificado** quando TODOS os critérios dos casos de que par
 
 ## 8. Orçamento por etapa (DP-04 e ADR-021)
 
-- Projeção com a política v5 (2.1-dp02-v5-proposta, sha256 `2641a8fe3d19…`), mesmos preços da v6 para estes modelos; valores em US$.
+- Projeção com a política v5 (2.1-dp02-v5-proposta, sha256 `341466147a4f…`), mesmos preços da v6 para estes modelos; valores em US$.
 
 | Etapa | Modelo | Chamadas | Esperado | Teto de reserva |
 |---|---|---|---|---|

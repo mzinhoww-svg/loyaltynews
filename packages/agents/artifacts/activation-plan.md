@@ -31,7 +31,7 @@ Critérios medíveis, dono e limiar de cada gate: `gates.md` / `gates.json` (o q
 | F5 | Semanais e mensais; premium/strategic só com motivo e sublimite | sim | Escalonamento ≤ sublimite; decisões protegidas vão ao verificador | desligar o ritual |
 | F6 | X-incident (evento) | sim | Teste de incidente simulado | desligar o ritual |
 
-## 4. Roteamento de modelos e teto de US$ 50 (política v5, sha256 `2641a8fe3d19…`; mês 2026-12)
+## 4. Roteamento de modelos e teto de US$ 50 (política v5, sha256 `341466147a4f…`; mês 2026-12)
 Premissas de tokens **não medidas** (medir em R4): insumo de participante 1500+6000 (cache) tokens de entrada e até 700 de saída; síntese do presidente 2000+6000 de entrada (+400 por insumo) e até 1500 de saída; 2 incidentes/mês.
 
 | Cenário | Esperado | Teto (reserva) | Escalonamento Opus/Fable (teto) | Folga Anthropic | Verificações |
