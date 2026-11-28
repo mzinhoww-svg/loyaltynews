@@ -20,7 +20,7 @@ export const QUEUE_DECISIONS: Readonly<Record<QueueName, QueueDecision>> = {
   },
   coleta: {
     mode: 'off',
-    why: 'a coleta roda pela Fábrica editorial em comando próprio (editorialCollector), não por esta fila; nenhum produtor grava aqui hoje',
+    why: 'a coleta roda por temporizador do worker ou pela Fábrica em comando próprio (editorialCollector), não por esta fila; nenhum produtor grava aqui',
   },
   redacao: {
     mode: 'off',

@@ -40,7 +40,8 @@ export async function listQueue(ctx: HandlerCtx, input: unknown): Promise<ApiRes
     // bloqueadas primeiro (precisam de atenção), depois mais recentes
     .sort((x, y) => Number(y.status === 'bloqueado') - Number(x.status === 'bloqueado') || y.updatedAt.localeCompare(x.updatedAt));
   const items = all.slice(f.offset, f.offset + f.limit).map((r) => ({
-    articleId: r.articleId, titulo: r.draft?.headline ?? null, editoria: r.editoria, status: r.status, blockers: r.blockers, atualizadoEm: r.updatedAt,
+    // item da caixa de pautas ainda não tem rascunho: a fila mostra o título da página coletada
+    articleId: r.articleId, titulo: r.draft?.headline ?? (r.evidences[0]?.title || null), editoria: r.editoria, status: r.status, blockers: r.blockers, atualizadoEm: r.updatedAt,
   }));
   return ok({ items, total: all.length, limit: f.limit, offset: f.offset });
 }
