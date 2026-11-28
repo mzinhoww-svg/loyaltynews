@@ -99,7 +99,7 @@ export default async function RevisaoPage({ params, searchParams }: { params: Pr
       <h2>Evidências ({v.evidencias.length})</h2>
       <ul>
         {v.evidencias.map((e) => (
-          <li key={e.id}>
+          <li key={e.id} style={{ overflowWrap: 'anywhere' }}>
             {e.titulo} — {e.url} {e.suspeita ? '(suspeita)' : ''}
             <IdEvidencia id={e.id} />
           </li>
