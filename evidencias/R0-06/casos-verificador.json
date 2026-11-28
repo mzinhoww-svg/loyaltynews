@@ -28,8 +28,8 @@
   },
   {
    "id": "mudanca-executor-no-verificador",
-   "resultado": "passou",
-   "registro": "r0-preparacao/R0-06/caso3-mudanca-executor.json (script caso3-mudanca-executor.py)",
+   "resultado": "falhou",
+   "registro": "Reconferido em 27/11/2026: nao demonstrado. O registro anterior fica no historico.",
    "comando": "python caso3.py - usa scripts/premerge.py::root_signed do proprio verificador, keys/raiz.asc e rulesets/verifier-main.json do commit a2bfc48",
    "saida": "commit real da main a2bfc48 assinado pela raiz: True; commit de mudanca assinado por chave que nao e a raiz (fpr 706A956BC0F583C5339704710E46DAC44E26A553): False. O ruleset verifier-main do commit esta active, bypass_actors [], regras update/deletion/non_fast_forward em refs/heads/main"
   }
