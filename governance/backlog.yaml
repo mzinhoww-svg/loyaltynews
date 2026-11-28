@@ -1584,7 +1584,7 @@
   {
     "id_novo": "R4-06",
     "onda": "R4 Redações autônomas",
-    "tarefa": "Checagem por provedor diferente e checagem determinística de números, datas, citações e cópia literal da fonte",
+    "tarefa": "Checagem por modelo, de qualquer provedor, e checagem determinística de números, datas, citações e cópia literal da fonte",
     "ids_anteriores": "T05-03",
     "depende_de": "R4-04",
     "responsavel": "Executor (agente de código)",

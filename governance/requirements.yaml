@@ -487,7 +487,7 @@
   },
   {
     "id": "REQ-R4-06",
-    "texto": "Checagem por provedor diferente e checagem determinística de números, datas, citações e cópia literal da fonte",
+    "texto": "Checagem por modelo, de qualquer provedor, e checagem determinística de números, datas, citações e cópia literal da fonte",
     "origem": "audit-output/05_backlog_proposto.csv#R4-06",
     "classe": "backlog conciliado",
     "tarefas": [

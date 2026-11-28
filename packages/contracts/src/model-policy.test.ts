@@ -11,6 +11,21 @@ describe('política de modelos', () => {
     expect(p.rules.production_enabled).toBe(false);
     expect(p.rules.hard_monthly_budget_usd).toBe(50);
   });
+  it('DP-77: sem exigência de provedor diferente na redação e checagem; tetos e classes de dado iguais', () => {
+    const p = ModelPolicy.parse(original);
+    expect(p.rules.cross_provider_independent_review).toBe(false);
+    expect(p.routing_by_task.fact_check).toBe('review');
+    expect(p.rules.production_enabled).toBe(false);
+    expect(p.rules.hard_monthly_budget_usd).toBe(50);
+    const r = p.rules as Record<string, unknown>;
+    expect(r.monthly_cap_immutable_by_agents).toBe(true);
+    expect(r.refill_does_not_increment_monthly_cap).toBe(true);
+    expect(r.block_unknown_cost).toBe(true);
+    expect(r.no_cross_provider_for_restricted_data).toBe(true);
+    expect(p.data_classes).toMatchObject({ restricted: [], secret: [] });
+    const { cross_provider_independent_review: _fora, ...semRegra } = original.rules;
+    expect(ModelPolicy.safeParse({ ...original, rules: semRegra }).success).toBe(false);
+  });
   it('recusa teto diferente de 50 e rota com modelo inexistente', () => {
     expect(ModelPolicy.safeParse({ ...original, rules: { ...original.rules, hard_monthly_budget_usd: 300 } }).success).toBe(false);
     expect(ModelPolicy.safeParse({ ...original, routes: { ...original.routes, review: ['nao-existe'] } }).success).toBe(false);
@@ -120,6 +135,18 @@ describe('v7: autor distinto verificável no contrato e teto por etapa (QA 2 + d
   it('recusa checagem ou editor do mesmo provedor da redação', () => {
     expect(ModelPolicy.safeParse(comTask('fact_check', { account: 'claude', provider: 'anthropic' })).success).toBe(false);
     expect(ModelPolicy.safeParse(comTask('editorial_review', { account: 'claude', provider: 'anthropic' })).success).toBe(false);
+  });
+
+  it('DP-77: com a regra em false, checagem e editor podem ser do provedor da redação; o resto continua exigido', () => {
+    const livre = (p: typeof v7) => ({ ...p, rules: { ...p.rules, cross_provider_independent_review: false } });
+    for (const k of ['fact_check', 'editorial_review'])
+      expect(ModelPolicy.safeParse(livre(comTask(k, { account: 'claude', provider: 'anthropic' }))).success).toBe(true);
+    // conta e provedor continuam coerentes, a checagem continua obrigatória e o teto não muda
+    expect(ModelPolicy.safeParse(livre(comTask('fact_check', { account: 'claude', provider: 'openai' }))).success).toBe(false);
+    const semChecagem = { ...ex.primary.by_task };
+    delete semChecagem.fact_check;
+    expect(ModelPolicy.safeParse(livre({ ...v7, execution: { ...ex, primary: { ...ex.primary, by_task: semChecagem } } })).success).toBe(false);
+    expect(ModelPolicy.safeParse(livre({ ...v7, rules: { ...v7.rules, hard_monthly_budget_usd: 300 } })).success).toBe(false);
   });
 
   it('recusa checador em branco, conta desconhecida ou texto solto no lugar da estrutura', () => {
