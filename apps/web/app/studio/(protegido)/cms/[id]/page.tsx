@@ -17,7 +17,10 @@ import { StatusArtigo } from '../../../_components/StatusArtigo';
 import { FonteRapidaPainel } from '../../../_components/FonteRapidaPainel';
 import { rotuloAprovador } from '@/lib/studio/cms/aprovador';
 import { MateriaForm } from '../MateriaForm';
-import { aprovarAction, bloquearAction, descartarRevisaoAction, emitirReciboAction, enviarChecagemAction, publicarAction, salvarRevisaoAction, voltarRascunhoAction } from '../actions';
+import { aprovarAction, bloquearAction, descartarRevisaoAction, despublicarAction, emitirReciboAction, enviarChecagemAction, publicarAction, salvarRevisaoAction, voltarRascunhoAction } from '../actions';
+import { ESTADOS_DESPUBLICAVEIS, PAPEIS_DESPUBLICAR } from '@/lib/studio/cms/despublicar';
+import { IdEvidencia } from '../../../_components/IdEvidencia';
+import { Despublicar } from './Despublicar';
 import { Seta } from '../../../_components/Seta';
 
 export const metadata: Metadata = { title: 'Matéria' };
@@ -67,7 +70,8 @@ export default async function Materia({ params, searchParams }: { params: Promis
       <p>
         <StatusArtigo status={m.status as Parameters<typeof StatusArtigo>[0]['status']} /> · v{m.versao} · {EDITORIAS.find((e) => e.slug === m.editoria)?.nome ?? m.editoria} · assinatura {m.assinatura} · {m.tempoLeituraMin} min de leitura
       </p>
-      <Flash tipo={tipo} aviso={aviso} proximo={proximo} />
+      {/* a chave remonta o aviso a cada envio recusado: o mesmo erro repetido leva o foco a ele de novo */}
+      <Flash key={qs.n} tipo={tipo} aviso={aviso} proximo={proximo} />
       <div className="st-two">
         <section aria-label="Editor">
           {!editavel ? (
@@ -204,6 +208,15 @@ export default async function Materia({ params, searchParams }: { params: Promis
                       : 'Seu papel não publica (exige editor-chefe ou admin).'
                     : 'Publica quando a matéria está aprovada e tem recibo da versão.'}
               </p>
+              {ESTADOS_DESPUBLICAVEIS.includes(m.status) ? (
+                checkAccess(session, PAPEIS_DESPUBLICAR).ok ? (
+                  <Despublicar id={m.id} versao={m.versao} confirmando={qs.despublicar === '1'} erroNaTela={tipo === 'err' && Boolean(aviso)} acao={despublicarAction} />
+                ) : (
+                  <p className="st-hint" data-despublicar="sem-permissao">
+                    Despublicar é do editor-chefe ou do admin.
+                  </p>
+                )
+              ) : null}
             </section>
           </div>
 
@@ -342,7 +355,10 @@ export default async function Materia({ params, searchParams }: { params: Promis
             ) : (
               <ul className="st-issues">
                 {m.fontes.map((f) => (
-                  <li key={f.id}>{f.url}</li>
+                  <li key={f.id}>
+                    {f.url}
+                    <IdEvidencia id={f.id} />
+                  </li>
                 ))}
               </ul>
             )}

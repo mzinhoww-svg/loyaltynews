@@ -11,6 +11,7 @@ import { traduzirMensagem } from '@/lib/studio/erros';
 import { proximaFonteDaEvidencia } from '@/lib/studio/cms/fonte-rapida';
 import { resultadoDoRecheck } from '@/lib/studio/cms/checagem-fila';
 import { checkAccess } from '@/lib/studio/modules';
+import { PAPEIS_DESPUBLICAR, executarDespublicacao } from '@/lib/studio/cms/despublicar';
 import { requireStudio } from '../../_lib/guard';
 
 export interface FormState {
@@ -97,6 +98,16 @@ export async function aprovarAction(fd: FormData): Promise<void> {
 export async function bloquearAction(fd: FormData): Promise<void> {
   await requireStudio(CMS_REVIEW);
   await transicionar(t(fd, 'id'), 'bloqueado', t(fd, 'nota'), 'Matéria bloqueada.');
+}
+
+/** Despublicar, só depois da confirmação com nota. Editor-chefe ou admin: exigido aqui e de novo pela rota. */
+export async function despublicarAction(fd: FormData): Promise<void> {
+  await requireStudio(PAPEIS_DESPUBLICAR);
+  const id = t(fd, 'id');
+  const r = await executarDespublicacao({ confirmar: t(fd, 'confirmar'), nota: t(fd, 'nota'), versao: Number(t(fd, 'versao')) }, (corpo) => api.materias.transicao(id, corpo));
+  // com erro a confirmação continua aberta, e `n` distingue um envio do outro; a nota nunca vai para a URL
+  const q = new URLSearchParams({ ...(r.ok ? {} : { despublicar: '1', n: String(Date.now()) }), tipo: r.ok ? 'ok' : 'err', aviso: r.mensagem });
+  redirect(`/studio/cms/${encodeURIComponent(id)}?${q}`);
 }
 
 /**

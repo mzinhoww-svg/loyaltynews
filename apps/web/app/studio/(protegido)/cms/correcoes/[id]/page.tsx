@@ -10,6 +10,7 @@ import { Flash } from '../../../../_components/Flash';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { passoCasoAction } from '../actions';
 import { Seta } from '../../../../_components/Seta';
+import { IdEvidencia } from '../../../../_components/IdEvidencia';
 
 export const metadata: Metadata = { title: 'Caso de correção' };
 export const dynamic = 'force-dynamic';
@@ -63,6 +64,16 @@ export default async function CasoPage({ params, searchParams }: { params: Promi
   const base = (process.env.PORTAL_BASE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/+$/, '');
   const urlPublica = base && slug ? base + '/noticia/' + slug : '';
   const aceito = ['accepted', 'escalated_legal', 'notice_published', 'social_reconciled'].includes(c.state);
+  // as evidências que a triagem aceita: as ligadas à matéria no CMS e, em matéria da Fábrica, as do registro editorial
+  const daFabrica = c.state === 'evidence_preserved' && c.kind === 'erratum' ? await api.editorial.revisao(c.articleId) : null;
+  const evidenciasDaMateria = [
+    ...new Map(
+      [
+        ...(!ehErro(materia) ? materia.body.data.fontes.map((f) => ({ id: f.id, url: f.url })) : []),
+        ...(daFabrica && !ehErro(daFabrica) ? ((daFabrica.body as { evidencias?: { id: string; url: string }[] }).evidencias ?? []) : []),
+      ].map((e) => [e.id, e]),
+    ).values(),
+  ];
   return (
     <>
       <p>
@@ -151,6 +162,20 @@ export default async function CasoPage({ params, searchParams }: { params: Promi
                     <label htmlFor="claimEvidencias">IDs das evidências (separados por vírgula)</label>
                     <input id="claimEvidencias" name="claimEvidencias" type="text" />
                   </div>
+                  {evidenciasDaMateria.length ? (
+                    <ul className="st-issues" aria-label="Evidências desta matéria">
+                      {evidenciasDaMateria.map((e) => (
+                        <li key={e.id}>
+                          {e.url}
+                          <IdEvidencia id={e.id} />
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="st-hint" data-vazio="evidencias-do-caso">
+                      Não há evidência ligada a esta matéria para citar aqui.
+                    </p>
+                  )}
                 </>
               ) : null}
               <div className="st-field">
