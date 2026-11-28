@@ -8,13 +8,13 @@
 import type { Db } from '@ln/auth';
 import type { FlagName } from '@ln/contracts';
 import {
-  COLLECTOR_ALERT_ACTION, COLLECTOR_ROUND_ACTION, Collector, GOOD_ROUND_PREFIX, ROUND_STALE_AFTER_MS, SEED_SOURCES, SourceRegistry, collectToInbox, createNodeFetcher, describeRound, isGoodRound,
+  COLLECTOR_ALERT_ACTION, COLLECTOR_ROUND_ACTION, Collector, GOOD_ROUND_PREFIX, ROUND_STALE_AFTER_MS, SEED_SOURCES, SourceRegistry, collectToInbox, createNodeFetcher, describeRound, isGoodRound, registeredCollectorGuards,
   type EditorialStore, type InboxRound,
 } from '@ln/editorial';
 import { PgEditorialStore } from './editorial-store';
 
 export const COLLECTOR_INTERVAL_MS = 2 * 3_600_000;
-/** Espera depois da subida: o contador de ritmo por site vive em memória, e reinícios seguidos não podem virar rajada. */
+/** Espera depois da subida: o teto por hora fica no banco, mas o intervalo entre pedidos é por processo; reinícios seguidos não podem virar rajada. */
 export const COLLECTOR_FIRST_DELAY_MS = 5 * 60_000;
 export const COLLECTOR_LIMIT_PER_SOURCE = 5;
 /** Prazo da "rodada boa", decidido pelo PM: sem nenhuma em mais de 5 h, avisa; persistindo, repete a cada 5 h. */
@@ -26,7 +26,7 @@ export interface EditorialCollectorOptions {
   flags: (f: FlagName) => boolean;
   intervalMs?: number;
   firstDelayMs?: number;
-  /** Só para teste: o padrão é o coletor real (robots.txt, intervalo e limite por site), uma instância por processo. */
+  /** Só para teste: o padrão é o coletor real (robots.txt, intervalo, teto por hora no banco e trava das fontes), uma instância por processo. */
   collector?: Collector;
   registry?: SourceRegistry;
   store?: EditorialStore;
@@ -45,7 +45,7 @@ export function startEditorialCollector(o: EditorialCollectorOptions): { stop():
   if (!o.flags('editorialCollector')) return null;
   const store = o.store ?? new PgEditorialStore(o.db);
   const registry = o.registry ?? new SourceRegistry(SEED_SOURCES);
-  const collector = o.collector ?? new Collector(createNodeFetcher(), { flags: { editorialCollector: true } });
+  const collector = o.collector ?? new Collector(createNodeFetcher(), { flags: { editorialCollector: true }, ...registeredCollectorGuards(store) });
   let running = false;
   let stopped = false;
   let interval: ReturnType<typeof setInterval> | null = null;

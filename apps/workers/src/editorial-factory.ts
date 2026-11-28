@@ -8,7 +8,7 @@ import { anyPemSet, pgPoolConfig, selfCheckPemSet } from '@ln/db/tls';
 import { onClientError } from '@ln/db/safe-log';
 import { FLAG_DEFAULTS, type FlagState } from '@ln/contracts';
 import {
-  type ModelGateway, type PilotRowSink, Collector, type CollectorOptions, type Fetcher, type Resolver, type ReaderPort, type ShadowPort, StoreReadBudget, shadowReader, shadowObserver, drainShadow, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
+  type ModelGateway, type PilotRowSink, Collector, type CollectorOptions, type Fetcher, type Resolver, type ReaderPort, type ShadowPort, StoreReadBudget, registeredCollectorGuards, shadowReader, shadowObserver, drainShadow, InMemoryAuditLog, runAutoralQueue, type AutoralQueueReport, SEED_SOURCES, SourceRegistry, createLlmGateway, createNodeFetcher, runFactory, systemResolver,
   type ChatRequest, type ChatResult, type ChatTransport, type FactoryOptions, type FactoryReport, type RefusalCode, type TaskClass,
 } from '@ln/editorial';
 import { callModel, type GatewayCall, type GatewayDeps } from '@ln/modelops';
@@ -107,6 +107,8 @@ export interface RunEditorialFactoryInput {
   /** Rede e resolução de DNS do coletor padrão (testes injetam simulados; padrão: rede real com anti-SSRF). Ignorados se `collector` for informado. */
   fetcher?: Fetcher;
   resolver?: Resolver;
+  /** Só para teste. Ausente = trava das fontes permitidas e teto por hora no banco (o main não passa este campo; há teste disso). */
+  collectorGuards?: Pick<CollectorOptions, 'allowlist' | 'hostBudget'>;
   /** Opções do coletor padrão (ex.: ritmo). Só para testes/operação; o padrão mantém 3 s por host. */
   collectorOptions?: Partial<CollectorOptions>;
   now?: () => Date;
@@ -124,7 +126,7 @@ export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<
   const now = i.now ?? (() => new Date());
   const reader = shadowReader(i.reader, i.shadow);
   const observer = shadowObserver(i.shadow);
-  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}) });
+  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}), ...(i.collectorGuards ?? registeredCollectorGuards(store)) });
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
   const modelGateway = i.modelGateway ?? createLlmGateway(llm);
   try {
@@ -149,7 +151,7 @@ export async function runEditorialAutoral(i: Omit<RunEditorialFactoryInput, 'opt
   const now = i.now ?? (() => new Date());
   const reader = shadowReader(i.reader, i.shadow);
   const observer = shadowObserver(i.shadow);
-  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}) });
+  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}), ...(i.collectorGuards ?? registeredCollectorGuards(store)) });
   const modelGateway = i.modelGateway ?? createLlmGateway(createModelopsTransport(i.gateway!));
   try {
     return await runAutoralQueue({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}) }, { ...(i.max ? { max: i.max } : {}) });

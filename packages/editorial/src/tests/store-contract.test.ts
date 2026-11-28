@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { EDITORIAL_STORE_CONTRACT, runEditorialStoreContract } from '../api/store-contract';
 import type { StoreFactory } from '../api/store-contract';
 import { InMemoryEditorialStore } from '../api/store';
-import type { ArticleRecord, AuditItem, CorrectionRecord, EditorialStore, OutboxItem, PublicationCommit, PublicationCommitStep, SourceState } from '../api/store';
+import type { ArticleRecord, AuditItem, CorrectionRecord, EditorialStore, OutboxItem, PublicationCommit, PublicationCommitStep, ReadReservation, SourceState } from '../api/store';
 
 // 1) A implementação de referência passa em TODA a suíte (é o que o Backend deve reproduzir sobre PostgreSQL).
 runEditorialStoreContract('InMemoryEditorialStore', () => { const s = new InMemoryEditorialStore(); return { store: s, armFault: (step) => s.armFault(step) }; });
@@ -26,6 +26,12 @@ class Base implements EditorialStore {
   async listSourceStates() { return [...this.sources.values()]; }
   async appendAudit(a: AuditItem) { this.audit.push(a); }
   async listAudit() { return [...this.audit]; }
+  async reserveRead(r: ReadReservation) {
+    const used = this.audit.filter((a) => a.action === r.action && a.target === r.target && Date.parse(a.at) > r.atMs - r.windowMs).length;
+    if (used >= r.max) return { allowed: false, used };
+    this.audit.push({ at: new Date(r.atMs).toISOString(), userId: null, action: r.action, target: r.target });
+    return { allowed: true, used: used + 1 };
+  }
   async listOutbox() { return [...this.outbox]; }
   async commitPublication(c: PublicationCommit) {
     this.articles.set(c.article.articleId, c.article); this.audit.push(c.audit); this.outbox.push(c.outbox);
@@ -42,6 +48,16 @@ class MergingStore extends InMemoryEditorialStore {
     const merged = { ...(this.prev.get(r.articleId) ?? {}), ...structuredClone(r) } as ArticleRecord;
     this.prev.set(r.articleId, merged);
     await super.putArticle(merged);
+  }
+}
+/** Conta e grava em passos separados: pedidos simultâneos passam todos do teto. */
+class RacyReservation extends InMemoryEditorialStore {
+  override async reserveRead(r: ReadReservation) {
+    const used = (await this.listAudit()).filter((a) => a.target === r.target && Date.parse(a.at) > r.atMs - r.windowMs).length;
+    await new Promise((ok) => setTimeout(ok, 1));
+    if (used >= r.max) return { allowed: false, used };
+    await this.appendAudit({ at: new Date(r.atMs).toISOString(), userId: null, action: r.action, target: r.target });
+    return { allowed: true, used: used + 1 };
   }
 }
 /** Auditoria devolvida em ordem invertida e sem registrar userId null. */
@@ -106,6 +122,11 @@ test('fábrica com teardown é respeitada (um store novo e uma limpeza por teste
   assert.deepEqual(failed, []);
   assert.equal(created, EDITORIAL_STORE_CONTRACT.length);
   assert.equal(torn, created);
+});
+
+test('suíte de contrato reprova reserva de leitura sem atomicidade', async () => {
+  const f = await failing(() => ({ store: new RacyReservation() }));
+  assert.ok(f.some((n) => n.startsWith('reserva de leitura')), f.join(' | '));
 });
 
 test('suíte de contrato reprova publicação NÃO atômica (matéria gravada antes da auditoria/outbox)', async () => {

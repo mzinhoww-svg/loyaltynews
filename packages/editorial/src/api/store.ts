@@ -127,7 +127,14 @@ export interface EditorialStore {
   listSourceStates(): Promise<SourceState[]>;
   appendAudit(a: AuditItem): Promise<void>;
   listAudit(): Promise<AuditItem[]>;
+  /**
+   * Reserva uma vaga numa janela deslizante, contada na trilha (linhas com a mesma `action` e `target`). ATÔMICO entre instâncias:
+   * com `max` vagas, N chamadas simultâneas nunca aprovam mais que `max`. Aprovada, grava a linha; recusada, não grava nada.
+   */
+  reserveRead(r: ReadReservation): Promise<{ allowed: boolean; used: number }>;
 }
+
+export interface ReadReservation { action: string; target: string; atMs: number; max: number; windowMs: number }
 
 const copy = <T>(v: T): T => structuredClone(v);
 
@@ -175,6 +182,13 @@ export class InMemoryEditorialStore implements EditorialStore {
   async listSourceStates() { return [...this.sources.values()].map(copy); }
   async appendAudit(a: AuditItem) { this.auditLog.push(copy(a)); }
   async listAudit() { return this.auditLog.map(copy); }
+  async reserveRead(r: ReadReservation) {
+    // sem await entre contar e gravar: atômico neste processo
+    const used = this.auditLog.filter((a) => a.action === r.action && a.target === r.target && Date.parse(a.at) > r.atMs - r.windowMs).length;
+    if (used >= r.max) return { allowed: false, used };
+    this.auditLog.push({ at: new Date(r.atMs).toISOString(), userId: null, action: r.action, target: r.target });
+    return { allowed: true, used: used + 1 };
+  }
 }
 
 /** Aplica o resultado de um estágio do pipeline ao registro da matéria (hooks do worker do Backend). */

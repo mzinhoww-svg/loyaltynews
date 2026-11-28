@@ -181,6 +181,17 @@ export const EDITORIAL_STORE_CONTRACT: ContractCase[] = [
     assert.equal(actions.length, 40);
     assert.equal(new Set(actions).size, 40);
   }) },
+  { name: 'reserva de leitura: teto por janela e alvo, atômico sob concorrência; recusa não grava; janela desliza', run: (f) => withStore(f, async (s) => {
+    const t0 = Date.parse('2026-11-28T12:00:00.000Z');
+    const pedir = (atMs: number, target = 'h1.example') => s.reserveRead({ action: 'collector.host_read', target, atMs, max: 6, windowMs: 3_600_000 });
+    const juntos = await Promise.all(Array.from({ length: 20 }, () => pedir(t0)));
+    assert.equal(juntos.filter((r) => r.allowed).length, 6, '20 pedidos simultâneos: só 6 aprovados');
+    assert.equal((await s.listAudit()).length, 6, 'recusa não grava linha');
+    assert.equal((await pedir(t0 + 3_599_000)).allowed, false, 'dentro da hora continua fechado');
+    assert.equal((await pedir(t0, 'h2.example')).allowed, true, 'cada alvo tem o seu teto');
+    assert.equal((await pedir(t0 + 3_600_001)).allowed, true, 'passada a janela, volta a aprovar');
+    assert.deepEqual((await s.listAudit())[0], { at: '2026-11-28T12:00:00.000Z', userId: null, action: 'collector.host_read', target: 'h1.example' });
+  }) },
   { name: 'concorrência: puts paralelos da MESMA chave são atômicos (vence um registro inteiro, sem mistura de campos)', run: (f) => withStore(f, async (s) => {
     const variants = Array.from({ length: 10 }, (_, i) => sampleArticle('same', { status: i % 2 ? 'aprovado' : 'bloqueado', recheckCount: i, updatedAt: `2026-11-23T12:00:0${i}.000Z` }));
     await Promise.all(variants.map((v) => s.putArticle(v)));
