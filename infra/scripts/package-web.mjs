@@ -174,7 +174,10 @@ if (provaPng) INCLUDE.push('infra/scripts/prova-png.mjs');
 // As CLIs do worker (bench-graph, staging-admin, prod-admin, seed-staging) importam infra/vertra/bindings.json NO BUILD (esbuild). Sem ele o build do pacote morre com
 // "Could not resolve ../../../infra/vertra/bindings.json" (24/11/2026: derrubou o app descartável do benchmark). Só host e nome do banco, nenhum segredo.
 if (appKey === 'workers') INCLUDE.push('infra/vertra/bindings.json');
-const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e'];
+// Dados do benchmark de scraping (trechos de paginas de terceiros; parecer 64 da Security): so as ferramentas e testes do proprio benchmark leem;
+// nada em execucao usa. Ficam fora dos dois pacotes (web e workers).
+const DADOS_FORA_DO_PACOTE = 'packages/scraping-benchmark/data';
+const EXCLUDE = [':(exclude)apps/web/e2e', ':(exclude)apps/web/playwright.config.ts', ':(exclude)apps/web/app/api/e2e', `:(exclude)${DADOS_FORA_DO_PACOTE}`];
 const pathspec = [...INCLUDE, ...EXCLUDE];
 const missing = INCLUDE.filter((p) => !gitText(['ls-tree', '--name-only', sha, '--', p]));
 if (missing.length) fail(`faltam no commit: ${missing.join(', ')}`);
@@ -216,6 +219,9 @@ try {
   })(folder);
   if (appKey === 'workers' && !files.includes('infra/vertra/bindings.json')) fail('pacote de worker sem infra/vertra/bindings.json: o build das CLIs (bench-graph etc.) não resolveria o import');
   if (provaPng && !files.includes('infra/scripts/prova-png.mjs')) fail('--prova-png: infra/scripts/prova-png.mjs não entrou no pacote (o build e o start do worker o chamam)');
+  // falha fechada: se os dados do benchmark entrarem por outro caminho, o pacote nao sai
+  const dados = files.filter((f) => f === DADOS_FORA_DO_PACOTE || f.startsWith(`${DADOS_FORA_DO_PACOTE}/`));
+  if (dados.length) fail(`dados do benchmark no pacote (${dados.length} arquivo(s)): ${dados.slice(0, 3).join(', ')}`);
   const bad = files.filter((f) => /(^|\/)\.env(\.|$)/.test(f) || /\.(pem|key|crt|p12)$/i.test(f) || /(^|\/)(node_modules|\.next|\.git)\//.test(f) || /playwright\.config\./.test(f) || /(^|\/)e2e\//.test(f));
   if (bad.length) fail(`arquivos proibidos no pacote: ${bad.slice(0, 5).join(', ')}`);
   // índice do ZIP lido em Node puro: o tar GNU do Ubuntu (runner do Actions) não lê ZIP e dava 0 entradas
@@ -273,7 +279,7 @@ try {
       : vitrine
         ? ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --vitrine / --noindex / --canonical <URL>']
         : ['node infra/scripts/healthcheck.mjs --url <URL> --expect-commit <commit> --denied /studio --no-mock / --ready'],
-    garantias: [...(vitrine ? ['VITRINE (staging): release.json.vitrine=true; o build liga a vitrine a partir do release.json (não do painel) e falha se a home sair sem a faixa de demonstração; o start recusa se PORTAL_VITRINE em execução ≠ release.vitrine; production + PORTAL_VITRINE reprova no guard-env (build e start); Security R1–R3'] : ['SEM vitrine: release.vitrine=false; o build ignora PORTAL_VITRINE do painel e falha se a home tiver marcador de demonstração; o start recusa se PORTAL_VITRINE existir']), 'build_command = guard-env + build-web.mjs: APP_ENV e NEXT_PUBLIC_SITE_URL vêm do release.json e entram no ambiente do build (sem atribuição inline); o build falha se o canonical da home não for a URL do ambiente', 'start_command = guard-env + start-web.mjs: o app NÃO sobe se APP_COMMIT não for o SHA de 40 hex do release.json, se NEXT_PUBLIC_SITE_URL faltar/divergir ou se APP_ENV divergir (com zero downtime e rollback automático a versão anterior deve continuar no ar; comportamento na Vertra ainda não testado)', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e (inclui a rota app/api/e2e) nem playwright.config', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
+    garantias: [...(vitrine ? ['VITRINE (staging): release.json.vitrine=true; o build liga a vitrine a partir do release.json (não do painel) e falha se a home sair sem a faixa de demonstração; o start recusa se PORTAL_VITRINE em execução ≠ release.vitrine; production + PORTAL_VITRINE reprova no guard-env (build e start); Security R1–R3'] : ['SEM vitrine: release.vitrine=false; o build ignora PORTAL_VITRINE do painel e falha se a home tiver marcador de demonstração; o start recusa se PORTAL_VITRINE existir']), 'build_command = guard-env + build-web.mjs: APP_ENV e NEXT_PUBLIC_SITE_URL vêm do release.json e entram no ambiente do build (sem atribuição inline); o build falha se o canonical da home não for a URL do ambiente', 'start_command = guard-env + start-web.mjs: o app NÃO sobe se APP_COMMIT não for o SHA de 40 hex do release.json, se NEXT_PUBLIC_SITE_URL faltar/divergir ou se APP_ENV divergir (com zero downtime e rollback automático a versão anterior deve continuar no ar; comportamento na Vertra ainda não testado)', 'pacote vem do commit (git archive), sem arquivos não commitados', 'sem .env*, chaves, node_modules, .next, e2e (inclui a rota app/api/e2e), playwright.config nem packages/scraping-benchmark/data', 'ci-checks --deploy aprovado sobre o conteúdo', 'ZIP reprodutível (mesmo commit = mesmo SHA-256)'],
   };
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   console.log(JSON.stringify({ ok: true, commit: sha12, perfil: profile, pasta: folder, zip, zipSha256: zipSha, zipBytes: bytes, arquivos: files.length, manifesto: manifestPath }, null, 2));
