@@ -1418,8 +1418,10 @@ test('limpar-node-modules: remove o node_modules sem atravessar junction (o alvo
 });
 
 test('smoke-producao: produção limpa e não indexável passa; demonstração, flag ligada, indexável antes do go-live e Studio aberto reprovam', async () => {
-  const SHA = 'a'.repeat(40);
-  const estado = { demo: false, flags: [], indexavel: false, studioAberto: false, env: 'production', pessoas: false, vazio: false, feed404: false };
+  const { contratoCom, repoDeFlags } = await import('./apoio-repo-flags.mjs');
+  const repo = repoDeFlags([contratoCom(['portalFormularios'])]);
+  const SHA = repo.commits[0];
+  const estado = { demo: false, flags: ['portalFormularios'], indexavel: false, studioAberto: false, env: 'production', pessoas: false, vazio: false, feed404: false };
   const s = await server((req, res) => {
     const u = req.url.split('?')[0];
     const json = (c, o) => { res.writeHead(c, { 'content-type': 'application/json' }); res.end(JSON.stringify(o)); };
@@ -1443,7 +1445,7 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
   });
   const port = s.address().port;
   const run = (extra = []) => new Promise((resolve) => {
-    const c = spawn(process.execPath, [join(S, 'smoke-producao.mjs'), '--url', 'http://127.0.0.1:' + port, '--expect-commit', SHA, ...extra]);
+    const c = spawn(process.execPath, [join(S, 'smoke-producao.mjs'), '--url', 'http://127.0.0.1:' + port, '--expect-commit', SHA, '--repo', repo.dir, ...extra]);
     let stdout = '';
     c.stdout.on('data', (d) => { stdout += d; });
     c.on('close', (status) => resolve({ status, j: stdout ? JSON.parse(stdout) : null }));
@@ -1452,7 +1454,8 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
     const ok = await run();
     assert.equal(ok.status, 0, JSON.stringify(ok.j?.checagens?.filter((c) => !c.ok)));
     estado.demo = true; assert.equal((await run()).status, 1, 'demonstração em produção reprova'); estado.demo = false;
-    estado.flags = ['intelligencePessoas']; assert.equal((await run()).status, 1, 'flag ligada reprova'); estado.flags = [];
+    estado.flags = ['portalFormularios', 'intelligencePessoas']; assert.equal((await run()).status, 1, 'flag a mais reprova');
+    estado.flags = []; assert.equal((await run()).status, 1, 'flag a menos reprova'); estado.flags = ['portalFormularios'];
     estado.env = 'staging'; assert.equal((await run()).status, 1, 'APP_ENV diferente de production reprova'); estado.env = 'production';
     estado.pessoas = true; assert.equal((await run()).status, 1, 'pessoas ligadas reprovam'); estado.pessoas = false;
     estado.studioAberto = true; assert.equal((await run()).status, 1, 'Studio sem login reprova'); estado.studioAberto = false;
@@ -1476,7 +1479,7 @@ test('smoke-producao: produção limpa e não indexável passa; demonstração, 
     estado.indexavel = false; estado.vazio = false;
     const sozinha = await run(['--sem-conteudo-ainda']);
     assert.equal(sozinha.status, 2, '--sem-conteudo-ainda sem --indexavel é uso errado');
-  } finally { s.close(); }
+  } finally { s.close(); repo.apagar(); }
 });
 
 /** Imita o handler real de /busca/sugestoes (int/025): 400 em no-store para q fora de 2 a 80 caracteres; 200 estado ok em CACHE_60S; 200 estado indisponivel em no-store; sempre noindex. */

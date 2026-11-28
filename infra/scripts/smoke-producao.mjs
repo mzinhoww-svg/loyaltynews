@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Smoke da PRODUÇÃO (só leitura, nenhum POST, nenhuma credencial). Contraparte do smoke-staging, que EXIGE conteúdo de demonstração; aqui o conteúdo de demonstração é falha.
-// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel [--sem-conteudo-ainda]] [--expect-canonical https://www.dominio] [--expect-cache] [--expect-icones] [--expect-seguranca] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
-// Confere: /api/health com APP_ENV production, o commit certo e flags [] (ADR-022: produção não liga flag por variável); /api/ready completo (banco e Redis; migrações se o build as confere);
+// Uso: node infra/scripts/smoke-producao.mjs --url https://host --expect-commit <sha40> [--indexavel [--sem-conteudo-ainda]] [--expect-canonical https://www.dominio] [--expect-cache] [--expect-icones] [--expect-seguranca] [--repo <checkout com o commit>] [--consecutivas 3] [--intervalo 5000] [--timeout 20000]
+// Confere: /api/health com APP_ENV production, o commit certo e EXATAMENTE as flags por commit dele (PRODUCTION_FLAGS_ON lido do objeto git de --expect-commit, neste checkout ou em --repo;
+//   flag a mais ou a menos reprova, sem --expect-commit reprova; intelligencePessoas ligada reprova mesmo se o commit a listar, V21-14); /api/ready completo (banco e Redis; migrações se o build as confere);
 //   API pública e portal sem MOCK, sem "[DEMO" e sem marcador de vitrine; produção NÃO indexável até o go-live (DP-24: noindex, robots Disallow, sitemap e feed sem itens) ou, com --indexavel (depois
 //   do go-live), indexável; Studio sem sessão = 307 para o login; pessoas e moves desligados (disponivel=false). Código 0 = tudo ok; 1 = alguma falha; 2 = uso errado.
+import { flagsDoCommit } from './lib/flags-do-commit.mjs';
 import { parseArgs } from './lib/util.mjs';
 import { avaliarReady } from './smoke-staging.mjs';
 import { verificar } from './verificar-cache-headers.mjs';
@@ -14,10 +16,12 @@ import { pathToFileURL } from 'node:url';
 // Só marcadores EXPLÍCITOS de demonstração/fixture. A palavra solta MOCK não entra: pode aparecer legitimamente em texto editorial (ressalva do QA 5); o marcador do portal é "[MOCK]" / "MOCK ·".
 const DEMO = /\[DEMO\b|DEMO ·|Conteúdo de demonstração|MOCK · dados de exemplo|\[MOCK\]|\bMOCK ·/;
 
-export async function rodar({ url, commit, indexavel = false, semConteudoAinda = false, canonical = '', cache = false, icones = false, seguranca = false, timeout = 20000, consecutivas, intervaloMs }) {
+export async function rodar({ url, commit, indexavel = false, semConteudoAinda = false, canonical = '', cache = false, icones = false, seguranca = false, timeout = 20000, consecutivas, intervaloMs, repo }) {
   const base = url.replace(/\/+$/, '');
   const out = [];
   const check = (nome, ok, detalhe = '') => out.push({ nome, ok: Boolean(ok), ...(!ok && detalhe ? { detalhe } : {}) });
+  let flagsEsperadas = null, motivoFlags = '';
+  try { flagsEsperadas = await flagsDoCommit({ repo, commit }); } catch (e) { motivoFlags = String(e?.message ?? e).slice(0, 200); }
   const get = async (p, json = false) => {
     const r = await fetch(base + p, { redirect: 'manual', signal: AbortSignal.timeout(timeout), headers: { 'user-agent': 'ln-smoke-producao/1', accept: json ? 'application/json' : '*/*' } });
     const body = await r.text();
@@ -35,7 +39,15 @@ export async function rodar({ url, commit, indexavel = false, semConteudoAinda =
     const r = est.ultima ?? { status: 0, j: null };
     check(`health: ${cfg.n} resposta(s) 200 seguidas (~${Math.round(((cfg.n - 1) * cfg.intervaloMs) / 1000)} s), status ok, mesma versão` + (commit ? ' e o commit certo' : ''), est.ok, est.problemas.join(' | '));
     check('health: APP_ENV production', r.j?.env === 'production', `env=${r.j?.env}`);
-    check('health: flags ligadas = [] (ADR-022)', Array.isArray(r.j?.flags) && r.j.flags.length === 0, Array.isArray(r.j?.flags) ? `flags=${r.j.flags.join(',')}` : 'campo flags ausente');
+    const ligadas = Array.isArray(r.j?.flags) ? r.j.flags.map(String).sort() : null;
+    const exatas = flagsEsperadas !== null && ligadas !== null && JSON.stringify(ligadas) === JSON.stringify(flagsEsperadas);
+    const diferenca = () => {
+      if (ligadas === null) return 'campo flags ausente';
+      const aMais = ligadas.filter((f) => !flagsEsperadas.includes(f)), aMenos = flagsEsperadas.filter((f) => !ligadas.includes(f));
+      return `flags=${ligadas.join(',')} a mais=[${aMais.join(',')}] a menos=[${aMenos.join(',')}]`;
+    };
+    check(`health: flags ligadas = exatamente as do commit publicado${flagsEsperadas ? ` [${flagsEsperadas.join(',')}]` : ''} (ADR-022, PRODUCTION_FLAGS_ON)`, exatas, flagsEsperadas === null ? motivoFlags : diferenca());
+    check('health: intelligencePessoas desligada em produção (V21-14)', ligadas !== null && !ligadas.includes('intelligencePessoas'), ligadas === null ? 'campo flags ausente' : `flags=${ligadas.join(',')}`);
   });
   await tentar('ready', async () => {
     const r = await get('/api/ready', true);
@@ -124,7 +136,7 @@ export async function rodar({ url, commit, indexavel = false, semConteudoAinda =
     check(`cache: ${v.total} rotas conforme a política (60 s sem pessoas; no-store com pessoas, matéria e sitemap)`, v.violacoes === 0, v.resultados.filter((x) => !x.ok).map((x) => `${x.rota}: ${x.problemas.join('; ')}`).join(' | ').slice(0, 700));
   });
   const falhas = out.filter((c) => !c.ok).length;
-  return { url: base, exigiu: { commit: commit ?? null, indexavel }, total: out.length, falhas, checagens: out };
+  return { url: base, exigiu: { commit: commit ?? null, indexavel, flags: flagsEsperadas }, total: out.length, falhas, checagens: out };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -137,7 +149,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   const canonicalArg = args['expect-canonical'] && args['expect-canonical'] !== true ? String(args['expect-canonical']) : '';
   if (args['expect-canonical'] !== undefined && !/^https:\/\/[a-z0-9.-]+$/.test(canonicalArg.replace(/\/+$/, ''))) { console.error('--expect-canonical exige a URL https do domínio, sem caminho (ex.: https://www.loyaltynews.com.br)'); process.exit(2); }
   const cfgS = configSaude(args);
-  const r = await rodar({ url, commit, indexavel: Boolean(args.indexavel), semConteudoAinda: Boolean(args['sem-conteudo-ainda']), canonical: canonicalArg, cache: Boolean(args['expect-cache']), icones: Boolean(args['expect-icones']), seguranca: Boolean(args['expect-seguranca']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
+  const repo = args.repo && args.repo !== true ? String(args.repo) : undefined;
+  const r = await rodar({ url, repo, commit, indexavel: Boolean(args.indexavel), semConteudoAinda: Boolean(args['sem-conteudo-ainda']), canonical: canonicalArg, cache: Boolean(args['expect-cache']), icones: Boolean(args['expect-icones']), seguranca: Boolean(args['expect-seguranca']), consecutivas: cfgS.n, intervaloMs: cfgS.intervaloMs, timeout: Number(args.timeout ?? 20000) || 20000 });
   console.log(JSON.stringify(r, null, 2));
   process.exit(r.falhas ? 1 : 0);
 }

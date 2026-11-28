@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- corpos JSON das respostas */
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { FLAG_DEFAULTS } from '@ln/contracts';
+import { FLAG_DEFAULTS, resolveFlags } from '@ln/contracts';
 import { sampleArticle } from '@ln/editorial/testing';
 import { draftContentSha256, type ArticleRecord } from '@ln/editorial';
 import { schema } from '@ln/db';
@@ -129,6 +129,32 @@ describe('registro da publicação: portões', () => {
     expect(g.body.error.details.length).toBeGreaterThan(0);
     await nothingPublished('p-gate');
     expect((await store.getArticle('p-draft'))?.status).toBe('em_checagem');
+  });
+});
+
+describe('DP-76: com as flags de produção (por commit), os portões continuam', () => {
+  it('sem sessão 401, só senha MFA_REQUIRED, sem materias:publish 403, sem recibo 409; com MFA, papel e recibo publica', async () => {
+    const antes = app.deps.flags;
+    app.deps.flags = resolveFlags({ APP_ENV: 'production' }).state;
+    try {
+      expect(app.deps.flags.publicacaoPortal).toBe(true);
+      expect(app.deps.flags.publicacaoAutonoma).toBe(false);
+      await seed('p-prod');
+      const publicar = (as?: typeof chefe, over: Record<string, unknown> = {}) => call(d, 'POST', { path: P('p-prod'), body: body('p-prod', over), as });
+      expect((await publicar()).status).toBe(401);
+      for (const papel of ['editor_chefe', 'admin'] as const) {
+        expect((await publicar(await app.passwordOnly(papel))).body.error.code).toBe('MFA_REQUIRED');
+      }
+      for (const as of [editor, revisor]) expect((await publicar(as)).status).toBe(403);
+      const semRecibo = await publicar(chefe, { receiptId: 'rc-nao-existe' });
+      expect(semRecibo.status).toBe(409);
+      expect(semRecibo.body.error.code).toBe('RECEIPT_NOT_FOUND');
+      await nothingPublished('p-prod');
+      expect((await publicar(chefe)).status).toBe(201);
+      expect((await store.getArticle('p-prod'))?.publication?.receiptId).toBe('rc-p-prod');
+    } finally {
+      app.deps.flags = antes;
+    }
   });
 });
 
