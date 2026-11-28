@@ -1,7 +1,7 @@
 # Travas da coleta contínua (28/11/2026)
 
 Base: DP-103 (proprietário: Passageiro de Primeira e Mestre das Milhas voltam; o coletor pode baixar a página), com as condições dos pareceres
-64 e 65 da Security. A entrada da DP-103 em `decisions.yaml` entra pelo 5º ato. Valem **só na coleta contínua** (`COLLECTOR_ALLOWLIST.appliesTo`);
+64 e 65 da Security. A entrada da DP-103 em `decisions.yaml` entra pelo 5º ato; até lá o teste de registro aparece como **pulado** (a DP-59 está inscrita na `main` `c010ceb1` e passa a valer na recomposição). Valem **só na coleta contínua** (`COLLECTOR_ALLOWLIST.appliesTo`);
 fábrica avulsa (inclui o piloto) e pauta autoral seguem como antes.
 
 | Condição | Onde | O que faz |

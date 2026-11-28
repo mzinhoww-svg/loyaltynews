@@ -15,6 +15,7 @@ import { buildAttribution, checkAttribution } from '../rules/rules';
 import { SEED_SOURCES } from '../sources/seed';
 import type { Draft, Source } from '../types';
 import { FakeResolver, MockFetcher, MOCK_PUBLIC_IP } from '../../fixtures/mock-web.mock';
+import { decisaoInscrita } from './decisao-registrada';
 
 const ROOT = resolve(__dirname, '../../../..');
 const HOST = 'www.camara.leg.br';
@@ -36,6 +37,15 @@ function web(itens = 10) {
 const mk = (fetcher: MockFetcher, store: InMemoryEditorialStore, now: () => Date) =>
   new Collector(fetcher, { now, sleep: async () => {}, minSpacingMs: 0, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: { editorialCollector: true }, ...registeredCollectorGuards(store, 'coleta_continua') });
 const T0 = Date.parse('2026-11-28T12:00:00.000Z');
+
+// Guarda de registro: fica PULADO (e visível no relatório) enquanto a decisão citada não tiver entrada em decisions.yaml nesta base.
+test.skipIf(!decisaoInscrita(COLLECTOR_ALLOWLIST.decisionId))(`registro: ${COLLECTOR_ALLOWLIST.decisionId} inscrita em decisions.yaml (pulado = ainda não inscrita; 5º ato)`, () => {
+  assert.ok(decisaoInscrita(COLLECTOR_ALLOWLIST.decisionId));
+});
+test('registro: a conferência reconhece uma decisão inscrita e recusa uma inexistente', () => {
+  assert.equal(decisaoInscrita('DP-29'), true);
+  assert.equal(decisaoInscrita('DP-999'), false);
+});
 
 test('lista permitida: exatamente as cinco fontes da decisão, com o host do cadastro e teto de 6 por hora', () => {
   assert.equal(COLLECTOR_ALLOWLIST.decisionId, 'DP-103');

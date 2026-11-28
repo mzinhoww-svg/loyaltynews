@@ -15,6 +15,7 @@ import { checkAnchoring } from '../rules/rules';
 import { SourceRegistry } from '../sources/registry';
 import { SEED_SOURCES } from '../sources/seed';
 import type { Draft, Evidence, Source } from '../types';
+import { decisaoInscrita } from './decisao-registrada';
 
 const NOW = new Date('2026-11-28T12:00:00Z');
 const HOST = 'passageirodeprimeira.com';
@@ -28,6 +29,10 @@ const draft = (claims: Array<{ kind: 'fact' | 'number' | 'date' | 'quote'; ids: 
   evidenceIds: ids, claims: claims.map((c, i) => ({ id: `c${i}`, kind: c.kind, text: 't', evidenceIds: c.ids })),
 } as unknown as Draft);
 const codes = (d: Draft, evs: Evidence[]) => checkAnchoring(d, evs).findings.map((f) => `${f.code}:${f.claimId ?? ''}`);
+
+test.skipIf(!decisaoInscrita(BLOG_ANCHOR_ALLOWLIST.decisionId))(`registro: ${BLOG_ANCHOR_ALLOWLIST.decisionId} inscrita em decisions.yaml (pulado = não inscrita nesta base)`, () => {
+  assert.ok(decisaoInscrita(BLOG_ANCHOR_ALLOWLIST.decisionId));
+});
 
 test('lista: exatamente os dois blogs da decisão, secundários no cadastro e com o mesmo host', () => {
   assert.equal(BLOG_ANCHOR_ALLOWLIST.decisionId, 'DP-59');
