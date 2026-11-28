@@ -11,15 +11,27 @@ fábrica avulsa (inclui o piloto) e pauta autoral seguem como antes.
 | Poucas páginas | `StoreHostBudget`, `reserveRead` | Teto 6/h por host (o cadastro não aumenta), no banco, contando robots, feed, páginas e redirecionamentos. Contador fora do ar: nada sai. |
 | Parar em 403/429 | idem | A rodada da fonte para e o host fica em pausa por 24 h em todas as instâncias (`collector.host_paused`). |
 | Autoria | `collector/author.ts` | Só a visível na matéria; comentário, menu e rodapé não valem; na dúvida, sem autor. Bloco "Fontes:": "Agência Câmara (Câmara dos Deputados)". |
-| Texto bruto com prazo | `factory/raw-text.ts` | Itens só da caixa de pautas: texto e links apagados após **7 dias** (prazo a confirmar pelo PM), a cada rodada. Fica no banco; não há escrita em arquivo, Git ou pacote. |
-| Retirada | `withdrawCollected` | Apaga já texto, título e autor por fonte ou endereço. Parar a fonte: desabilitar no Studio. Ainda sem tela ou comando. |
+| Texto bruto com prazo | `factory/raw-text.ts` | Itens só da caixa de pautas: texto e links apagados após **7 dias** (confirmado pelo PM em 28/11), a cada rodada. Fica no banco; não há escrita em arquivo, Git ou pacote. |
+| Retirada | `editorial-withdraw` (abaixo) | Apaga já texto, título e autor por fonte ou endereço. Parar a fonte: desabilitar no Studio. Sem tela (aceito pelo PM por ora). |
 | Sem imagem, link | já existentes | O coletor não baixa imagem; a atribuição leva o endereço. |
+
+## Parar uma fonte e atender uma retirada
+
+| Passo | Quem | Como |
+|---|---|---|
+| 1. Parar a coleta | pessoa com conta de administrador no Studio | desabilitar a fonte no cadastro das fontes da Fábrica; vale antes de a próxima rodada ler aquela fonte |
+| 2. Contar o que será apagado | operador de DevOps, a pedido do PM | em `apps/workers`: `npm run build:withdraw -w @ln/workers` e `node dist/editorial-withdraw.js --fonte <id>` (ou `--url <endereço>`), com `DATABASE_URL` do ambiente |
+| 3. Apagar | o mesmo operador; em produção, só com autorização registrada | repetir com `--confirmar`; fica a linha `collector.raw_text_removed` na trilha |
+| 4. Matéria já redigida ou publicada | redação | fluxo de correção do Studio; o comando não a alcança |
+
+O comando nunca roda sozinho. A credencial do banco vem do cofre pelo operador e não é impressa. Ainda não foi executado contra um banco real, e o pipeline de implantação
+não o inclui (não alterei `.github/`).
 
 ## O que NÃO está coberto
 
 - **Texto próprio e confirmação no programa** são da redação: a coleta contínua não redige nem confirma. A DP-59 permite o blog como âncora principal, mas a
   regra `needs_primary_anchor` (`rules.ts`) ainda exige fonte primária; não foi alterada.
 - As cinco fontes continuam desligadas no cadastro: cada uma precisa da revisão no Studio (inclui "paywall"), por uma pessoa.
-- O prazo do texto não alcança matéria já redigida, itens com a coleta desligada, cópias de segurança do banco nem a fábrica avulsa.
+- **O prazo e a retirada não alcançam matéria já redigida nem cópias de segurança (backups) do banco.** O prazo também não roda com a coleta desligada nem alcança a fábrica avulsa.
 - Pedidos da fábrica e da pauta autoral não entram no contador.
 - Duas conexões reais ao PostgreSQL não foram testadas (só PGlite).

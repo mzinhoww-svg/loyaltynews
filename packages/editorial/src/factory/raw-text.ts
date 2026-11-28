@@ -12,7 +12,7 @@ export const RAW_TEXT_ACTION = 'collector.raw_text_removed';
 
 const inboxOnly = (a: ArticleRecord): boolean => a.status === 'rascunho' && !a.draft && a.findings.some((f) => f.code === INBOX_FINDING);
 
-async function strip(store: EditorialStore, now: Date, match: (e: Evidence) => boolean, dropTitle: boolean, why: string): Promise<number> {
+async function strip(store: EditorialStore, now: Date, match: (e: Evidence) => boolean, dropTitle: boolean, why: string, dryRun = false): Promise<number> {
   let removed = 0;
   for (const a of await store.listArticles()) {
     if (!inboxOnly(a)) continue;
@@ -27,10 +27,11 @@ async function strip(store: EditorialStore, now: Date, match: (e: Evidence) => b
     });
     if (!touched) continue;
     removed += touched;
+    if (dryRun) continue;
     const findings = [...a.findings.filter((f) => f.code !== 'texto_bruto_apagado'), { code: 'texto_bruto_apagado', message: why }];
     await store.putArticle({ ...a, evidences, findings, updatedAt: now.toISOString() });
   }
-  if (removed) await store.appendAudit({ at: now.toISOString(), userId: null, action: RAW_TEXT_ACTION, target: 'collector', detail: `${why}; evidências: ${removed}` });
+  if (removed && !dryRun) await store.appendAudit({ at: now.toISOString(), userId: null, action: RAW_TEXT_ACTION, target: 'collector', detail: `${why}; evidências: ${removed}` });
   return removed;
 }
 
@@ -41,7 +42,7 @@ export function purgeRawText(store: EditorialStore, now: Date, days: number = RA
 }
 
 /** Pedido de retirada: apaga já o texto, os links, o título e o autor dos itens da caixa de uma fonte ou de um endereço. */
-export async function withdrawCollected(store: EditorialStore, now: Date, what: { sourceId: string } | { url: string }): Promise<number> {
+export async function withdrawCollected(store: EditorialStore, now: Date, what: { sourceId: string } | { url: string }, opts: { dryRun?: boolean } = {}): Promise<number> {
   const match = 'sourceId' in what ? (e: Evidence) => e.sourceId === what.sourceId : (e: Evidence) => e.url === what.url || e.canonicalUrl === what.url;
-  return strip(store, now, match, true, 'pedido de retirada');
+  return strip(store, now, match, true, 'pedido de retirada', opts.dryRun === true);
 }
