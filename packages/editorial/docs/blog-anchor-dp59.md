@@ -11,6 +11,9 @@ Outro blog só entra por decisão registrada e commit revisado.
 | O prompt ganha a regra 7 (versão registrada `editorial-0.3+dp59`) | Não reproduzir: limite de cópia de fonte secundária |
 | | Citação entre aspas pede fonte primária; matéria autoral pede 2 fontes primárias |
 
+Cópia no título (parecer 70, PM 28/11): vale o mesmo limite do corpo (8 palavras seguidas; 6 em fonte secundária) contra o texto e o título da fonte, além de título igual ao dela
+com 4 palavras ou mais. Isso alcança também fonte oficial: o título precisa ser próprio.
+
 Regras automáticas (parecer 68): nada entre aspas sem fonte primária que contenha o trecho; quando só o blog ancora, o nome dele precisa estar no texto; sem página oficial, ou com
 página linkada que não pôde ser lida, a matéria leva o achado `blog_unconfirmed` para a revisão. A fábrica lê esses blogs só com as travas de `collector/restricted.ts`.
 

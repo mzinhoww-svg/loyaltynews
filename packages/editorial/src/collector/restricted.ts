@@ -3,13 +3,22 @@
  * fast-track\decisoes\decisao-pm-travas-fora-da-coleta-20261128.md). Não há opção para desligar. Valem por id e por domínio
  * (com subdomínios), para trocar o nome ou o endereço no cadastro não abrir caminho.
  */
-interface SourceGroup { decisionId: string; ids: readonly string[]; domains: readonly string[] }
+interface SourceGroup {
+  /** Autoridade citada: a decisão inscrita (ou a inscrever) em decisions.yaml. */
+  decisionId: string;
+  /** Documento onde está a escolha desta lista. */
+  record: string;
+  ids: readonly string[]; domains: readonly string[];
+}
 
 /** Fontes cujos termos não permitem o uso (pareceres 55 e 63): nunca são lidas. */
 export const EXCLUDED_SOURCES: SourceGroup = Object.freeze({
+  // a DP-69 é a delegação ao PM (publicação e jurídico); a escolha das fontes não tem número próprio e está no documento abaixo
   decisionId: 'DP-69',
+  record: 'fast-track/decisoes/decisao-pm-travas-fora-da-coleta-20261128.md',
   ids: Object.freeze(['skift', 'cathay', 'iata', 'bain']),
-  domains: Object.freeze(['skift.com', 'cathaypacific.com', 'cathay.com', 'iata.org', 'bain.com', 'netpromotersystem.com']),
+  // asiamiles.com (programa da Cathay) e bain.com.br: PM, 28/11, sobre o parecer 70
+  domains: Object.freeze(['skift.com', 'cathaypacific.com', 'cathay.com', 'asiamiles.com', 'iata.org', 'bain.com', 'bain.com.br', 'netpromotersystem.com']),
 });
 
 /**
@@ -18,6 +27,7 @@ export const EXCLUDED_SOURCES: SourceGroup = Object.freeze({
  */
 export const RESTRICTED_BLOGS: SourceGroup & { maxPerHour: number } = Object.freeze({
   decisionId: 'DP-103',
+  record: 'r0-preparacao/decisoes-proprietario-2026-11-22.md (DP-103)',
   ids: Object.freeze(['passageiro-de-primeira', 'mestre-das-milhas']),
   domains: Object.freeze(['passageirodeprimeira.com', 'mestredasmilhas.com']),
   maxPerHour: 6,

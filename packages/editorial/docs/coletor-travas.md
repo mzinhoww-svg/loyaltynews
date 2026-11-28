@@ -17,11 +17,26 @@ fábrica avulsa (inclui o piloto) e pauta autoral seguem como antes.
 
 ## Em TODOS os usos (coleta contínua, fábrica, pauta autoral)
 
-`collector/restricted.ts`, sem opção de desligar (PM, 28/11, parecer 68):
+`collector/restricted.ts`, sem opção de desligar (PM, 28/11, parecer 68; escolha em `fast-track\decisoes\decisao-pm-travas-fora-da-coleta-20261128.md`, sob a delegação da DP-69, sem número próprio):
 
-- Skift, Cathay, IATA e Bain: nenhuma requisição, por id ou domínio.
+- Skift, Cathay (inclusive asiamiles.com), IATA e Bain (inclusive bain.com.br): nenhuma requisição, por id ou domínio.
 - Passageiro de Primeira e Mestre das Milhas: só o coletor direto, com o próprio nome, sem sombra, 6/h e pausa no banco; sem contador persistente não são lidos.
 - As demais fontes da fábrica e da pauta autoral seguem como antes. Outros caminhos de rede (ex.: releitura de diretoria, desligada por flag) não passam por estas regras.
+
+## Conteúdo já guardado ou importado: as travas NÃO alcançam
+
+As travas valem para **leitura nova**. Evidência que já está no banco (caixa de pautas, matéria redigida ou publicada), medições da sombra e arquivos de pacote do
+piloto, inclusive de fonte excluída, não são barrados nem apagados por este código.
+
+Proposta (PM, prazo 02/12; ainda não implementada, pede decisão):
+
+| Onde está | Como tratar | Quem |
+|---|---|---|
+| Caixa de pautas | antes de ir à produção e no staging após o piloto: `editorial-withdraw --fonte <id>` para cada fonte excluída (contar, depois confirmar) | operador de DevOps, a pedido do PM |
+| Matéria com evidência de fonte excluída, ainda não publicada | trava determinística nova: achado `excluded_source` que impede aprovar e publicar quando alguma evidência usada é de fonte excluída | Editorial implementa; QA e Security revisam |
+| Matéria já publicada | listar pelo domínio das evidências e tratar pelo fluxo de correção ou despublicação do Studio | redação; PM decide |
+| Pacote do piloto e arquivos em disco | não importar item de fonte excluída; marcar no índice do pacote; o caminho de importação não está neste repositório e precisa ser confirmado | DevOps e Editorial |
+| Cópias de segurança do banco | fora do alcance; registrar o prazo de retenção delas | DevOps |
 
 ## Parar uma fonte e atender uma retirada
 

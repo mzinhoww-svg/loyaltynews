@@ -151,6 +151,13 @@ export function checkOriginality(d: Draft, evidences: Evidence[]): CheckResult {
     for (const [label, txt] of [['resumo', d.resumo], ['subtitulo', d.subtitulo]] as const) {
       if (txt && longestCommonRun(words(txt), ew) >= runLimit) out.push(f('copy_literal', `${label} copia trecho da fonte ${e.sourceId}`));
     }
+    // título (parecer 70): contra o texto e contra o título da fonte, com o mesmo limite do corpo; igual ao título dela, com 4
+    // palavras ou mais, também é cópia
+    const hw = words(d.headline ?? '');
+    const tw = words(e.title);
+    if (Math.max(longestCommonRun(hw, ew), longestCommonRun(hw, tw)) >= runLimit || (hw.length >= 4 && hw.join(' ') === tw.join(' '))) {
+      out.push(f('copy_literal', `titulo copia trecho da fonte ${e.sourceId}`));
+    }
     const run = longestCommonRun(bw, ew);
     if (run >= runLimit) out.push(f('copy_literal', `${run} palavras consecutivas idênticas à fonte ${e.sourceId}`));
     const set = new Set<string>();

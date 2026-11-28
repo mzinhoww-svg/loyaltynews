@@ -11,7 +11,7 @@ import { BLOG_ANCHOR_RULE, buildMessages } from '../factory/prompts';
 import { runFactory } from '../factory/run';
 import { InMemoryAuditLog } from '../pipeline/stages';
 import { BLOG_ANCHOR_ALLOWLIST, isPermittedBlogAnchor } from '../rules/blog-anchor';
-import { checkAnchoring } from '../rules/rules';
+import { checkAnchoring, checkOriginality } from '../rules/rules';
 import { registeredCollectorGuards } from '../factory/read-budget';
 import { SourceRegistry } from '../sources/registry';
 import { SEED_SOURCES } from '../sources/seed';
@@ -75,6 +75,19 @@ test('aspas: trecho de fonte secundária entre aspas é barrado mesmo com a aleg
   assert.deepEqual(codes(noTitulo, [b]), ['quote_from_secondary:']);
   const p = { ...oficial('p'), text: `Comunicado: ${frase}.` };
   assert.deepEqual(codes(draft([], ['b', 'p'], `O programa informa que "${frase}".`), [b, p]), []);
+});
+
+test('título: copiado do blog sem aspas é barrado, pelo texto ou pelo título da fonte; título próprio passa', () => {
+  const b = ev('b', { title: 'Programa muda regra de transferência', text: 'Segundo apurado, o programa vai dobrar os pontos de quem transferir até domingo.' });
+  const copia = (headline: string) => checkOriginality({ headline, body: 'Texto próprio.', evidenceIds: ['b'] } as unknown as Draft, [b]).findings.map((f) => f.message);
+  assert.deepEqual(copia('Programa muda regra de transferência'), ['titulo copia trecho da fonte passageiro-de-primeira'], 'igual ao título da fonte');
+  assert.deepEqual(copia('Programa vai dobrar os pontos de quem transferir'), ['titulo copia trecho da fonte passageiro-de-primeira'], 'seis palavras seguidas do texto');
+  assert.deepEqual(copia('Transferência bonificada: o que muda para os pontos'), []);
+  const p = { ...oficial('p'), title: 'Associação publica guia de boas práticas para programas de fidelidade', text: 'Texto oficial sobre outro assunto.' };
+  const primaria = (headline: string) => checkOriginality({ headline, body: 'Texto próprio.', evidenceIds: ['p'] } as unknown as Draft, [p]).findings.length;
+  assert.equal(primaria('Associação publica guia de boas práticas para programas hoje'), 1, 'oito palavras seguidas do título oficial');
+  assert.equal(primaria('Associação publica guia de boas práticas para fidelidade'), 0, 'sete ficam abaixo do limite da fonte primária');
+  assert.equal(primaria('Guia novo reúne orientações para quem tem programa de fidelidade'), 0, 'título próprio passa');
 });
 
 test('nome do blog: quando só ele ancora, o texto precisa dizer o nome dele', () => {
