@@ -161,7 +161,7 @@ test.describe('CMS: despublicar e ID da evidência', () => {
     await expect(page.locator('main .st-alert.ok')).toContainText('Matéria despublicada.');
     expect(page.url()).not.toContain('Pedido');
     await expect(page.locator('.ln-pill', { hasText: 'Despublicado' }).first()).toBeVisible();
-    await expect(page.locator('aside')).toContainText(NOTA);
+    await expect(page.getByRole('complementary', { name: 'Revisão' }), 'a nota aparece no histórico da matéria').toContainText(NOTA);
     await expect(abrir(page)).toHaveCount(0);
     await expect(confirmar(page)).toHaveCount(0);
     await axe(page, 'despublicada');
