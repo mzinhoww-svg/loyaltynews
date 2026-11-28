@@ -4,7 +4,7 @@ import { eligibility } from '../sources/registry';
 import { canonicalUrl, sha256 } from '../dedupe/dedupe';
 import { allowedEntry, isAllowedSource } from './allowlist';
 import type { CollectorAllowlist } from './allowlist';
-import { extractAuthor } from './author';
+import { EXCLUDED_SOURCES, isExcludedSource, isRestrictedBlog, RESTRICTED_BLOGS } from './restricted';
 import { assertAllowedUrl, UrlRejected } from './ssrf';
 import { isAllowedByRobots, parseRobots } from './robots';
 import { detectGate } from './paywall';
@@ -177,6 +177,8 @@ export interface CollectorOptions {
    * uma vaga do host antes de sair, com `maxRequestsPerHour` da fonte. Falha do contador = não requisita. Os workers sempre passam.
    */
   hostBudget?: ReadBudget;
+  /** Contador persistente só dos blogs com restrição (restricted.ts), para os usos sem `hostBudget`. Sem nenhum dos dois, eles não são lidos. */
+  restrictedBudget?: ReadBudget;
   /** DP-31: intervalo mínimo entre leituras do mesmo host (ms). Padrão 10000 (mínimo do proprietário). */
   dp31SpacingMs?: number;
   /** DP-31: páginas por host em 24 h ("poucas por dia"). Padrão 5; acima disso, 'rate_limited'. */
@@ -226,6 +228,7 @@ export class Collector {
   private readonly readBudget: ReadBudget;
   private readonly allowlist: CollectorAllowlist | undefined;
   private readonly hostBudget: ReadBudget | undefined;
+  private readonly restrictedBudget: ReadBudget | undefined;
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
   private readonly hourWindow = new Map<string, number[]>();
@@ -246,6 +249,7 @@ export class Collector {
     this.readBudget = opts.readBudget ?? new MemoryReadBudget();
     this.allowlist = opts.allowlist;
     this.hostBudget = opts.hostBudget;
+    this.restrictedBudget = opts.restrictedBudget;
     this.dp31SpacingMs = opts.dp31SpacingMs ?? 10_000;
     this.dp31MaxPagesPerDay = opts.dp31MaxPagesPerDay ?? 5;
     this.dp31MaxStoredChars = opts.dp31MaxStoredChars ?? 1500;
@@ -256,16 +260,37 @@ export class Collector {
 
   /** Motivo de recusa quando a trava está ligada e a fonte (id E host) não está nela. */
   private notAllowed(source: Source): string | null {
+    if (isExcludedSource(source)) return `fonte excluída por termos (decisão ${EXCLUDED_SOURCES.decisionId}): não é lida em nenhum uso`;
+    if (isRestrictedBlog(source)) {
+      if (source.acesso === ACESSO_VIA_PROVEDOR) return `leitura por provedor não permitida para este blog (decisão ${RESTRICTED_BLOGS.decisionId}): só o coletor direto`;
+      if (!this.budgetFor(source)) return `blog só é lido com contador persistente (decisão ${RESTRICTED_BLOGS.decisionId})`;
+    }
     if (!this.allowlist) return null;
     if (!isAllowedSource(source, this.allowlist)) return `fora da lista permitida (decisão ${this.allowlist.decisionId}, ${this.allowlist.decidedOn})`;
     if (source.acesso === ACESSO_VIA_PROVEDOR) return `leitura por provedor não permitida (decisão ${this.allowlist.decisionId}): só o coletor direto`;
     return null;
   }
 
+  /** O site recusou (403, 429 ou desafio contra robô): pausa persistente do host. Falha ao gravar não muda a resposta. */
+  private async pauseHost(source: Source): Promise<void> {
+    try { await this.budgetFor(source)?.pause?.(source.host.toLowerCase(), this.now().getTime()); } catch { /* o StopGuard ainda para esta rodada */ }
+  }
+
+  /** Contador persistente que vale para a fonte: o geral (lista permitida) ou, nos blogs com restrição, o deles. */
+  private budgetFor(source: Source): ReadBudget | undefined {
+    return this.hostBudget ?? (isRestrictedBlog(source) ? this.restrictedBudget : undefined);
+  }
+
+  /** Nome com que o coletor se apresenta: nos blogs com restrição, sempre o próprio. */
+  private uaFor(source: Source): string {
+    return isRestrictedBlog(source) ? USER_AGENT : this.ua;
+  }
+
   /** Teto por hora que vale: o do cadastro ou o da lista permitida, o que for menor. */
   private hourlyCap(source: Source): number {
     const entry = this.allowlist ? allowedEntry(source, this.allowlist) : undefined;
-    return entry ? Math.min(source.maxRequestsPerHour, entry.maxPerHour) : source.maxRequestsPerHour;
+    const cap = entry ? Math.min(source.maxRequestsPerHour, entry.maxPerHour) : source.maxRequestsPerHour;
+    return isRestrictedBlog(source) ? Math.min(cap, RESTRICTED_BLOGS.maxPerHour) : cap;
   }
 
   /**
@@ -328,20 +353,19 @@ export class Collector {
       const refused = this.notAllowed(source);
       if (refused) throw new UrlRejected('source_not_allowed', refused);
       const hostKey = source.host.toLowerCase();
-      if (this.hostBudget) {
+      const budget = this.budgetFor(source);
+      if (budget) {
         const cap = this.hourlyCap(source);
         let slot: { allowed: boolean };
-        try { slot = await this.hostBudget.reserve(hostKey, this.now().getTime(), cap, 3_600_000, 0); } catch {
+        try { slot = await budget.reserve(hostKey, this.now().getTime(), cap, 3_600_000, 0); } catch {
           throw new UrlRejected('rate_limited', `contador de requisições indisponível para ${hostKey}: nada sai`);
         }
         if (!slot.allowed) throw new UrlRejected('rate_limited', `limite de ${cap} requisições/hora ou pausa por recusa do site: ${hostKey} (contador persistente)`);
       }
-      const r = await this.fetcher.get(cur, { userAgent: this.ua, address: pinned.address, family: pinned.family });
+      const r = await this.fetcher.get(cur, { userAgent: this.uaFor(source), address: pinned.address, family: pinned.family });
       this.record(source.host);
-      if ((r.status === 403 || r.status === 429) && this.hostBudget?.pause) {
-        // a coleta desta rodada já para por causa do status; a pausa segura as próximas. Falha ao gravar não muda a resposta
-        try { await this.hostBudget.pause(hostKey, this.now().getTime()); } catch { /* o StopGuard ainda para esta rodada */ }
-      }
+      // a coleta desta rodada já para por causa do status; a pausa segura as próximas
+      if (r.status === 403 || r.status === 429) await this.pauseHost(source);
       if (r.status >= 300 && r.status < 400 && r.headers['location']) {
         cur = new URL(r.headers['location'], cur).toString();
         continue;
@@ -360,9 +384,11 @@ export class Collector {
       if (r.status === 200) {
         // 200 com HTML ou desafio no lugar do robots.txt não é "sem restrição": é falha de leitura (fail closed).
         const html = /<\s*(html|head|body|!doctype)/i.test(r.body.slice(0, 1000));
-        rules = html || detectChallenge({ status: 200, headers: r.headers, html: r.body, text: r.body }) ? null : parseRobots(r.body, this.ua);
+        const challenge = detectChallenge({ status: 200, headers: r.headers, html: r.body, text: r.body });
+        if (challenge) await this.pauseHost(source);
+        rules = html || challenge ? null : parseRobots(r.body, this.uaFor(source));
       }
-      else if (r.status === 404) rules = parseRobots('', this.ua); // sem robots = sem restrição (decide pelo módulo comum)
+      else if (r.status === 404) rules = parseRobots('', this.uaFor(source)); // sem robots = sem restrição (decide pelo módulo comum)
       else rules = null; // 401/403/5xx: tratar como indisponível => não coletar (fail closed)
     } catch (e) {
       // teto por hora: não é falha do robots.txt; não guarda no cache, para a próxima janela poder ler
@@ -392,15 +418,15 @@ export class Collector {
     let r: HttpResponse;
     const t0 = Date.now();
     try { r = await this.safeGet(u.toString(), source); } catch (e) {
-      this.notifyDirect({ url, sourceId: source.id, status: 0, ms: Date.now() - t0 });
+      this.notifyDirect({ url, sourceId: source.id, status: 0, ms: Date.now() - t0 }, source);
       return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } };
     }
-    this.notifyDirect({ url, sourceId: source.id, status: r.status, body: r.body, ms: Date.now() - t0 });
+    this.notifyDirect({ url, sourceId: source.id, status: r.status, body: r.body, ms: Date.now() - t0 }, source);
     // Ordem importa: 429 e erros HTTP vêm ANTES de paywall/desafio (uma página de erro com "faça login" não pode esconder o 429 e manter a coleta insistindo).
     if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
     if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
     const chal = detectChallenge({ status: r.status, headers: r.headers, html: r.body, text: stripHtml(r.body) });
-    if (chal) return { skip: { url, code: 'challenge', detail: chal } };
+    if (chal) { await this.pauseHost(source); return { skip: { url, code: 'challenge', detail: chal } }; }
     const gate = detectGate(r);
     if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
     if (r.body.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(r.body.length) } };
@@ -408,8 +434,9 @@ export class Collector {
   }
 
   /** Aviso ao observador (shadow). Nunca lança e nunca é aguardado: o coletor não depende dele. */
-  private notifyDirect(e: DirectReadEvent): void {
-    if (!this.onDirectRead) return;
+  private notifyDirect(e: DirectReadEvent, source: Source): void {
+    // a sombra releria a página por outros provedores: nunca para os blogs com restrição
+    if (!this.onDirectRead || isRestrictedBlog(source)) return;
     try { this.onDirectRead(e); } catch { /* medição não pode afetar a coleta */ }
   }
 
@@ -428,14 +455,12 @@ export class Collector {
     try { canon = canonicalUrl(meta.canonical ? new URL(meta.canonical, u).toString() : u.toString()); } catch { canon = canonicalUrl(u.toString()); }
     const hash = sha256(r.body);
     const fetchedAt = this.now().toISOString();
-    const author = extractAuthor(source.id, r.body);
     const evidence: Evidence = {
       id: `ev_${hash.slice(0, 16)}`, sourceId: source.id, url: u.toString(), canonicalUrl: canon, fetchedAt,
       contentSha256: hash, title: meta.title || hint?.title || '', text: san.text,
       publishedAt: meta.publishedAt ?? hint?.publishedAt ?? null,
       suspicious: san.suspicious, suspiciousReasons: san.reasons,
       sourceTier: sourceTier(source.kind),
-      ...(author ? { author } : {}),
       ...(meta.links.length ? { outboundLinks: meta.links } : {}),
       ...(dp31 ? { acesso: ACESSO_VIA_PROVEDOR } : {}),
     };
@@ -656,7 +681,7 @@ export class Collector {
         }
       }
       const chal = detectChallenge({ status: r.status, headers: r.headers, html: r.body, text: stripHtml(r.body) });
-      if (chal) return { skip: { url, code: 'challenge', detail: chal } };
+      if (chal) { await this.pauseHost(source); return { skip: { url, code: 'challenge', detail: chal } }; }
       const gate = detectGate(r);
       if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
       return { body: r.body };

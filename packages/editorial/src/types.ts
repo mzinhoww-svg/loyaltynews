@@ -101,8 +101,6 @@ export interface Evidence {
   title: string;
   text: string;            // texto saneado (sem HTML/script)
   publishedAt: string | null;
-  /** Autoria declarada pela fonte (hoje só a Câmara); vai para o bloco "Fontes:". */
-  author?: string;
   suspicious: boolean;     // instrução embutida detectada
   suspiciousReasons: string[];
   /** Nível da fonte no momento da coleta (ausente = primary, como nas evidências anteriores à DP-29). */

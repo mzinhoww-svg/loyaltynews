@@ -182,7 +182,7 @@ function parseClaims(x: unknown): Claim[] | null {
 
 const FINDING_TO_BLOCKER: Record<string, BlockerCode> = {
   copy_literal: 'copy_literal', rights_basis_unresolved: 'rights_basis_unresolved', suspicious_evidence: 'suspicious_evidence',
-  needs_primary_anchor: 'unanchored', unanchored_claim: 'unanchored',
+  needs_primary_anchor: 'unanchored', unanchored_claim: 'unanchored', quote_from_secondary: 'unanchored', blog_attribution_missing: 'unanchored',
   autoral_needs_anchors: 'autoral_invalid', autoral_label_missing: 'autoral_invalid', autoral_wrong_type: 'autoral_invalid', autoral_quote: 'autoral_invalid',
 };
 const blockerOf = (code: string): BlockerCode => FINDING_TO_BLOCKER[code] ?? (code.startsWith('tone_') ? 'tone_lint' : 'unsupported_claim');

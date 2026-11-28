@@ -55,7 +55,7 @@ export class StoreHostBudget implements ReadBudget {
 
 /**
  * O que um coletor de worker recebe, conforme a decisão vigente: nos usos listados em `appliesTo`, a trava das fontes e o teto por
- * hora no banco; nos outros, nada (comportamento anterior).
+ * hora no banco; nos outros, só o contador dos blogs com restrição (as fontes excluídas o coletor recusa sempre: restricted.ts).
  */
-export const registeredCollectorGuards = (store: EditorialStore, use: CollectorUse, list: CollectorAllowlist = COLLECTOR_ALLOWLIST): { allowlist?: CollectorAllowlist; hostBudget?: ReadBudget } =>
-  list.appliesTo.includes(use) ? { allowlist: list, hostBudget: new StoreHostBudget(store) } : {};
+export const registeredCollectorGuards = (store: EditorialStore, use: CollectorUse, list: CollectorAllowlist = COLLECTOR_ALLOWLIST): { allowlist?: CollectorAllowlist; hostBudget?: ReadBudget; restrictedBudget?: ReadBudget } =>
+  list.appliesTo.includes(use) ? { allowlist: list, hostBudget: new StoreHostBudget(store) } : { restrictedBudget: new StoreHostBudget(store) };

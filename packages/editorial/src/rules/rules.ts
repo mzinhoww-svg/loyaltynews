@@ -1,5 +1,5 @@
 import { attributionNameOf } from '../collector/allowlist';
-import { isPermittedBlogAnchor } from './blog-anchor';
+import { BLOG_ANCHOR_ALLOWLIST, isPermittedBlogAnchor } from './blog-anchor';
 import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types';
 import { SIGNATURE } from '../types';
 import { normalizeText } from '../dedupe/dedupe';
@@ -167,8 +167,7 @@ export function buildAttribution(evidences: Evidence[], sources: Source[]): stri
   const lines = evidences.map((e) => {
     const s = sources.find((x) => x.id === e.sourceId);
     const name = attributionNameOf(e.sourceId) ?? s?.name ?? e.sourceId;
-    const author = e.author ? `, reportagem de ${e.author}` : '';
-    return `- ${name}${author}: ${e.canonicalUrl} (acessado em ${e.fetchedAt.slice(0, 10)})`;
+    return `- ${name}: ${e.canonicalUrl} (acessado em ${e.fetchedAt.slice(0, 10)})`;
   });
   return `Fontes:\n${lines.join('\n')}`;
 }
@@ -278,11 +277,30 @@ export function checkNotices(d: Draft, expected: readonly string[]): CheckResult
  * autorizado por decisão (DP-59, `blog-anchor.ts`). Número e data precisam de evidência que ancore; citação entre aspas continua
  * exigindo evidência primária (não reproduzir).
  */
+/** Trechos entre aspas (as mesmas que o gate de originalidade deixa de comparar, e « ») no título, resumo, subtítulo e corpo. */
+function quotedParts(d: Draft): string[] {
+  const text = [d.headline ?? '', d.resumo ?? '', d.subtitulo ?? '', mainBody(d.body ?? '')].join('\n\n');
+  return [...text.matchAll(/["“]([^"”]*)["”]|«([^»]*)»/g)].map((m) => normalizeText(m[1] ?? m[2] ?? '')).filter(Boolean);
+}
+
 export function checkAnchoring(d: Draft, evidences: Evidence[]): CheckResult {
   const out: Finding[] = [];
   const byId = new Map(evidences.map((e) => [e.id, e]));
   const used = d.evidenceIds.map((i) => byId.get(i)).filter((e): e is Evidence => !!e);
   if (!used.some(isSecondary)) return result(out);
+  // Nada entre aspas vindo de fonte secundária: usando blog, todo trecho entre aspas precisa constar numa evidência primária
+  const primaryText = normalizeText(evidenceText(used.filter((e) => !isSecondary(e))));
+  for (const quoted of quotedParts(d)) {
+    if (!primaryText.includes(quoted)) out.push(f('quote_from_secondary', `trecho entre aspas sem fonte primária que o contenha (matéria usa fonte secundária): "${quoted.slice(0, 40)}"`));
+  }
+  // só o blog ancora: o nome dele precisa estar no texto
+  if (!used.some((e) => !isSecondary(e))) {
+    const body = ` ${normalizeText(mainBody(d.body ?? ''))} `;
+    for (const e of used.filter((x) => isPermittedBlogAnchor(x))) {
+      const name = BLOG_ANCHOR_ALLOWLIST.sources.find((x) => x.id === e.sourceId)!.name;
+      if (!body.includes(` ${normalizeText(name)} `)) out.push(f('blog_attribution_missing', `matéria ancorada só em blog precisa atribuir no texto: "segundo o ${name}"`));
+    }
+  }
   const anchors = (e: Evidence): boolean => !isSecondary(e) || isPermittedBlogAnchor(e);
   if (!used.some(anchors)) out.push(f('needs_primary_anchor', 'matéria só com fonte secundária sem autorização para ancorar (blog/imprensa de nicho): falta evidência de fonte primária que confirme os fatos'));
   for (const c of d.claims) {

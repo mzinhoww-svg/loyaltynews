@@ -13,6 +13,7 @@ import { collectFromSources } from './collect';
 import { anchorEvidences } from './anchor';
 import type { CollectOutcome, SourceCollectReport } from './collect';
 import { isPermittedBlogAnchor } from '../rules/blog-anchor';
+import type { Finding } from '../types';
 
 /**
  * Fábrica ponta a ponta até a APROVAÇÃO: coleta (fontes habilitadas) → triagem → contexto → redação → checagem em provedor
@@ -95,6 +96,8 @@ export async function runFactory(deps: FactoryDeps, opts: FactoryOptions = {}): 
       return out;
     };
     const job: ArticleJob = { articleId: item.articleId, editoria: item.editoria, evidences: [item.evidence], attempt: 0 };
+    /** Aviso para a revisão (não bloqueia): blog autorizado sem confirmação oficial, ou com página oficial que não pôde ser lida. */
+    let unconfirmed: Finding | null = null;
     if (item.evidence.sourceTier === 'secondary') {
       // DP-29: blog é pista. Sem âncora em fonte primária habilitada, a matéria não segue (nem gasta modelo), salvo DP-59.
       const anc = await anchorEvidences(deps.collector, collected.effective, item.evidence);
@@ -109,9 +112,20 @@ export async function runFactory(deps: FactoryDeps, opts: FactoryOptions = {}): 
         await deps.store.appendAudit({ at: now().toISOString(), userId: null, action: 'factory.article', target: item.articleId, detail: `${row.status}; sem âncora primária` });
         continue;
       }
+      const unread = anc.considered - anc.anchors.length;
+      if (isPermittedBlogAnchor(item.evidence) && (!anc.anchors.length || unread > 0)) {
+        unconfirmed = { code: 'blog_unconfirmed', message: unread > 0
+          ? `${unread} página(s) oficial(is) linkada(s) pelo blog não puderam ser lidas (${anc.skipped.map((k) => k.code).join(',') || 'sem evidência'}): confirmar antes de publicar`
+          : 'sem página oficial linkada em fonte habilitada: confirmar no programa antes de publicar' };
+      }
     }
     await queue.enqueue({ stage: 'triage', jobId: `${item.articleId}:triage:0`, data: job });
     await queue.drain(persisting);
+    if (unconfirmed) {
+      const rec = await deps.store.getArticle(item.articleId);
+      if (rec) await deps.store.putArticle({ ...rec, findings: [...rec.findings, unconfirmed] });
+      row.findings = [...row.findings, `${unconfirmed.code}: ${unconfirmed.message}`];
+    }
     await deps.store.appendAudit({ at: now().toISOString(), userId: null, action: 'factory.article', target: item.articleId, detail: `${row.status}; estágios: ${row.stages.join('>')}` });
   }
   await deps.store.appendAudit({ at: now().toISOString(), userId: null, action: 'factory.run', target: 'factory', detail: `${report.articles.length} matérias; parada: ${report.haltedBy ?? 'não'}` });

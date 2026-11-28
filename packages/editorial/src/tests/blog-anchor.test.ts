@@ -12,6 +12,7 @@ import { runFactory } from '../factory/run';
 import { InMemoryAuditLog } from '../pipeline/stages';
 import { BLOG_ANCHOR_ALLOWLIST, isPermittedBlogAnchor } from '../rules/blog-anchor';
 import { checkAnchoring } from '../rules/rules';
+import { registeredCollectorGuards } from '../factory/read-budget';
 import { SourceRegistry } from '../sources/registry';
 import { SEED_SOURCES } from '../sources/seed';
 import type { Draft, Evidence, Source } from '../types';
@@ -25,8 +26,8 @@ const ev = (id: string, over: Partial<Evidence> = {}): Evidence => ({
 });
 const outro = (id: string) => ev(id, { sourceId: 'outro-blog', url: `https://outro.example/${id}`, canonicalUrl: `https://outro.example/${id}` });
 const oficial = (id: string) => ev(id, { sourceId: 'abemf', sourceTier: 'primary', url: `https://web.abemf.com.br/${id}`, canonicalUrl: `https://web.abemf.com.br/${id}` });
-const draft = (claims: Array<{ kind: 'fact' | 'number' | 'date' | 'quote'; ids: string[] }>, ids: string[]): Draft => ({
-  evidenceIds: ids, claims: claims.map((c, i) => ({ id: `c${i}`, kind: c.kind, text: 't', evidenceIds: c.ids })),
+const draft = (claims: Array<{ kind: 'fact' | 'number' | 'date' | 'quote'; ids: string[] }>, ids: string[], body = 'Segundo o Passageiro de Primeira, texto.'): Draft => ({
+  body, evidenceIds: ids, claims: claims.map((c, i) => ({ id: `c${i}`, kind: c.kind, text: 't', evidenceIds: c.ids })),
 } as unknown as Draft);
 const codes = (d: Draft, evs: Evidence[]) => checkAnchoring(d, evs).findings.map((f) => `${f.code}:${f.claimId ?? ''}`);
 
@@ -60,6 +61,27 @@ test('não vale: outro blog, host trocado, canônico de outro site, provedor de 
     assert.equal(isPermittedBlogAnchor(e), false, e.id);
     assert.deepEqual(codes(draft([{ kind: 'number', ids: [e.id] }], [e.id]), [e]), ['needs_primary_anchor:', 'unanchored_claim:c0'], e.id);
   }
+});
+
+test('aspas: trecho de fonte secundária entre aspas é barrado mesmo com a alegação marcada como fato', () => {
+  const frase = 'o programa vai dobrar os pontos de quem transferir até domingo';
+  const b = ev('b', { text: `Segundo apurado, ${frase}.` });
+  for (const [abre, fecha] of [['"', '"'], ['“', '”'], ['«', '»']]) {
+    const d = draft([{ kind: 'fact', ids: ['b'] }], ['b'], `Segundo o Passageiro de Primeira, ${abre}${frase}${fecha}.`);
+    assert.deepEqual(codes(d, [b]), ['quote_from_secondary:'], abre!);
+    assert.deepEqual(codes(d, [b, oficial('p')]), ['quote_from_secondary:'], 'fonte primária sem o trecho não libera');
+  }
+  const noTitulo = { ...draft([], ['b']), headline: 'Programa "turbinado" volta' } as Draft;
+  assert.deepEqual(codes(noTitulo, [b]), ['quote_from_secondary:']);
+  const p = { ...oficial('p'), text: `Comunicado: ${frase}.` };
+  assert.deepEqual(codes(draft([], ['b', 'p'], `O programa informa que "${frase}".`), [b, p]), []);
+});
+
+test('nome do blog: quando só ele ancora, o texto precisa dizer o nome dele', () => {
+  assert.deepEqual(codes(draft([], ['b'], 'O bônus vai até domingo.'), [ev('b')]), ['blog_attribution_missing:']);
+  assert.deepEqual(codes(draft([], ['b'], 'O bônus vai até domingo.\n\nFontes:\n- Passageiro de Primeira: https://x'), [ev('b')]), ['blog_attribution_missing:'], 'o bloco de fontes não conta');
+  assert.deepEqual(codes(draft([], ['b'], 'De acordo com o Passageiro de Primeira, o bônus vai até domingo.'), [ev('b')]), []);
+  assert.deepEqual(codes(draft([], ['b', 'p'], 'O bônus vai até domingo.'), [ev('b'), oficial('p')]), []);
 });
 
 test('mistura: número que só o outro blog diz continua barrado mesmo com o blog autorizado na matéria', () => {
@@ -112,7 +134,7 @@ async function rodar(llm: Llm) {
   const audit = new InMemoryAuditLog();
   const rep = await runFactory({
     store, registry, gateway: createLlmGateway(llm), audit, flags: { editorialCollector: true, editorialPipeline: true }, now: () => NOW,
-    collector: new Collector(fetcher, { minSpacingMs: 0, now: () => NOW, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON, sleep: async () => {} }),
+    collector: new Collector(fetcher, { minSpacingMs: 0, now: () => NOW, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON, sleep: async () => {}, ...registeredCollectorGuards(store, 'fabrica') }),
   }, { onlySourceIds: [blog.id] });
   return { rep, store };
 }
@@ -126,6 +148,7 @@ test('fábrica: post de blog autorizado sem página oficial segue, com link, reg
   assert.ok(rec.draft!.body.includes(`https://${HOST}/post-mock`), 'link da fonte');
   assert.equal(rec.draft!.promptVersion, 'editorial-0.3+dp59');
   assert.ok(llm.calls.find((c) => c.taskClass === 'draft')!.messages[0]!.content.includes(BLOG_ANCHOR_RULE));
+  assert.ok(rec.findings.some((f) => f.code === 'blog_unconfirmed'), 'sem página oficial: achado para a revisão');
 });
 
 test('fábrica: checagem no mesmo provedor do redator continua barrando matéria de blog', async () => {
