@@ -267,6 +267,13 @@
 .pt-fold > summary::before { content: '▸' / ''; display: inline-block; flex: none; width: 1em; text-align: center; color: inherit; }
 .pt-fold[open] > summary::before { content: '▾' / ''; }
 
+/* Aviso de cookies aberto (Consentimento.tsx informa a altura real): o fim da página e a rolagem até um controle reservam o espaço
+   dele. Fechado, a variável não existe e nada sobra. Só na tela: no papel o aviso não sai. */
+@media screen {
+  html { scroll-padding-bottom: var(--pt-consent-h, 0px); }
+  body { padding-bottom: var(--pt-consent-h, 0px); }
+}
+
 /* P3-5 (UI/UX, exigência): o mídia kit impresso ou salvo em PDF traz TODAS as tabelas de preço. Um <details> fechado esconde o conteúdo também no papel;
    aqui o conteúdo das categorias fechadas passa a sair, com o título de cada uma. Setas e marcadores de abrir/fechar não saem no papel. */
 @media print {
