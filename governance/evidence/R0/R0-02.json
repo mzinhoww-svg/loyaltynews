@@ -3,40 +3,40 @@
  "artefatos": [
   {
    "caminho": "evidencias/R0-02/conferencia-decisoes.log",
-   "sha256": "cdde648636eecd75988deab8e5123081de4630e008c0aa436f0f97a2c88961e3",
-   "bytes": 4166
+   "sha256": "42246515d6bf9bae032f1db0e638ebcae697730949b6d16a3cd6e09c3343b51a",
+   "bytes": 4239
   },
   {
    "caminho": "evidencias/R0-02/conferencia-decisoes.py",
-   "sha256": "792cf257ba84f083f7835f9301d4258e1ee51eef12525e23d47d4d66a140a273",
-   "bytes": 5201
+   "sha256": "e7268f8c5ad4a5a131fe60dc7cb86bc40a50a19c33ba8b10e1a77f94fe11f8cd",
+   "bytes": 5626
   },
   {
    "caminho": "evidencias/R0-02/registro-R0-02.md",
-   "sha256": "55d9ca5892364ed097fecf05ee35a358ba68f3eec8f4d944914ea53110f674f1",
-   "bytes": 5227
+   "sha256": "d7cb0bd89f4eb936c605998e713d43af53d144e6377ff926b10de87b22027b55",
+   "bytes": 7191
   },
   {
    "caminho": "governance/decisions.yaml",
-   "sha256": "8b8276d352d14b9c960de93dd8bb4bccd52e16ea1ab1958932addedf5716fa33",
-   "bytes": 47527
+   "sha256": "1f7c3a8e7b8b370bb47a4349ec8bf65f2f721a93743e5b32b2983b17a09ac355",
+   "bytes": 99020
   }
  ],
- "chave_idempotencia": "7cbba29e66f264b1b93937943b20df5423c89d7492c833038f6683c569f4467f",
- "commit_sha": "29303998e3fdba53c2a43ba7832adca55bba9e57",
- "criado_em": "2026-11-26T12:39:08.065033+00:00",
+ "chave_idempotencia": "3a52e3fad1e91c560a5aec6be7923daa6340a6388b44654e85e8d604edaa0910",
+ "commit_sha": "fcc24689dc9ece857b153920a97d4e4eb98ac7f1",
+ "criado_em": "2026-11-28T02:38:19.678855+00:00",
  "gate": "R0",
  "produzido_por": {
   "ferramenta": "MCP/CLI",
   "modelo": "not attested by executor",
-  "sessao": "architect-r0-02-20261125"
+  "sessao": "ln-security-r0-02-20261128"
  },
  "tarefa": "R0-02",
  "testes": [
   {
    "id": "R0-02-TEST",
-   "nome": "As 13 decisoes de 21/11/2026 (7 as 19:20, 6 as 22:56) e as 16 V21 estao registradas em governance/decisions.yaml; as 16 V21 ratificadas pela raiz em 26/11/2026 (commit 3f9dbd1e), com escolha, status ratificada e referencia",
-   "registro_sha256": "cdde648636eecd75988deab8e5123081de4630e008c0aa436f0f97a2c88961e3",
+   "nome": "As 13 decisoes de 21/11/2026 e as 16 V21 ratificadas estao em governance/decisions.yaml, com a redacao fiel dos atos raiz; o log le o sha256 1f7c3a8e do arquivo",
+   "registro_sha256": "42246515d6bf9bae032f1db0e638ebcae697730949b6d16a3cd6e09c3343b51a",
    "resultado": "passou"
   }
  ]
