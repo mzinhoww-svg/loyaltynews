@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState, type ReactNode } from 'react';
 import { EDITORIAS } from '@ln/contracts';
 import { salvarMateriaAction, type FormState } from './actions';
+import { IdEvidencia } from '../../_components/IdEvidencia';
 
 export interface EvidenciaOpcao {
   id: string;
@@ -220,6 +221,7 @@ export function MateriaForm({ id, valor, evidencias, somenteLeitura }: { id?: st
             evidencias.map((ev) => (
               <label key={ev.id}>
                 <input type="checkbox" name="evidenceIds" value={ev.id} defaultChecked={v?.evidenceIds.includes(ev.id)} /> {ev.fonte}: {ev.url}
+                <IdEvidencia id={ev.id} />
               </label>
             ))
           )}

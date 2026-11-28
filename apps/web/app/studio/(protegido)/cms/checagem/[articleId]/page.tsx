@@ -13,6 +13,7 @@ import { QuadroRolavel } from '../../../../_components/QuadroRolavel';
 import { SemBanco } from '../../../../_components/SemBanco';
 import { decidirRevisaoAction, rechecarAction } from '../../actions';
 import { Seta } from '../../../../_components/Seta';
+import { IdEvidencia } from '../../../../_components/IdEvidencia';
 
 export const metadata: Metadata = { title: 'Revisão da matéria' };
 export const dynamic = 'force-dynamic';
@@ -100,6 +101,7 @@ export default async function RevisaoPage({ params, searchParams }: { params: Pr
         {v.evidencias.map((e) => (
           <li key={e.id}>
             {e.titulo} — {e.url} {e.suspeita ? '(suspeita)' : ''}
+            <IdEvidencia id={e.id} />
           </li>
         ))}
       </ul>

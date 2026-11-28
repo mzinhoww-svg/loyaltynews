@@ -39,7 +39,7 @@ export default async function AuditoriaPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <h1>Auditoria</h1>
-      <p>Trilha de ações por identidade. Só o admin lê. Nada aqui é inventado: cada linha vem de uma rota do Backend e as trilhas sem rota aparecem como lacuna.</p>
+      <p>Trilha de ações por identidade. Esta tela é do admin; a rota de leitura da trilha do banco também aceita o editor-chefe, sem IP. Nada aqui é inventado: cada linha vem de uma rota do Backend e as trilhas sem rota aparecem como lacuna.</p>
 
       <h2>Publicação social (simulada)</h2>
       <p className="st-hint">
