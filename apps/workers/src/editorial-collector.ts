@@ -8,7 +8,7 @@
 import type { Db } from '@ln/auth';
 import type { FlagName } from '@ln/contracts';
 import {
-  COLLECTOR_ALERT_ACTION, COLLECTOR_ROUND_ACTION, Collector, GOOD_ROUND_PREFIX, ROUND_STALE_AFTER_MS, SEED_SOURCES, SourceRegistry, collectToInbox, createNodeFetcher, describeRound, isGoodRound, registeredCollectorGuards,
+  COLLECTOR_ALERT_ACTION, COLLECTOR_ROUND_ACTION, Collector, GOOD_ROUND_PREFIX, ROUND_STALE_AFTER_MS, SEED_SOURCES, SourceRegistry, collectToInbox, createNodeFetcher, describeRound, isGoodRound, purgeRawText, registeredCollectorGuards,
   type EditorialStore, type InboxRound,
 } from '@ln/editorial';
 import { PgEditorialStore } from './editorial-store';
@@ -100,6 +100,8 @@ export function startEditorialCollector(o: EditorialCollectorOptions): { stop():
     } catch (e) {
       o.onError?.(e);
     } finally {
+      // prazo do texto bruto: apaga mesmo quando a rodada falhou
+      await purgeRawText(store, now()).catch((e: unknown) => o.onError?.(e));
       running = false;
     }
   };

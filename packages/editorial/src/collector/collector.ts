@@ -2,7 +2,7 @@ import type { Evidence, Source } from '../types';
 import { ACESSO_VIA_PROVEDOR, sourceTier } from '../types';
 import { eligibility } from '../sources/registry';
 import { canonicalUrl, sha256 } from '../dedupe/dedupe';
-import { isAllowedSource } from './allowlist';
+import { allowedEntry, isAllowedSource } from './allowlist';
 import type { CollectorAllowlist } from './allowlist';
 import { extractAuthor } from './author';
 import { assertAllowedUrl, UrlRejected } from './ssrf';
@@ -40,6 +40,8 @@ export interface ReaderResult { status: number; body: string; format?: 'html' | 
 export interface ReadBudget {
   /** Reserva a próxima leitura do host: `waitMs` é quanto esperar (espaçamento desde a leitura anterior, de qualquer instância); a leitura fica registrada em nowMs + waitMs. */
   reserve(host: string, nowMs: number, max: number, windowMs: number, spacingMs: number): Promise<{ allowed: boolean; used: number; waitMs: number }>;
+  /** O site respondeu 403 ou 429: nada mais sai para este host durante a pausa, em qualquer instância. */
+  pause?(host: string, nowMs: number): Promise<void>;
 }
 export class MemoryReadBudget implements ReadBudget {
   private readonly reads = new Map<string, number[]>();
@@ -98,6 +100,9 @@ export class ChainedReader implements ReaderPort {
 
 export const USER_AGENT = 'LoyaltyNewsBot/0.1 (+coletor determinístico; respeita robots.txt)';
 const MAX_REDIRECTS = 3;
+/** Validade do robots.txt em memória: regras lidas e leitura que falhou (um coletor vive tanto quanto o processo). */
+const ROBOTS_TTL_MS = 24 * 3_600_000;
+const ROBOTS_FAILED_TTL_MS = 3_600_000;
 const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
@@ -224,18 +229,20 @@ export class Collector {
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
   private readonly hourWindow = new Map<string, number[]>();
-  private readonly robotsCache = new Map<string, ReturnType<typeof parseRobots> | null>();
+  private readonly robotsCache = new Map<string, { rules: ReturnType<typeof parseRobots> | null; at: number }>();
   constructor(fetcher: Fetcher, opts: CollectorOptions = {}) {
     this.fetcher = fetcher;
     this.now = opts.now ?? (() => new Date());
-    this.ua = opts.userAgent ?? USER_AGENT;
+    // com a trava, o coletor se identifica sempre pelo próprio nome
+    this.ua = opts.allowlist ? USER_AGENT : opts.userAgent ?? USER_AGENT;
     this.resolver = opts.resolver ?? systemResolver;
     this.flags = opts.flags;
     this.sleep = opts.sleep ?? realSleep;
     this.maxCrawlDelaySec = opts.maxCrawlDelaySec ?? 120;
     this.minSpacingMs = opts.minSpacingMs ?? 3000;
-    this.reader = opts.reader;
-    this.onDirectRead = opts.onDirectRead;
+    // com a trava, nada passa por provedor de leitura nem pela sombra: eles releriam a página fora do teto e com outra identificação
+    this.reader = opts.allowlist ? undefined : opts.reader;
+    this.onDirectRead = opts.allowlist ? undefined : opts.onDirectRead;
     this.readBudget = opts.readBudget ?? new MemoryReadBudget();
     this.allowlist = opts.allowlist;
     this.hostBudget = opts.hostBudget;
@@ -249,8 +256,16 @@ export class Collector {
 
   /** Motivo de recusa quando a trava está ligada e a fonte (id E host) não está nela. */
   private notAllowed(source: Source): string | null {
-    if (!this.allowlist || isAllowedSource(source, this.allowlist)) return null;
-    return `fora da lista permitida (decisão ${this.allowlist.decisionId}, ${this.allowlist.decidedOn})`;
+    if (!this.allowlist) return null;
+    if (!isAllowedSource(source, this.allowlist)) return `fora da lista permitida (decisão ${this.allowlist.decisionId}, ${this.allowlist.decidedOn})`;
+    if (source.acesso === ACESSO_VIA_PROVEDOR) return `leitura por provedor não permitida (decisão ${this.allowlist.decisionId}): só o coletor direto`;
+    return null;
+  }
+
+  /** Teto por hora que vale: o do cadastro ou o da lista permitida, o que for menor. */
+  private hourlyCap(source: Source): number {
+    const entry = this.allowlist ? allowedEntry(source, this.allowlist) : undefined;
+    return entry ? Math.min(source.maxRequestsPerHour, entry.maxPerHour) : source.maxRequestsPerHour;
   }
 
   /**
@@ -263,18 +278,19 @@ export class Collector {
     const host = source.host;
     const nowMs = () => this.now().getTime();
     const win = (this.hourWindow.get(host) ?? []).filter((t) => nowMs() - t < 3_600_000);
-    if (win.length >= source.maxRequestsPerHour) {
+    const cap = this.hourlyCap(source);
+    if (win.length >= cap) {
       this.hourWindow.set(host, win);
-      throw new UrlRejected('rate_limited', `limite de ${source.maxRequestsPerHour} requisições/hora atingido para ${host}`);
+      throw new UrlRejected('rate_limited', `limite de ${cap} requisições/hora atingido para ${host}`);
     }
-    const delaySec = this.robotsCache.get(host)?.crawlDelaySec ?? 0;
+    const delaySec = this.robotsCache.get(host)?.rules?.crawlDelaySec ?? 0;
     if (delaySec > this.maxCrawlDelaySec) throw new UrlRejected('crawl_delay_excessive', `Crawl-delay de ${delaySec}s excede o máximo de ${this.maxCrawlDelaySec}s`);
     this.hourWindow.set(host, win);
   }
 
   /** Espera o maior entre o Crawl-delay do robots.txt e o intervalo mínimo (padrão 3 s) desde a última requisição ao host. */
   private async space(host: string): Promise<void> {
-    const delayMs = Math.max((this.robotsCache.get(host)?.crawlDelaySec ?? 0) * 1000, this.minSpacingMs);
+    const delayMs = Math.max((this.robotsCache.get(host)?.rules?.crawlDelaySec ?? 0) * 1000, this.minSpacingMs);
     const last = this.lastRequestAt.get(host);
     if (delayMs > 0 && last !== undefined) {
       const wait = last + delayMs - this.now().getTime();
@@ -311,12 +327,21 @@ export class Collector {
       // última barreira antes da rede: trava das fontes e vaga no contador persistente do host
       const refused = this.notAllowed(source);
       if (refused) throw new UrlRejected('source_not_allowed', refused);
+      const hostKey = source.host.toLowerCase();
       if (this.hostBudget) {
-        const slot = await this.hostBudget.reserve(source.host, this.now().getTime(), source.maxRequestsPerHour, 3_600_000, 0);
-        if (!slot.allowed) throw new UrlRejected('rate_limited', `limite de ${source.maxRequestsPerHour} requisições/hora atingido para ${source.host} (contador persistente)`);
+        const cap = this.hourlyCap(source);
+        let slot: { allowed: boolean };
+        try { slot = await this.hostBudget.reserve(hostKey, this.now().getTime(), cap, 3_600_000, 0); } catch {
+          throw new UrlRejected('rate_limited', `contador de requisições indisponível para ${hostKey}: nada sai`);
+        }
+        if (!slot.allowed) throw new UrlRejected('rate_limited', `limite de ${cap} requisições/hora ou pausa por recusa do site: ${hostKey} (contador persistente)`);
       }
       const r = await this.fetcher.get(cur, { userAgent: this.ua, address: pinned.address, family: pinned.family });
       this.record(source.host);
+      if ((r.status === 403 || r.status === 429) && this.hostBudget?.pause) {
+        // a coleta desta rodada já para por causa do status; a pausa segura as próximas. Falha ao gravar não muda a resposta
+        try { await this.hostBudget.pause(hostKey, this.now().getTime()); } catch { /* o StopGuard ainda para esta rodada */ }
+      }
       if (r.status >= 300 && r.status < 400 && r.headers['location']) {
         cur = new URL(r.headers['location'], cur).toString();
         continue;
@@ -327,7 +352,8 @@ export class Collector {
   }
 
   private async robotsFor(source: Source): Promise<ReturnType<typeof parseRobots> | null> {
-    if (this.robotsCache.has(source.host)) return this.robotsCache.get(source.host)!;
+    const cached = this.robotsCache.get(source.host);
+    if (cached && this.now().getTime() - cached.at < (cached.rules ? ROBOTS_TTL_MS : ROBOTS_FAILED_TTL_MS)) return cached.rules;
     let rules: ReturnType<typeof parseRobots> | null;
     try {
       const r = await this.safeGet(`https://${source.host}/robots.txt`, source);
@@ -343,7 +369,7 @@ export class Collector {
       if (e instanceof UrlRejected && e.code === 'rate_limited') throw e;
       rules = null;
     }
-    this.robotsCache.set(source.host, rules);
+    this.robotsCache.set(source.host, { rules, at: this.now().getTime() });
     return rules;
   }
 

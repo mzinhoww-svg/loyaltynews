@@ -148,6 +148,13 @@ export class PgEditorialStore implements EditorialStore {
     const t = schema.editorialAudit;
     return this.db.transaction(async (tx) => {
       await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${r.action}:${r.target}`}))`);
+      if (r.unless) {
+        const from = new Date(r.atMs - r.unless.windowMs).toISOString();
+        const [stop] = await tx.select({ id: t.id }).from(t)
+          .where(sql`${t.at} > ${from} and ${t.record}->>'action' = ${r.unless.action} and ${t.record}->>'target' = ${r.target}`)
+          .limit(1);
+        if (stop) return { allowed: false, used: 0 };
+      }
       const since = new Date(r.atMs - r.windowMs).toISOString();
       const rows = await tx.select({ id: t.id }).from(t)
         .where(sql`${t.at} > ${since} and ${t.record}->>'action' = ${r.action} and ${t.record}->>'target' = ${r.target}`)

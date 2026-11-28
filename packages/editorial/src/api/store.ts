@@ -134,7 +134,11 @@ export interface EditorialStore {
   reserveRead(r: ReadReservation): Promise<{ allowed: boolean; used: number }>;
 }
 
-export interface ReadReservation { action: string; target: string; atMs: number; max: number; windowMs: number }
+export interface ReadReservation {
+  action: string; target: string; atMs: number; max: number; windowMs: number;
+  /** Recusa também quando há linha desta `action`, para o mesmo alvo, dentro da janela dela (pausa depois de 403/429). */
+  unless?: { action: string; windowMs: number };
+}
 
 const copy = <T>(v: T): T => structuredClone(v);
 
@@ -184,8 +188,9 @@ export class InMemoryEditorialStore implements EditorialStore {
   async listAudit() { return this.auditLog.map(copy); }
   async reserveRead(r: ReadReservation) {
     // sem await entre contar e gravar: atômico neste processo
-    const used = this.auditLog.filter((a) => a.action === r.action && a.target === r.target && Date.parse(a.at) > r.atMs - r.windowMs).length;
-    if (used >= r.max) return { allowed: false, used };
+    const recent = (action: string, windowMs: number) => this.auditLog.filter((a) => a.action === action && a.target === r.target && Date.parse(a.at) > r.atMs - windowMs).length;
+    const used = recent(r.action, r.windowMs);
+    if (used >= r.max || (r.unless && recent(r.unless.action, r.unless.windowMs) > 0)) return { allowed: false, used };
     this.auditLog.push({ at: new Date(r.atMs).toISOString(), userId: null, action: r.action, target: r.target });
     return { allowed: true, used: used + 1 };
   }
