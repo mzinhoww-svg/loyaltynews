@@ -128,6 +128,24 @@ describe('execução da fábrica (PostgreSQL de teste)', () => {
     } finally { await client.close(); }
   });
 
+  it('o comando avulso obedece ao estado do banco que usa: fonte nunca habilitada ou desabilitada no Studio não é lida', async () => {
+    const { db, client } = await freshDb();
+    const asked: string[] = [];
+    const espiao = () => new Collector(
+      { async get(url) { asked.push(url); throw new Error('MOCK: nenhuma leitura esperada'); } },
+      { minSpacingMs: 0, now: () => NOW, resolver: new FakeResolver({ 'ri.mock.example': [[MOCK_PUBLIC_IP]] }), flags: COLLECT_ON },
+    );
+    const roda = () => runEditorialFactory({ db, flags: { editorialCollector: true }, registry: registry(), collector: espiao(), now: () => NOW });
+    try {
+      expect(await roda()).toMatchObject({ sources: [], articles: [] }); // nunca habilitada
+      const store = await enable(db);
+      const ctx = { actor: { userId: 'joao-admin', roles: ['admin'], mfa: true }, store, sources: registry(), now: () => NOW, newId: () => 'id' };
+      expect((await setSourceEnabled(ctx, { sourceId: 'mock-ri', enabled: false })).status).toBe(200);
+      expect(await roda()).toMatchObject({ sources: [], articles: [] });
+      expect(asked).toEqual([]);
+    } finally { await client.close(); }
+  });
+
   it('modo simulado: o texto SIMULADO nunca vira matéria (estágio recusa) e nada é publicado', async () => {
     const { db, client } = await freshDb();
     try {

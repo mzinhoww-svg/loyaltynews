@@ -1,3 +1,5 @@
+import { attributionNameOf } from '../collector/allowlist';
+import { BLOG_ANCHOR_ALLOWLIST, isPermittedBlogAnchor } from './blog-anchor';
 import type { CheckResult, Claim, Draft, Evidence, Finding, ImageDecision, RightsBasisKind, Source } from '../types';
 import { SIGNATURE } from '../types';
 import { normalizeText } from '../dedupe/dedupe';
@@ -149,6 +151,13 @@ export function checkOriginality(d: Draft, evidences: Evidence[]): CheckResult {
     for (const [label, txt] of [['resumo', d.resumo], ['subtitulo', d.subtitulo]] as const) {
       if (txt && longestCommonRun(words(txt), ew) >= runLimit) out.push(f('copy_literal', `${label} copia trecho da fonte ${e.sourceId}`));
     }
+    // título (parecer 70): contra o texto e contra o título da fonte, com o mesmo limite do corpo; igual ao título dela, com 4
+    // palavras ou mais, também é cópia
+    const hw = words(d.headline ?? '');
+    const tw = words(e.title);
+    if (Math.max(longestCommonRun(hw, ew), longestCommonRun(hw, tw)) >= runLimit || (hw.length >= 4 && hw.join(' ') === tw.join(' '))) {
+      out.push(f('copy_literal', `titulo copia trecho da fonte ${e.sourceId}`));
+    }
     const run = longestCommonRun(bw, ew);
     if (run >= runLimit) out.push(f('copy_literal', `${run} palavras consecutivas idênticas à fonte ${e.sourceId}`));
     const set = new Set<string>();
@@ -164,7 +173,8 @@ export function checkOriginality(d: Draft, evidences: Evidence[]): CheckResult {
 export function buildAttribution(evidences: Evidence[], sources: Source[]): string {
   const lines = evidences.map((e) => {
     const s = sources.find((x) => x.id === e.sourceId);
-    return `- ${s?.name ?? e.sourceId}: ${e.canonicalUrl} (acessado em ${e.fetchedAt.slice(0, 10)})`;
+    const name = attributionNameOf(e.sourceId) ?? s?.name ?? e.sourceId;
+    return `- ${name}: ${e.canonicalUrl} (acessado em ${e.fetchedAt.slice(0, 10)})`;
   });
   return `Fontes:\n${lines.join('\n')}`;
 }
@@ -270,19 +280,41 @@ export function checkNotices(d: Draft, expected: readonly string[]): CheckResult
 
 /**
  * Blog e imprensa de nicho (fonte SECUNDÁRIA) são pista, não prova. Se qualquer evidência usada for secundária, a matéria
- * precisa de pelo menos uma evidência PRIMÁRIA (RI, regulador, governo, associação, sala de imprensa), e todo número, data
- * ou citação precisa estar sustentado por evidência primária.
+ * precisa de pelo menos uma evidência que ancore: PRIMÁRIA (RI, regulador, governo, associação, sala de imprensa) ou de um blog
+ * autorizado por decisão (DP-59, `blog-anchor.ts`). Número e data precisam de evidência que ancore; citação entre aspas continua
+ * exigindo evidência primária (não reproduzir).
  */
+/** Trechos entre aspas (as mesmas que o gate de originalidade deixa de comparar, e « ») no título, resumo, subtítulo e corpo. */
+function quotedParts(d: Draft): string[] {
+  const text = [d.headline ?? '', d.resumo ?? '', d.subtitulo ?? '', mainBody(d.body ?? '')].join('\n\n');
+  return [...text.matchAll(/["“]([^"”]*)["”]|«([^»]*)»/g)].map((m) => normalizeText(m[1] ?? m[2] ?? '')).filter(Boolean);
+}
+
 export function checkAnchoring(d: Draft, evidences: Evidence[]): CheckResult {
   const out: Finding[] = [];
   const byId = new Map(evidences.map((e) => [e.id, e]));
   const used = d.evidenceIds.map((i) => byId.get(i)).filter((e): e is Evidence => !!e);
   if (!used.some(isSecondary)) return result(out);
-  if (!used.some((e) => !isSecondary(e))) out.push(f('needs_primary_anchor', 'matéria só com fonte secundária (blog/imprensa de nicho): falta evidência de fonte primária que confirme os fatos'));
+  // Nada entre aspas vindo de fonte secundária: usando blog, todo trecho entre aspas precisa constar numa evidência primária
+  const primaryText = normalizeText(evidenceText(used.filter((e) => !isSecondary(e))));
+  for (const quoted of quotedParts(d)) {
+    if (!primaryText.includes(quoted)) out.push(f('quote_from_secondary', `trecho entre aspas sem fonte primária que o contenha (matéria usa fonte secundária): "${quoted.slice(0, 40)}"`));
+  }
+  // só o blog ancora: o nome dele precisa estar no texto
+  if (!used.some((e) => !isSecondary(e))) {
+    const body = ` ${normalizeText(mainBody(d.body ?? ''))} `;
+    for (const e of used.filter((x) => isPermittedBlogAnchor(x))) {
+      const name = BLOG_ANCHOR_ALLOWLIST.sources.find((x) => x.id === e.sourceId)!.name;
+      if (!body.includes(` ${normalizeText(name)} `)) out.push(f('blog_attribution_missing', `matéria ancorada só em blog precisa atribuir no texto: "segundo o ${name}"`));
+    }
+  }
+  const anchors = (e: Evidence): boolean => !isSecondary(e) || isPermittedBlogAnchor(e);
+  if (!used.some(anchors)) out.push(f('needs_primary_anchor', 'matéria só com fonte secundária sem autorização para ancorar (blog/imprensa de nicho): falta evidência de fonte primária que confirme os fatos'));
   for (const c of d.claims) {
     if (c.kind === 'fact') continue;
     const evs = c.evidenceIds.map((i) => byId.get(i)).filter((e): e is Evidence => !!e);
-    if (evs.length && !evs.some((e) => !isSecondary(e))) out.push(f('unanchored_claim', 'número, data ou citação sustentado só por fonte secundária: precisa constar em fonte primária', c.id));
+    const holds = c.kind === 'quote' ? (e: Evidence) => !isSecondary(e) : anchors;
+    if (evs.length && !evs.some(holds)) out.push(f('unanchored_claim', c.kind === 'quote' ? 'citação sustentada só por fonte secundária: precisa constar em fonte primária' : 'número ou data sustentado só por fonte secundária sem autorização para ancorar: precisa constar em fonte primária', c.id));
   }
   return result(out);
 }

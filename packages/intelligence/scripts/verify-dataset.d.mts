@@ -1,6 +1,6 @@
 export const UA: string;
 export function htmlToText(html: string): string;
-export function robotsAllows(url: string, fetchImpl?: typeof fetch): Promise<{ allowed: boolean; note: string; sitemaps: string[] }>;
+export function robotsAllows(url: string, fetchImpl?: typeof fetch, ua?: string): Promise<{ allowed: boolean; unavailable?: boolean; note: string; sitemaps: string[] }>;
 export function fetchText(
   url: string,
   fetchImpl?: typeof fetch,

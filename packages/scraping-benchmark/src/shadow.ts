@@ -22,6 +22,8 @@ const FAIL: Partial<Record<ErrorClass, ReaderFailure>> = {
   title_mismatch: 'provider_error',
   not_found: 'not_found',
   provider_error: 'provider_error',
+  robots: 'robots_disallow',
+  source_refused: 'robots_disallow',
 };
 
 export class ReplayReader implements ReaderPort {

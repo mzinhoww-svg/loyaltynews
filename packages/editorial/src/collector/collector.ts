@@ -2,6 +2,9 @@ import type { Evidence, Source } from '../types';
 import { ACESSO_VIA_PROVEDOR, sourceTier } from '../types';
 import { eligibility } from '../sources/registry';
 import { canonicalUrl, sha256 } from '../dedupe/dedupe';
+import { allowedEntry, isAllowedSource } from './allowlist';
+import type { CollectorAllowlist } from './allowlist';
+import { EXCLUDED_SOURCES, isExcludedSource, isRestrictedBlog, RESTRICTED_BLOGS } from './restricted';
 import { assertAllowedUrl, UrlRejected } from './ssrf';
 import { isAllowedByRobots, parseRobots } from './robots';
 import { detectGate } from './paywall';
@@ -25,9 +28,10 @@ export interface FetchOptions { userAgent: string; address: string; family: Fami
 export interface Fetcher { get(url: string, opts: FetchOptions): Promise<HttpResponse> }
 
 /**
- * DP-31: leitura de página PÚBLICA por serviço de busca e extração (Tavily ou similar) no lugar da busca direta, só para fontes
- * com acesso 'via-provedor'. O serviço NÃO resolve CAPTCHA, não entra em login/paywall e não falsifica navegador: se a
- * página vier com desafio, login ou paywall, o coletor para. status = o da leitura (200 ok; 429 pedido de pausa; 403/5xx falha).
+ * DP-31 (restringida pela ADR-007 v8, J-14 A): leitura de página PÚBLICA por serviço de busca e extração (Tavily ou similar) no lugar do
+ * GET direto, só para fontes com acesso 'via-provedor'. O coletor confere o robots.txt do alvo ANTES de chamar o serviço (proíbe, ilegível
+ * ou com erro = não lê), não usa serviço que resolve CAPTCHA/proxy e para em desafio, CAPTCHA, login ou paywall. Sem lista nominal de
+ * exceções, não há exceção. status = o da leitura (200 ok; 429 pedido de pausa; 403/5xx falha).
  */
 export interface ReaderResult { status: number; body: string; format?: 'html' | 'text'; retryAfterSec?: number | null; /** o serviço não conseguiu ler ESTA URL (site recusou/não renderizou): para a coleta da fonte, sem repetir */ failedUrl?: boolean; /** a COTA do serviço acabou em todas as chaves: não é culpa da fonte, mas a coleta DP-31 não tem como seguir */ quotaExhausted?: boolean }
 /**
@@ -37,6 +41,8 @@ export interface ReaderResult { status: number; body: string; format?: 'html' | 
 export interface ReadBudget {
   /** Reserva a próxima leitura do host: `waitMs` é quanto esperar (espaçamento desde a leitura anterior, de qualquer instância); a leitura fica registrada em nowMs + waitMs. */
   reserve(host: string, nowMs: number, max: number, windowMs: number, spacingMs: number): Promise<{ allowed: boolean; used: number; waitMs: number }>;
+  /** O site respondeu 403 ou 429: nada mais sai para este host durante a pausa, em qualquer instância. */
+  pause?(host: string, nowMs: number): Promise<void>;
 }
 export class MemoryReadBudget implements ReadBudget {
   private readonly reads = new Map<string, number[]>();
@@ -51,7 +57,7 @@ export class MemoryReadBudget implements ReadBudget {
 
 export interface ReaderPort {
   readonly name: string;
-  /** O provedor faz o desbloqueio (CAPTCHA e proxies próprios, DP-32). Informativo: o coletor nunca resolve CAPTCHA por conta própria. */
+  /** O provedor faz desbloqueio (CAPTCHA e proxies próprios). Pela ADR-007 o coletor NÃO usa leitor com `unlocks`. */
   readonly unlocks?: boolean;
   read(url: string): Promise<ReaderResult>;
   /** Descoberta de matérias novas da fonte (busca restrita ao domínio). Opcional. */
@@ -59,18 +65,20 @@ export interface ReaderPort {
 }
 
 /**
- * Vários provedores em ordem (DP-32: Tavily, Bright Data, Firecrawl e similares; cada um com as suas contas/chaves na cota gratuita).
- * Passa ao próximo provedor quando o anterior esgota a COTA (quotaExhausted) ou não consegue ler ESTA URL (failedUrl); o 429 por ritmo de
- * um serviço NÃO troca de provedor (devolve 429 e a coleta da fonte para). Tudo falhou = último resultado (cota esgotada ou falha por URL).
+ * Vários provedores em ordem (cada um com as suas contas/chaves na cota gratuita). Passa ao próximo SÓ quando o anterior esgota a COTA
+ * (quotaExhausted). Falha por URL (o site recusou ou não renderizou) e 429 por ritmo NÃO trocam de provedor: insistir por outro caminho
+ * seria contornar a recusa (ADR-007). Provedores com desbloqueio são ignorados; se só houver desses, a cadeia se declara `unlocks`.
  */
 export class ChainedReader implements ReaderPort {
   readonly name: string;
   readonly unlocks: boolean;
   private readonly exhausted = new Set<ReaderPort>();
-  constructor(private readonly readers: ReaderPort[]) {
-    if (!readers.length) throw new Error('ChainedReader: nenhum provedor');
-    this.name = readers.map((r) => r.name).join('>');
-    this.unlocks = readers.some((r) => r.unlocks === true);
+  private readonly readers: ReaderPort[];
+  constructor(all: ReaderPort[]) {
+    if (!all.length) throw new Error('ChainedReader: nenhum provedor');
+    this.name = all.map((r) => r.name).join('>');
+    this.readers = all.filter((r) => r.unlocks !== true);
+    this.unlocks = this.readers.length === 0;
   }
   async read(url: string): Promise<ReaderResult> {
     let last: ReaderResult = { status: 432, body: '', quotaExhausted: true };
@@ -78,7 +86,6 @@ export class ChainedReader implements ReaderPort {
       if (this.exhausted.has(r)) continue;
       const res = await r.read(url);
       if (res.quotaExhausted) { this.exhausted.add(r); last = res; continue; }
-      if (res.failedUrl) { last = res; continue; }
       return res;
     }
     return last;
@@ -95,10 +102,13 @@ export class ChainedReader implements ReaderPort {
 
 export const USER_AGENT = 'LoyaltyNewsBot/0.1 (+coletor determinístico; respeita robots.txt)';
 const MAX_REDIRECTS = 3;
+/** Validade do robots.txt em memória: regras lidas e leitura que falhou (um coletor vive tanto quanto o processo). */
+const ROBOTS_TTL_MS = 24 * 3_600_000;
+const ROBOTS_FAILED_TTL_MS = 3_600_000;
 const MAX_BODY_CHARS = 2_000_000;
 
 export type SkipCode =
-  | 'source_not_eligible' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
+  | 'source_not_eligible' | 'source_not_allowed' | 'url_rejected' | 'robots_disallow' | 'robots_unavailable' | 'gated'
   | 'http_error' | 'too_many_redirects' | 'empty_content' | 'body_too_large' | 'rate_limited' | 'crawl_delay_excessive' | 'challenge' | 'reader_unavailable'
   /** sitemap .xml.gz corrompido, ou que descomprime acima do teto (proteção contra zip bomb) */
   | 'gzip_invalid' | 'decompressed_too_large' | 'sitemap_index_too_large'
@@ -106,16 +116,15 @@ export type SkipCode =
   | 'sitemap_entries_dropped' | 'sitemap_no_items' | 'sitemap_child_no_items' | 'sitemap_http_upgraded';
 
 /**
- * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA: o laço de coleta
- * da fonte PARA. Nunca insistir, repetir com outro cliente ou contornar.
+ * A fonte pediu para parar (429 / Retry-After, Crawl-delay excessivo), recusou (403) ou serviu página de desafio/CAPTCHA (direto ou pelo
+ * provedor): o laço de coleta da fonte PARA. Nunca insistir, repetir com outro cliente ou contornar.
  */
 export const stopsCollection = (k: { code: SkipCode; detail: string; viaProvider?: true }): boolean =>
-  k.code === 'rate_limited' || k.code === 'crawl_delay_excessive' || (k.code === 'challenge' && !('viaProvider' in k && k.viaProvider)) || k.code === 'reader_unavailable'
+  k.code === 'rate_limited' || k.code === 'crawl_delay_excessive' || k.code === 'challenge' || k.code === 'reader_unavailable'
   || (k.code === 'http_error' && (k.detail === '403' || k.detail === '401' || k.detail === 'reader_failed'));
 
 /**
- * Guarda de parada de um laço de coleta (feed, sitemap, descoberta, âncoras, autoral). Para SEMPRE em 429, 403, desafio (no coletor DIRETO;
- * via provedor, DP-32, o desafio conta como falha por URL), Crawl-delay
+ * Guarda de parada de um laço de coleta (feed, sitemap, descoberta, âncoras, autoral). Para SEMPRE em 429, 403, desafio, Crawl-delay
  * excessivo, serviço de leitura ausente ou falha do serviço por URL; e para depois de 2 páginas seguidas com login/paywall
  * (gated) ou 3 falhas seguidas (HTTP de erro / conteúdo vazio): uma fonte que só devolve isso não pode ser martelada.
  * Um sucesso zera as sequências.
@@ -130,8 +139,7 @@ export class StopGuard {
     if (!skip) { this.gated = 0; this.fails = 0; return false; }
     if (stopsCollection(skip)) return true;
     if (skip.code === 'gated') { this.fails = 0; return ++this.gated >= GATED_LIMIT; }
-    // desafio via provedor (DP-32): o provedor não conseguiu esta URL; conta como falha e a coleta segue até FAIL_LIMIT seguidas
-    if (skip.code === 'http_error' || skip.code === 'empty_content' || skip.code === 'challenge') { this.gated = 0; return ++this.fails >= FAIL_LIMIT; }
+    if (skip.code === 'http_error' || skip.code === 'empty_content') { this.gated = 0; return ++this.fails >= FAIL_LIMIT; }
     return false; // robots/url_rejected/etc.: decisão nossa, não hostilidade da fonte
   }
 }
@@ -139,7 +147,7 @@ export class StopGuard {
 export interface DirectReadEvent { url: string; sourceId: string; status: number; body?: string; ms: number }
 export interface Skip {
   url: string; code: SkipCode; detail: string;
-  /** A leitura passou por provedor com desbloqueio (DP-32): desafio/CAPTCHA aqui é falha do provedor nessa URL, não recusa da fonte ao nosso coletor. */
+  /** O desafio/CAPTCHA veio pela leitura via provedor (registro; para a coleta como no caminho direto). */
   viaProvider?: true;
 }
 export interface CollectResult { evidences: Evidence[]; skipped: Skip[] }
@@ -162,6 +170,15 @@ export interface CollectorOptions {
   reader?: ReaderPort;
   /** DP-31: contador GLOBAL de leituras por host (ex.: StoreReadBudget, no banco). Padrão: em memória (por instância; só para testes/dev). */
   readBudget?: ReadBudget;
+  /** Trava das fontes permitidas (decisão registrada). Presente: só elas são lidas, qualquer que seja o cadastro. Os workers sempre passam. */
+  allowlist?: CollectorAllowlist;
+  /**
+   * Teto por hora PERSISTENTE (vale entre rodadas e instâncias): cada requisição direta, inclusive robots.txt e redirecionamento, reserva
+   * uma vaga do host antes de sair, com `maxRequestsPerHour` da fonte. Falha do contador = não requisita. Os workers sempre passam.
+   */
+  hostBudget?: ReadBudget;
+  /** Contador persistente só dos blogs com restrição (restricted.ts), para os usos sem `hostBudget`. Sem nenhum dos dois, eles não são lidos. */
+  restrictedBudget?: ReadBudget;
   /** DP-31: intervalo mínimo entre leituras do mesmo host (ms). Padrão 10000 (mínimo do proprietário). */
   dp31SpacingMs?: number;
   /** DP-31: páginas por host em 24 h ("poucas por dia"). Padrão 5; acima disso, 'rate_limited'. */
@@ -182,7 +199,7 @@ export interface CollectorOptions {
 
 const realSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 /** Códigos de UrlRejected que viram motivo de skip próprio (os demais viram 'url_rejected'). */
-const OWN_SKIP_CODES = ['too_many_redirects', 'rate_limited', 'crawl_delay_excessive', 'robots_disallow', 'robots_unavailable'] as const;
+const OWN_SKIP_CODES = ['source_not_allowed', 'too_many_redirects', 'rate_limited', 'crawl_delay_excessive', 'robots_disallow', 'robots_unavailable'] as const;
 /** Páginas por fonte de sitemap em cada rodada (decisão do PM): o teto que segura o limite por hora do host. */
 export const SITEMAP_MAX_PAGES_PER_RUN = 5;
 /** Anexos e mídia que aparecem nos sitemaps (gov.br lista as imagens e PDFs de cada matéria): nunca são matéria. */
@@ -209,28 +226,71 @@ export class Collector {
   private readonly sitemapMaxChildren: number;
   private readonly sitemapMaxPagesPerRun: number;
   private readonly readBudget: ReadBudget;
+  private readonly allowlist: CollectorAllowlist | undefined;
+  private readonly hostBudget: ReadBudget | undefined;
+  private readonly restrictedBudget: ReadBudget | undefined;
   /** Instante (ms) da última requisição por host e janela de 1 h de requisições, para Crawl-delay e limite por hora. */
   private readonly lastRequestAt = new Map<string, number>();
   private readonly hourWindow = new Map<string, number[]>();
-  private readonly robotsCache = new Map<string, ReturnType<typeof parseRobots> | null>();
+  private readonly robotsCache = new Map<string, { rules: ReturnType<typeof parseRobots> | null; at: number }>();
   constructor(fetcher: Fetcher, opts: CollectorOptions = {}) {
     this.fetcher = fetcher;
     this.now = opts.now ?? (() => new Date());
-    this.ua = opts.userAgent ?? USER_AGENT;
+    // com a trava, o coletor se identifica sempre pelo próprio nome
+    this.ua = opts.allowlist ? USER_AGENT : opts.userAgent ?? USER_AGENT;
     this.resolver = opts.resolver ?? systemResolver;
     this.flags = opts.flags;
     this.sleep = opts.sleep ?? realSleep;
     this.maxCrawlDelaySec = opts.maxCrawlDelaySec ?? 120;
     this.minSpacingMs = opts.minSpacingMs ?? 3000;
-    this.reader = opts.reader;
-    this.onDirectRead = opts.onDirectRead;
+    // com a trava, nada passa por provedor de leitura nem pela sombra: eles releriam a página fora do teto e com outra identificação
+    this.reader = opts.allowlist ? undefined : opts.reader;
+    this.onDirectRead = opts.allowlist ? undefined : opts.onDirectRead;
     this.readBudget = opts.readBudget ?? new MemoryReadBudget();
+    this.allowlist = opts.allowlist;
+    this.hostBudget = opts.hostBudget;
+    this.restrictedBudget = opts.restrictedBudget;
     this.dp31SpacingMs = opts.dp31SpacingMs ?? 10_000;
     this.dp31MaxPagesPerDay = opts.dp31MaxPagesPerDay ?? 5;
     this.dp31MaxStoredChars = opts.dp31MaxStoredChars ?? 1500;
     this.sitemapMaxDecompressedBytes = opts.sitemapMaxDecompressedBytes ?? DEFAULT_MAX_DECOMPRESSED_BYTES;
     this.sitemapMaxChildren = opts.sitemapMaxChildren ?? 12;
     this.sitemapMaxPagesPerRun = opts.sitemapMaxPagesPerRun ?? SITEMAP_MAX_PAGES_PER_RUN;
+  }
+
+  /** Motivo de recusa quando a trava está ligada e a fonte (id E host) não está nela. */
+  private notAllowed(source: Source): string | null {
+    if (isExcludedSource(source)) return `fonte excluída por termos (decisão do PM de 28/11, sob a ${EXCLUDED_SOURCES.decisionId}; ver ${EXCLUDED_SOURCES.record}): não é lida em nenhum uso`;
+    if (isRestrictedBlog(source)) {
+      if (source.acesso === ACESSO_VIA_PROVEDOR) return `leitura por provedor não permitida para este blog (decisão ${RESTRICTED_BLOGS.decisionId}): só o coletor direto`;
+      if (!this.budgetFor(source)) return `blog só é lido com contador persistente (decisão ${RESTRICTED_BLOGS.decisionId})`;
+    }
+    if (!this.allowlist) return null;
+    if (!isAllowedSource(source, this.allowlist)) return `fora da lista permitida (decisão ${this.allowlist.decisionId}, ${this.allowlist.decidedOn})`;
+    if (source.acesso === ACESSO_VIA_PROVEDOR) return `leitura por provedor não permitida (decisão ${this.allowlist.decisionId}): só o coletor direto`;
+    return null;
+  }
+
+  /** O site recusou (403, 429 ou desafio contra robô): pausa persistente do host. Falha ao gravar não muda a resposta. */
+  private async pauseHost(source: Source): Promise<void> {
+    try { await this.budgetFor(source)?.pause?.(source.host.toLowerCase(), this.now().getTime()); } catch { /* o StopGuard ainda para esta rodada */ }
+  }
+
+  /** Contador persistente que vale para a fonte: o geral (lista permitida) ou, nos blogs com restrição, o deles. */
+  private budgetFor(source: Source): ReadBudget | undefined {
+    return this.hostBudget ?? (isRestrictedBlog(source) ? this.restrictedBudget : undefined);
+  }
+
+  /** Nome com que o coletor se apresenta: nos blogs com restrição, sempre o próprio. */
+  private uaFor(source: Source): string {
+    return isRestrictedBlog(source) ? USER_AGENT : this.ua;
+  }
+
+  /** Teto por hora que vale: o do cadastro ou o da lista permitida, o que for menor. */
+  private hourlyCap(source: Source): number {
+    const entry = this.allowlist ? allowedEntry(source, this.allowlist) : undefined;
+    const cap = entry ? Math.min(source.maxRequestsPerHour, entry.maxPerHour) : source.maxRequestsPerHour;
+    return isRestrictedBlog(source) ? Math.min(cap, RESTRICTED_BLOGS.maxPerHour) : cap;
   }
 
   /**
@@ -243,18 +303,19 @@ export class Collector {
     const host = source.host;
     const nowMs = () => this.now().getTime();
     const win = (this.hourWindow.get(host) ?? []).filter((t) => nowMs() - t < 3_600_000);
-    if (win.length >= source.maxRequestsPerHour) {
+    const cap = this.hourlyCap(source);
+    if (win.length >= cap) {
       this.hourWindow.set(host, win);
-      throw new UrlRejected('rate_limited', `limite de ${source.maxRequestsPerHour} requisições/hora atingido para ${host}`);
+      throw new UrlRejected('rate_limited', `limite de ${cap} requisições/hora atingido para ${host}`);
     }
-    const delaySec = this.robotsCache.get(host)?.crawlDelaySec ?? 0;
+    const delaySec = this.robotsCache.get(host)?.rules?.crawlDelaySec ?? 0;
     if (delaySec > this.maxCrawlDelaySec) throw new UrlRejected('crawl_delay_excessive', `Crawl-delay de ${delaySec}s excede o máximo de ${this.maxCrawlDelaySec}s`);
     this.hourWindow.set(host, win);
   }
 
   /** Espera o maior entre o Crawl-delay do robots.txt e o intervalo mínimo (padrão 3 s) desde a última requisição ao host. */
   private async space(host: string): Promise<void> {
-    const delayMs = Math.max((this.robotsCache.get(host)?.crawlDelaySec ?? 0) * 1000, this.minSpacingMs);
+    const delayMs = Math.max((this.robotsCache.get(host)?.rules?.crawlDelaySec ?? 0) * 1000, this.minSpacingMs);
     const last = this.lastRequestAt.get(host);
     if (delayMs > 0 && last !== undefined) {
       const wait = last + delayMs - this.now().getTime();
@@ -288,8 +349,23 @@ export class Collector {
       if (!isRobots) await this.throttle(source);
       await this.space(source.host);
       const { pinned } = await resolvePublic(new URL(cur).hostname, this.resolver);
-      const r = await this.fetcher.get(cur, { userAgent: this.ua, address: pinned.address, family: pinned.family });
+      // última barreira antes da rede: trava das fontes e vaga no contador persistente do host
+      const refused = this.notAllowed(source);
+      if (refused) throw new UrlRejected('source_not_allowed', refused);
+      const hostKey = source.host.toLowerCase();
+      const budget = this.budgetFor(source);
+      if (budget) {
+        const cap = this.hourlyCap(source);
+        let slot: { allowed: boolean };
+        try { slot = await budget.reserve(hostKey, this.now().getTime(), cap, 3_600_000, 0); } catch {
+          throw new UrlRejected('rate_limited', `contador de requisições indisponível para ${hostKey}: nada sai`);
+        }
+        if (!slot.allowed) throw new UrlRejected('rate_limited', `limite de ${cap} requisições/hora ou pausa por recusa do site: ${hostKey} (contador persistente)`);
+      }
+      const r = await this.fetcher.get(cur, { userAgent: this.uaFor(source), address: pinned.address, family: pinned.family });
       this.record(source.host);
+      // a coleta desta rodada já para por causa do status; a pausa segura as próximas
+      if (r.status === 403 || r.status === 429) await this.pauseHost(source);
       if (r.status >= 300 && r.status < 400 && r.headers['location']) {
         cur = new URL(r.headers['location'], cur).toString();
         continue;
@@ -300,19 +376,26 @@ export class Collector {
   }
 
   private async robotsFor(source: Source): Promise<ReturnType<typeof parseRobots> | null> {
-    if (this.robotsCache.has(source.host)) return this.robotsCache.get(source.host)!;
+    const cached = this.robotsCache.get(source.host);
+    if (cached && this.now().getTime() - cached.at < (cached.rules ? ROBOTS_TTL_MS : ROBOTS_FAILED_TTL_MS)) return cached.rules;
     let rules: ReturnType<typeof parseRobots> | null;
     try {
       const r = await this.safeGet(`https://${source.host}/robots.txt`, source);
       if (r.status === 200) {
         // 200 com HTML ou desafio no lugar do robots.txt não é "sem restrição": é falha de leitura (fail closed).
         const html = /<\s*(html|head|body|!doctype)/i.test(r.body.slice(0, 1000));
-        rules = html || detectChallenge({ status: 200, headers: r.headers, html: r.body, text: r.body }) ? null : parseRobots(r.body, this.ua);
+        const challenge = detectChallenge({ status: 200, headers: r.headers, html: r.body, text: r.body });
+        if (challenge) await this.pauseHost(source);
+        rules = html || challenge ? null : parseRobots(r.body, this.uaFor(source));
       }
-      else if (r.status === 404) rules = parseRobots('', this.ua); // sem robots = sem restrição (decide pelo módulo comum)
+      else if (r.status === 404) rules = parseRobots('', this.uaFor(source)); // sem robots = sem restrição (decide pelo módulo comum)
       else rules = null; // 401/403/5xx: tratar como indisponível => não coletar (fail closed)
-    } catch { rules = null; }
-    this.robotsCache.set(source.host, rules);
+    } catch (e) {
+      // teto por hora: não é falha do robots.txt; não guarda no cache, para a próxima janela poder ler
+      if (e instanceof UrlRejected && e.code === 'rate_limited') throw e;
+      rules = null;
+    }
+    this.robotsCache.set(source.host, { rules, at: this.now().getTime() });
     return rules;
   }
 
@@ -321,26 +404,29 @@ export class Collector {
     requireFlag(this.flags, 'editorialCollector'); // desligada por padrão (contratos)
     const el = eligibility(source);
     if (!el.ok) return { skip: { url, code: 'source_not_eligible', detail: el.reasons.join(',') } };
+    const refused = this.notAllowed(source);
+    if (refused) return { skip: { url, code: 'source_not_allowed', detail: refused } };
     let u: URL;
     try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
     if (source.acesso === ACESSO_VIA_PROVEDOR) return this.collectUrlViaReader(source, u, hint);
-    const rules = await this.robotsFor(source);
+    let rules: ReturnType<typeof parseRobots> | null;
+    try { rules = await this.robotsFor(source); } catch (e) { return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } }; }
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível; não coletar' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     let r: HttpResponse;
     const t0 = Date.now();
     try { r = await this.safeGet(u.toString(), source); } catch (e) {
-      this.notifyDirect({ url, sourceId: source.id, status: 0, ms: Date.now() - t0 });
+      this.notifyDirect({ url, sourceId: source.id, status: 0, ms: Date.now() - t0 }, source);
       return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } };
     }
-    this.notifyDirect({ url, sourceId: source.id, status: r.status, body: r.body, ms: Date.now() - t0 });
+    this.notifyDirect({ url, sourceId: source.id, status: r.status, body: r.body, ms: Date.now() - t0 }, source);
     // Ordem importa: 429 e erros HTTP vêm ANTES de paywall/desafio (uma página de erro com "faça login" não pode esconder o 429 e manter a coleta insistindo).
     if (r.status === 429) return { skip: { url, code: 'rate_limited', detail: `HTTP 429 da fonte${r.headers['retry-after'] ? ` (Retry-After: ${r.headers['retry-after']})` : ''}` } };
     if (r.status < 200 || r.status >= 300) return { skip: { url, code: 'http_error', detail: String(r.status) } };
     const chal = detectChallenge({ status: r.status, headers: r.headers, html: r.body, text: stripHtml(r.body) });
-    if (chal) return { skip: { url, code: 'challenge', detail: chal } };
+    if (chal) { await this.pauseHost(source); return { skip: { url, code: 'challenge', detail: chal } }; }
     const gate = detectGate(r);
     if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
     if (r.body.length > MAX_BODY_CHARS) return { skip: { url, code: 'body_too_large', detail: String(r.body.length) } };
@@ -348,8 +434,9 @@ export class Collector {
   }
 
   /** Aviso ao observador (shadow). Nunca lança e nunca é aguardado: o coletor não depende dele. */
-  private notifyDirect(e: DirectReadEvent): void {
-    if (!this.onDirectRead) return;
+  private notifyDirect(e: DirectReadEvent, source: Source): void {
+    // a sombra releria a página por outros provedores: nunca para os blogs com restrição
+    if (!this.onDirectRead || isRestrictedBlog(source)) return;
     try { this.onDirectRead(e); } catch { /* medição não pode afetar a coleta */ }
   }
 
@@ -387,6 +474,8 @@ export class Collector {
     const out: CollectResult = { evidences: [], skipped: [] };
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.feedUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
+    const refused = this.notAllowed(source);
+    if (refused) { out.skipped.push({ url: source.feedUrl ?? source.host, code: 'source_not_allowed', detail: refused }); return out; }
     if (source.acesso === ACESSO_VIA_PROVEDOR) return this.collectDp31(source, limit);
     if (!source.feedUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem feedUrl cadastrado' }); return out; }
     const f = await this.collectRaw(source, source.feedUrl);
@@ -400,12 +489,29 @@ export class Collector {
     return out;
   }
 
-  /** Janela de 24 h, espaçamento mínimo e leitura pelo serviço. Nunca repete, nunca tenta outro caminho. */
+  /** ADR-007: sem serviço, ou com serviço de desbloqueio, a fonte via provedor não é lida. */
+  private readerRefusal(url: string): Skip | undefined {
+    if (!this.reader) return { url, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_VIA_PROVEDOR} e nenhum serviço de leitura configurado` };
+    if (this.reader.unlocks === true) return { url, code: 'reader_unavailable', detail: 'ADR-007: serviço com desbloqueio (CAPTCHA/proxy) não é usado' };
+    return undefined;
+  }
+
+  /** robots.txt, janela de 24 h, espaçamento mínimo e leitura pelo serviço. Nunca repete, nunca tenta outro caminho. */
   private async readViaReader(source: Source, url: string): Promise<{ r?: ReaderResult; skip?: Skip }> {
-    if (!this.reader) return { skip: { url, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_VIA_PROVEDOR} e nenhum serviço de leitura configurado` } };
+    const refused = this.notAllowed(source);
+    if (refused) return { skip: { url, code: 'source_not_allowed', detail: refused } };
+    const refusal = this.readerRefusal(url);
+    if (refusal || !this.reader) return { skip: refusal! };
     const host = source.host;
+    let rules: ReturnType<typeof parseRobots> | null;
+    try { rules = await this.robotsFor(source); } catch (e) { return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } }; }
+    if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível; não coletar' } };
+    const target = new URL(url);
+    if (!isAllowedByRobots(rules, target.pathname + target.search)) return { skip: { url, code: 'robots_disallow', detail: target.pathname } };
+    const delaySec = rules.crawlDelaySec ?? 0;
+    if (delaySec > this.maxCrawlDelaySec) return { skip: { url, code: 'crawl_delay_excessive', detail: `Crawl-delay de ${delaySec}s excede o máximo de ${this.maxCrawlDelaySec}s` } };
     // Espera o intervalo desde a leitura anterior do host (de QUALQUER instância) e só então reserva a leitura no orçamento global.
-    const slot = await this.readBudget.reserve(host, this.now().getTime(), this.dp31MaxPagesPerDay, 86_400_000, this.dp31SpacingMs);
+    const slot = await this.readBudget.reserve(host, this.now().getTime(), this.dp31MaxPagesPerDay, 86_400_000, Math.max(this.dp31SpacingMs, delaySec * 1000));
     if (!slot.allowed) return { skip: { url, code: 'rate_limited', detail: `DP-31: limite de ${this.dp31MaxPagesPerDay} páginas por dia atingido para ${host} (${slot.used} nas últimas 24 h)` } };
     if (slot.waitMs > 0) await this.sleep(slot.waitMs);
     let r: ReaderResult;
@@ -425,7 +531,7 @@ export class Collector {
     return `<html><head><title>${esc((paras[0] ?? '').slice(0, 160))}</title></head><body><article>${paras.map((x) => `<p>${esc(x)}</p>`).join('')}</article></body></html>`;
   }
 
-  /** DP-31: ignora robots.txt e a recusa do site; NÃO ignora desafio/CAPTCHA, login/paywall, 429 nem limites de ritmo. */
+  /** DP-31 + ADR-007: respeita robots.txt; para em desafio/CAPTCHA, login/paywall, 429 e limites de ritmo. */
   private async collectUrlViaReader(source: Source, u: URL, hint?: { title?: string; publishedAt?: string | null }): Promise<{ evidence?: Evidence; skip?: Skip }> {
     const url = u.toString();
     const g = await this.readViaReader(source, url);
@@ -442,7 +548,8 @@ export class Collector {
   /** DP-31: descoberta por busca restrita ao domínio (discover) ou pelo feed lido pelo serviço; depois lê cada página, parando como na coleta normal. */
   private async collectDp31(source: Source, limit: number): Promise<CollectResult> {
     const out: CollectResult = { evidences: [], skipped: [] };
-    if (!this.reader) { out.skipped.push({ url: source.host, code: 'reader_unavailable', detail: `fonte com acesso ${ACESSO_VIA_PROVEDOR} e nenhum serviço de leitura configurado` }); return out; }
+    const refusal = this.readerRefusal(source.host);
+    if (refusal || !this.reader) { out.skipped.push(refusal!); return out; }
     let items: Array<{ url: string; title?: string; publishedAt?: string | null }> = [];
     if (this.reader.discover) {
       try { items = await this.reader.discover(source, limit); } catch (e) { out.skipped.push({ url: source.host, code: 'http_error', detail: e instanceof Error ? e.message.slice(0, 160) : 'erro na descoberta' }); return out; }
@@ -470,6 +577,8 @@ export class Collector {
     const out: CollectResult = { evidences: [], skipped: [] };
     const el = eligibility(source);
     if (!el.ok) { out.skipped.push({ url: source.sitemapUrl ?? source.host, code: 'source_not_eligible', detail: el.reasons.join(',') }); return out; }
+    const refused = this.notAllowed(source);
+    if (refused) { out.skipped.push({ url: source.sitemapUrl ?? source.host, code: 'source_not_allowed', detail: refused }); return out; }
     if (!source.sitemapUrl) { out.skipped.push({ url: source.host, code: 'empty_content', detail: 'fonte sem sitemapUrl cadastrado' }); return out; }
     // Sem prefixo de caminho verificado para a seção de notícias, o sitemap traria páginas quaisquer (produtos, institucional): não coletar.
     if (!source.sitemapPathPrefix) { out.skipped.push({ url: source.sitemapUrl, code: 'empty_content', detail: 'sitemap sem sitemapPathPrefix verificado (seção de notícias não identificada)' }); return out; }
@@ -564,13 +673,16 @@ export class Collector {
     try { u = assertAllowedUrl(url, [source.host], source.pathPrefix); } catch (e) {
       return { skip: { url, code: 'url_rejected', detail: e instanceof UrlRejected ? e.code : 'invalid' } };
     }
+    const refused = this.notAllowed(source);
+    if (refused) return { skip: { url, code: 'source_not_allowed', detail: refused } };
     if (source.acesso === ACESSO_VIA_PROVEDOR) {
       const g = await this.readViaReader(source, url);
       if (g.skip) return { skip: g.skip };
       const chal = detectChallenge({ status: g.r!.status, headers: {}, html: g.r!.body, text: g.r!.body });
       return chal ? { skip: { url, code: 'challenge', detail: chal, viaProvider: true } } : { body: g.r!.body };
     }
-    const rules = await this.robotsFor(source);
+    let rules: ReturnType<typeof parseRobots> | null;
+    try { rules = await this.robotsFor(source); } catch (e) { return { skip: { url, code: skipCodeOf(e), detail: e instanceof Error ? e.message : 'erro' } }; }
     if (!rules) return { skip: { url, code: 'robots_unavailable', detail: 'robots.txt indisponível' } };
     if (!isAllowedByRobots(rules, u.pathname + u.search)) return { skip: { url, code: 'robots_disallow', detail: u.pathname } };
     try {
@@ -585,7 +697,7 @@ export class Collector {
         }
       }
       const chal = detectChallenge({ status: r.status, headers: r.headers, html: r.body, text: stripHtml(r.body) });
-      if (chal) return { skip: { url, code: 'challenge', detail: chal } };
+      if (chal) { await this.pauseHost(source); return { skip: { url, code: 'challenge', detail: chal } }; }
       const gate = detectGate(r);
       if (gate.gated) return { skip: { url, code: 'gated', detail: gate.reasons.join(',') } };
       return { body: r.body };

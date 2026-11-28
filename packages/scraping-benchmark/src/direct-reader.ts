@@ -4,13 +4,14 @@
  * no máximo 5 redirects; timeout; teto de tamanho do corpo; UA identificado.
  * DNS rebinding (ressalva QA 3, M1): o nome é resolvido UMA vez por salto, o IP resolvido é validado e a conexão é feita
  * NESSE IP (lookup fixado), mantendo o nome do host para TLS (SNI e certificado) e para o cabeçalho Host.
+ * ADR-007: antes de cada salto confere o robots.txt (proíbe ou ilegível = não baixa) e página de desafio/CAPTCHA vira falha, sem texto.
  */
 import { lookup } from 'node:dns/promises';
 import { isIP, type LookupFunction } from 'node:net';
 import { request as httpRequest } from 'node:http';
 import { request as httpsRequest } from 'node:https';
 import type { ReaderPort, ReadRequest, ReadResult } from '@ln/intelligence';
-import { stripHtml } from '@ln/intelligence';
+import { challengeReason, createRobotsGate, stripHtml, type RobotsGate } from '@ln/intelligence';
 
 export const BENCH_UA = 'LoyaltyNewsBenchmark/0.1 (+pesquisa de ingestao; ritmo baixo)';
 const MAX_BYTES = 3_000_000;
@@ -98,11 +99,29 @@ export async function ssrfCheck(url: string, resolve: Resolver = defaultResolver
 
 export class DirectReader implements ReaderPort {
   readonly provider = 'direct';
+  private readonly robots: RobotsGate;
+  private readonly robotsCache = new Map<string, TransportResponse>();
   constructor(
     private readonly transport: Transport = pinnedTransport,
     private readonly resolve: Resolver = defaultResolver,
     private readonly timeoutMs = 30_000,
-  ) {}
+  ) {
+    this.robots = createRobotsGate(((u: string) => this.robotsFile(String(u))) as unknown as typeof fetch, BENCH_UA);
+  }
+
+  /** robots.txt pelo MESMO transporte (SSRF e IP fixado em cada salto, até 5 redirects); resposta guardada por origem. */
+  private async robotsFile(robotsUrl: string): Promise<Response> {
+    let r = this.robotsCache.get(robotsUrl);
+    for (let hop = 0, url = robotsUrl; !r; hop++) {
+      const d = await ssrfResolve(url, this.resolve);
+      if (d.reason || !d.ip || hop > 5) throw new Error(`robots.txt recusado (${d.reason ?? 'redirects_demais'})`);
+      const got = await this.transport(url, d.ip, this.timeoutMs);
+      if (got.status >= 300 && got.status < 400 && got.headers.location) url = new URL(got.headers.location, url).toString();
+      else r = got;
+    }
+    this.robotsCache.set(robotsUrl, r);
+    return new Response([204, 205, 304].includes(r.status) ? null : new Uint8Array(r.body), { status: r.status, headers: r.headers });
+  }
 
   async read(req: ReadRequest): Promise<ReadResult & { ssrf?: string }> {
     const base = { url: req.url, provider: this.provider, creditsUsed: 0 };
@@ -110,6 +129,8 @@ export class DirectReader implements ReaderPort {
     for (let hop = 0; hop <= 5; hop++) {
       const d = await ssrfResolve(url, this.resolve); // uma resolução por salto, validada
       if (d.reason || !d.ip) return { ...base, ok: false, failure: 'provider_error', ssrf: d.reason ?? 'dns' };
+      const verdict = await this.robots(url);
+      if (!verdict.allowed) return { ...base, ok: false, failure: verdict.unavailable ? 'robots_unavailable' : 'robots_disallow' };
       let r: TransportResponse;
       try {
         r = await this.transport(url, d.ip, this.timeoutMs);
@@ -126,7 +147,9 @@ export class DirectReader implements ReaderPort {
       if (r.status === 401) return { ...base, ok: false, httpStatus: 401, failure: 'login_required' };
       if (r.status === 402) return { ...base, ok: false, httpStatus: 402, failure: 'paywall' };
       if (r.status >= 400) return { ...base, ok: false, httpStatus: r.status, failure: 'provider_error' };
-      return { ...base, ok: true, httpStatus: r.status, finalUrl: url, html, text: stripHtml(html) };
+      const text = stripHtml(html);
+      if (challengeReason({ status: r.status, headers: r.headers, html, text })) return { ...base, ok: false, httpStatus: r.status, failure: 'captcha_unsolved' };
+      return { ...base, ok: true, httpStatus: r.status, finalUrl: url, html, text };
     }
     return { ...base, ok: false, failure: 'provider_error', ssrf: 'redirects_demais' };
   }

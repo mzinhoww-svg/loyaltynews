@@ -38,7 +38,7 @@ export interface ProviderMetrics {
 }
 
 export function computeMetrics(records: AttemptRecord[], opts: { ineligible?: Set<string>; referenceDates?: Map<string, string | null> } = {}): ProviderMetrics[] {
-  const real = records.filter((r) => !r.mock && r.errorClass !== 'billing_unconfirmed' && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled');
+  const real = records.filter((r) => !r.mock && r.errorClass !== 'billing_unconfirmed' && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled' && r.errorClass !== 'source_refused');
   const by = new Map<string, AttemptRecord[]>();
   for (const r of real) by.set(r.provider, [...(by.get(r.provider) ?? []), r]);
   const out: ProviderMetrics[] = [];

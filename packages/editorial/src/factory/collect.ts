@@ -2,7 +2,7 @@ import { Collector } from '../collector/collector';
 import type { Skip } from '../collector/collector';
 import { canonicalUrl, Deduper, sha256 } from '../dedupe/dedupe';
 import { eligibility, SourceRegistry } from '../sources/registry';
-import { resolveEffectiveSources } from '../sources/state';
+import { effectiveSource, resolveEffectiveSources } from '../sources/state';
 import type { Editoria, Evidence, Source } from '../types';
 import type { EditorialStore } from '../api/store';
 
@@ -48,7 +48,11 @@ export async function collectFromSources(
     if (opts.onlySourceIds && !opts.onlySourceIds.includes(s.id)) continue;
     const el = eligibility(s);
     if (!el.ok) continue; // só relatamos o que foi tentado; o painel de fontes mostra o motivo de inelegibilidade
-    out.sources.push(await collectOne(deps.collector, s, opts.limitPerSource ?? 20, out, dedupe, knownUrls, seenIds));
+    // A rodada é longa: desabilitar a fonte no Studio vale antes de a coleta DELA começar. Só restringe: quem não era elegível no início continua fora.
+    const agora = effectiveSource(deps.registry.get(s.id)!, await deps.store.getSourceState(s.id));
+    const ainda = eligibility(agora);
+    if (!ainda.ok) { out.sources.push({ sourceId: s.id, status: 'not_eligible', reasons: ainda.reasons, evidences: 0, skipped: [] }); continue; }
+    out.sources.push(await collectOne(deps.collector, agora, opts.limitPerSource ?? 20, out, dedupe, knownUrls, seenIds));
   }
   return out;
 }

@@ -14,6 +14,7 @@ Diretriz do proprietário (DP-29, 23/11/2026): maximizar fontes; nunca reproduzi
 - `SourceKind` ganhou `blog`, `trade_media` e `company_blog` (nível `secondary`); os demais são `primary`. A evidência registra `sourceTier` e os links do post (`outboundLinks`, até 25).
 - **Âncora (`src/factory/anchor.ts`):** para um post secundário, a fábrica coleta, pelo coletor normal (robots, ritmo, anti-SSRF), as páginas que o próprio post linka e que pertencem a uma **fonte primária habilitada** (host e prefixo de caminho conferem; até 3). Link para fonte primária não habilitada ou para site desconhecido não ancora.
 - **Sem âncora, a matéria não segue:** fica `bloqueado` com `unanchored` **antes** de qualquer chamada de modelo (não gasta custo).
+- **DP-59 (25/11):** os blogs de `rules/blog-anchor.ts` podem ancorar fato, número e data (ver `blog-anchor-dp59.md`); o que segue vale para os demais.
 - **Gates (`rules.ts`):** `needs_primary_anchor` (matéria só com fonte secundária) e `unanchored_claim` (número, data ou citação sustentado só pelo blog). O blog continua listado no bloco "Fontes:" com link (atribuição).
 - Limite conhecido: a âncora depende de o post linkar a fonte oficial. Posts que só citam a fonte sem link não viram matéria; achar a fonte oficial por busca no cadastro (mesma empresa/tema) é uma melhoria futura, não feita.
 

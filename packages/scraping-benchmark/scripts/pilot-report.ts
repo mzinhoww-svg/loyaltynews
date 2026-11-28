@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 import { parseFeed, discoveryMetrics } from '../src/discovery.ts';
 import { DirectReader, BENCH_UA, ssrfResolve } from '../src/direct-reader.ts';
+import { politeGet } from '../src/polite-get.ts';
 import { evaluate, bodyEvidence, detectWall, sameDate, sha256 } from '../src/quality.ts';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
@@ -45,10 +46,10 @@ async function getXml(url: string) {
   directCalls++;
   const t0 = Date.now();
   try {
-    const r = await fetch(url, { headers: { 'user-agent': BENCH_UA, accept: 'application/rss+xml,application/atom+xml,application/xml,text/xml,*/*' }, signal: AbortSignal.timeout(30_000) });
-    if (!r.ok) return { status: r.status, body: '', ms: Date.now() - t0 };
+    const r = await politeGet(url, { userAgent: BENCH_UA, accept: 'application/rss+xml,application/atom+xml,application/xml,text/xml,*/*' });
+    if (r.err || r.status < 200 || r.status >= 300) return { status: r.status, body: '', ms: Date.now() - t0, ...(r.err ? { err: r.err } : {}) };
     // sitemaps .xml.gz (gov.br/anac): o corpo vem comprimido como arquivo, não como Content-Encoding
-    const buf = Buffer.from(await r.arrayBuffer());
+    const buf = r.body;
     const body = /\.gz$/i.test(new URL(url).pathname) && buf[0] === 0x1f && buf[1] === 0x8b ? gunzipSync(buf).toString('utf8') : buf.toString('utf8');
     return { status: r.status, body, ms: Date.now() - t0 };
   } catch (e) {

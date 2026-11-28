@@ -1,7 +1,7 @@
 /**
  * Roteador multiprovedor com fallback por domínio (Prompt-Mestre Fase F; Diretiva V3 §12).
  *  1. cache → 2. permissão (DP-32: login/paywall param) → 3. ordem por menor custo esperado por artigo válido no domínio
- *  4. fallback só em falha técnica elegível → 5. Retry-After / backoff exponencial com jitter → 6. circuit breaker por provedor
+ *  4. fallback só em falha técnica elegível (recusa, CAPTCHA, robots e 429 do site param; ADR-007) → 5. Retry-After / backoff exponencial com jitter → 6. circuit breaker por provedor
  *  7. corte por orçamento (BudgetGuard) → 8. dedupe em voo e por URL vista → 9. provedor desligável → 10. decisão registrada.
  * Não publica nada: devolve o resultado para o pipeline existente decidir (shadow mode por padrão).
  */
@@ -16,9 +16,9 @@ export interface RoutedProvider {
   usdPerCredit: number;
 }
 
-/** Falhas em que vale tentar OUTRO provedor. Login/paywall/not_found NÃO (restrição de conteúdo, não técnica). */
+/** Falhas em que vale tentar OUTRO provedor. Login/paywall/not_found e qualquer recusa (ADR-007) NÃO. */
 export const FALLBACK_ELIGIBLE: ReadonlySet<ReaderFailure> = new Set<ReaderFailure>([
-  'captcha_unsolved',
+  'unlock_forbidden', // este provedor não pode ser usado; não é recusa do site
   'timeout',
   'provider_error',
   'quota_exhausted',
@@ -26,7 +26,14 @@ export const FALLBACK_ELIGIBLE: ReadonlySet<ReaderFailure> = new Set<ReaderFailu
   'auth_failed',
   'disabled',
 ]);
-export const STOP_FAILURES: ReadonlySet<ReaderFailure> = new Set<ReaderFailure>(['login_required', 'paywall', 'not_found']);
+export const STOP_FAILURES: ReadonlySet<ReaderFailure> = new Set<ReaderFailure>([
+  'login_required', 'paywall', 'not_found',
+  'captcha_unsolved', 'captcha_solved_by_provider', 'robots_disallow', 'robots_unavailable',
+]);
+/** Status que indicam recusa/bloqueio da página: outro provedor não é tentado (seria contornar). 429 para depois das tentativas no mesmo. */
+export const REFUSAL_STATUS: ReadonlySet<number> = new Set([401, 402, 403, 451, 503, 520, 521]);
+export const isRefusal = (r: { failure?: ReaderFailure; httpStatus?: number }): boolean =>
+  (!!r.failure && STOP_FAILURES.has(r.failure)) || (!!r.failure && r.httpStatus !== undefined && REFUSAL_STATUS.has(r.httpStatus));
 
 export const ATTEMPT_OVERHEAD_USD = 0.0002;
 
@@ -218,7 +225,7 @@ export class AdaptiveRouter {
           return { result: r, provider: p.name, decisions, creditsUsed: credits, fromCache: false };
         }
         this.bump(domain, p.name, false, used);
-        if (r.failure && STOP_FAILURES.has(r.failure)) {
+        if (isRefusal(r)) {
           push({ url, domain, step: 'stop_restriction', provider: p.name, detail: r.failure });
           return { result: r, provider: p.name, decisions, creditsUsed: credits, fromCache: false };
         }
@@ -233,6 +240,10 @@ export class AdaptiveRouter {
         if (wait > this.o.maxWaitMs) break; // Retry-After longo: respeita, não força; tenta o próximo provedor
         push({ url, domain, step: 'wait_retry_after', provider: p.name, detail: `${Math.round(wait)}ms` });
         await this.o.sleep(wait);
+      }
+      if (last?.failure === 'rate_limited' && last.httpStatus === 429) { // o SITE pediu pausa: não trocar de provedor
+        push({ url, domain, step: 'stop_restriction', provider: p.name, detail: 'rate_limited' });
+        return { result: last, provider: last.provider, decisions, creditsUsed: credits, fromCache: false };
       }
     }
     push({ url, domain, step: 'exhausted', detail: last?.failure ?? 'sem provedor elegível' });

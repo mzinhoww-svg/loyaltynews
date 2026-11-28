@@ -9,8 +9,8 @@
  */
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import type { EditorialReaderPort, EditorialReaderResult } from '@ln/intelligence';
-import type { AdaptiveRouter } from './router';
+import { challengeReason, stripHtml, type EditorialReaderPort, type EditorialReaderResult } from '@ln/intelligence';
+import { REFUSAL_STATUS, type AdaptiveRouter } from './router';
 import { readFlags } from './flags';
 import { sha256, bodyEvidence, type BodyEvidence } from './quality';
 
@@ -18,7 +18,7 @@ export interface ShadowComparison {
   at: string;
   url: string;
   primary: { name: string; status: number; ok: boolean; bodyLength: number; hash?: string; ms: number; evidence?: BodyEvidence };
-  shadow: { provider?: string; ok: boolean; failure?: string; textLength: number; hash?: string; ms: number; credits: number; steps: string[]; evidence?: BodyEvidence } | { error: string } | { skipped: 'ritmo' };
+  shadow: { provider?: string; ok: boolean; failure?: string; textLength: number; hash?: string; ms: number; credits: number; steps: string[]; evidence?: BodyEvidence } | { error: string } | { skipped: 'ritmo' | 'recusa' };
   divergent: boolean;
 }
 
@@ -69,7 +69,9 @@ export class LiveShadow {
     if (this.count >= (this.o.maxUrlsPerRun ?? 200)) return;
     this.count++;
     const p = { name: primary.name, status: primary.status, ok: primary.status >= 200 && primary.status < 300 && (primary.body?.length ?? 0) > 0, bodyLength: primary.body?.length ?? 0, hash: primary.body ? sha256(primary.body) : undefined, ms: primary.ms, evidence: primary.body ? bodyEvidence(primary.body, /<\w+[\s>]/.test(primary.body) ? primary.body : undefined) : undefined };
-    this.queue = this.queue.then(() => this.runShadow(url, p)).catch(() => {}); // concorrência 1; erro não propaga
+    const refused = primary.status === 0 || primary.status === 429 || REFUSAL_STATUS.has(primary.status)
+      || (!!primary.body && challengeReason({ status: primary.status, html: primary.body, text: stripHtml(primary.body) }) !== null);
+    this.queue = this.queue.then(() => this.runShadow(url, p, refused)).catch(() => {}); // concorrência 1; erro não propaga
   }
 
   /** Espera a fila (para testes e encerramento do worker). */
@@ -77,15 +79,21 @@ export class LiveShadow {
     return this.queue;
   }
 
-  private async runShadow(url: string, p: ShadowComparison['primary']): Promise<void> {
+  private async runShadow(url: string, p: ShadowComparison['primary'], refused: boolean): Promise<void> {
     let c: ShadowComparison;
-    if (this.o.beforeShadow && !(await this.o.beforeShadow(url).catch(() => false))) {
-      c = { at: new Date(this.now()).toISOString(), url, primary: p, shadow: { skipped: 'ritmo' }, divergent: false };
+    const skipped = refused ? 'recusa' : this.o.beforeShadow && !(await this.o.beforeShadow(url).catch(() => false)) ? 'ritmo' : null;
+    if (skipped) {
+      c = { at: new Date(this.now()).toISOString(), url, primary: p, shadow: { skipped }, divergent: false };
       if (this.o.sinkPath) {
         mkdirSync(dirname(this.o.sinkPath), { recursive: true });
         appendFileSync(this.o.sinkPath, JSON.stringify(c) + '\n');
       }
       this.o.onComparison?.(c);
+      try {
+        this.o.afterShadow?.(url, c); // o 429 do site continua suspendendo o host no ritmo da sombra
+      } catch {
+        /* gancho nunca derruba a fila */
+      }
       return;
     }
     const t0 = this.now();

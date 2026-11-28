@@ -8,6 +8,7 @@ import { eligibility } from '../sources/registry';
 import {
   AUTORAL_LABEL, buildAttribution, decideImage, digitsKey, fabricatedReportingFindings, mainBody, numbersIn, runDeterministicChecks,
 } from '../rules/rules';
+import { isPermittedBlogAnchor } from '../rules/blog-anchor';
 import { normalizeText } from '../dedupe/dedupe';
 import { PUBLISHABLE_DEFAULTS, RESUMO_MAX, imageToRights, uniqueSlug } from '../publishable';
 import { imageLabel } from '@ln/contracts';
@@ -52,6 +53,8 @@ export interface StageDeps {
 }
 
 const PROMPT_VERSION = 'editorial-0.3';
+/** Versão registrada quando há blog autorizado a ancorar (DP-59): o prompt ganha a regra 7. */
+const promptVersionFor = (evs: Evidence[]): string => (evs.some((e) => isPermittedBlogAnchor(e)) ? `${PROMPT_VERSION}+dp59` : PROMPT_VERSION);
 
 function blocked(job: ArticleJob, stage: JobSpec['stage'], blockers: BlockerCode[], findings: Finding[] = []): StageOutcome {
   return { kind: 'blocked', blocked: { articleId: job.articleId, stage, blockers, findings } };
@@ -89,13 +92,13 @@ async function markOutput(deps: StageDeps, job: ArticleJob, stage: JobSpec['stag
 async function call(deps: StageDeps, job: ArticleJob, stage: JobSpec['stage'], taskClass: TaskClass, route: RouteClass, workflow: WorkflowId,
   input: unknown, excludeProviders: string[] = [], rev?: DraftRevision): Promise<GatewayResponse> {
   const req: GatewayRequest = {
-    taskClass, route, workflow, dataClass: 'public', excludeProviders, input, promptVersion: PROMPT_VERSION,
+    taskClass, route, workflow, dataClass: 'public', excludeProviders, input, promptVersion: promptVersionFor(job.evidences),
     idempotencyKey: `${job.articleId}:${taskClass}:${job.attempt}`,
   };
   const r = await deps.gateway.invoke(req);
   deps.audit.record({
     at: (deps.now?.() ?? new Date()).toISOString(), articleId: job.articleId, stage, event: r.ok ? 'model_call' : `refused:${r.refusal}`,
-    ...(r.ok ? { provider: r.provider, model: r.model } : {}), promptVersion: PROMPT_VERSION,
+    ...(r.ok ? { provider: r.provider, model: r.model } : {}), promptVersion: promptVersionFor(job.evidences),
     evidenceIds: job.evidences.map((e) => e.id), ...(r.ok ? {} : r.detail ? { detail: r.detail } : {}),
     ...(rev ? { reviewedDraftTaskId: rev.taskId, reviewedDraftSha256: rev.sha256 } : {}),
   });
@@ -116,7 +119,7 @@ const refused = (job: ArticleJob, stage: JobSpec['stage'], r: Extract<GatewayRes
 };
 
 /** Evidência é dado não confiável: vai ao modelo só como string citada, nunca como instrução. */
-const untrusted = (evs: Evidence[]) => evs.map((e) => ({ id: e.id, sourceId: e.sourceId, tier: e.sourceTier ?? 'primary', title: e.title, text: e.text.slice(0, 6000), suspicious: e.suspicious }));
+const untrusted = (evs: Evidence[]) => evs.map((e) => ({ id: e.id, sourceId: e.sourceId, tier: isPermittedBlogAnchor(e) ? 'blog_ancora' : e.sourceTier ?? 'primary', title: e.title, text: e.text.slice(0, 6000), suspicious: e.suspicious }));
 
 // ---------------- 1. triagem (WF01) ----------------
 export async function triage(deps: StageDeps, job: ArticleJob): Promise<StageOutcome> {
@@ -179,7 +182,7 @@ function parseClaims(x: unknown): Claim[] | null {
 
 const FINDING_TO_BLOCKER: Record<string, BlockerCode> = {
   copy_literal: 'copy_literal', rights_basis_unresolved: 'rights_basis_unresolved', suspicious_evidence: 'suspicious_evidence',
-  needs_primary_anchor: 'unanchored', unanchored_claim: 'unanchored',
+  needs_primary_anchor: 'unanchored', unanchored_claim: 'unanchored', quote_from_secondary: 'unanchored', blog_attribution_missing: 'unanchored',
   autoral_needs_anchors: 'autoral_invalid', autoral_label_missing: 'autoral_invalid', autoral_wrong_type: 'autoral_invalid', autoral_quote: 'autoral_invalid',
 };
 const blockerOf = (code: string): BlockerCode => FINDING_TO_BLOCKER[code] ?? (code.startsWith('tone_') ? 'tone_lint' : 'unsupported_claim');
@@ -222,7 +225,7 @@ export async function draft(deps: StageDeps, job: ArticleJob): Promise<StageOutc
     signature: SIGNATURE, // sempre imposta pelo sistema; o modelo não define autoria
     image: job.autoral ? { mode: 'none', reason: 'conteúdo autoral: sem imagem de fonte (D08)' } : primary ? withAlt(decideImage(primary, cand), alt) : { mode: 'none', reason: 'fonte desconhecida' },
     ...(job.autoral ? { tipoConteudo: 'analise' as const, autoral: { formato: job.autoral.formato, pautaId: job.autoral.pautaId } } : {}),
-    modelProvider: r.provider, promptVersion: PROMPT_VERSION,
+    modelProvider: r.provider, promptVersion: promptVersionFor(job.evidences),
   };
   const chk = runDeterministicChecks(d, job.evidences);
   // Veredito do gate da redação na linha do piloto (planilha): quem mede bloqueios por gate lê a linha, não só o registro da matéria.

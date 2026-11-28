@@ -43,6 +43,10 @@ export type ErrorClass =
   | 'title_mismatch'
   | 'not_found'
   | 'ssrf_blocked'
+  /** robots.txt proíbe ou não pôde ser lido (ADR-007) */
+  | 'robots'
+  /** sem chamada: a URL já foi recusada a outro provedor (ADR-007) */
+  | 'source_refused'
   | 'disabled';
 
 /** Uma tentativa URL × provedor (Diretiva V3 §9 e §13). `content` NUNCA é gravado: só hash, tamanho e trecho ≤ 200. */

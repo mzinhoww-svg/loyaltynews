@@ -5,6 +5,7 @@ export * from './budget';
 export * from './router';
 export * from './metrics';
 export * from './direct-reader';
+export * from './polite-get';
 export * from './runner';
 export * from './discovery';
 export * from './shadow';

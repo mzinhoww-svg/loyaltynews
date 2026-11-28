@@ -1,5 +1,13 @@
 # DP-31/DP-32: leitura de fontes que bloqueiam robôs, via provedor de extração/desbloqueio (risco aceito pelo proprietário)
 
+> **ADR-007 v8 (decisão do PM de 27/11, J-14 A) restringe este documento.** Não há lista nominal de exceções, então não há exceção:
+> - o `robots.txt` do alvo é conferido antes de qualquer leitura, direta ou por provedor. Proíbe = não lê. Ilegível, erro HTTP (inclusive 401, 403, 410, 429, 5xx), rede/timeout, HTML ou desafio no lugar do arquivo = não lê (`robots_unavailable`). Só **404** vale como "sem regras";
+> - nos leitores do Intelligence e do benchmark, **404 e 410** valem como "sem regras" e uma página HTML comum, sem sinal de desafio, também (comportamento anterior do verificador, mantido);
+> - provedor com desbloqueio (`unlocks`) não é usado; desafio/CAPTCHA, direto ou por provedor, não vira evidência e **para** a fonte;
+> - falha por URL não passa a outro provedor.
+> Não verificável: redirecionamentos que o provedor siga por dentro. O texto abaixo é histórico onde disser o contrário.
+
+
 Registro: `r0-preparacao/decisoes-proprietario-2026-11-22.md`, DP-31 (23/11/2026). O proprietário aceitou o risco de ler **páginas públicas sem login** que bloqueiam robôs, ignorando `robots.txt` e a recusa por User-Agent/403, **pelo Tavily (ou serviço parecido) ou pelo navegador do OpenBot**, em ritmo baixo. Fora: resolver ou burlar CAPTCHA, falsificar identidade de navegador, proxy rotativo ou qualquer evasão de detecção, furar paywall ou login, e tráfego que pese no site. Mantido: nunca reproduzir texto; guardar só fato, fonte, link e data.
 
 ## DP-32 (23/11/2026) substitui as restrições da DP-31

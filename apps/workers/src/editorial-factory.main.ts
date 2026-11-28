@@ -1,7 +1,8 @@
 // Execução avulsa da Fábrica editorial (staging). NÃO faz parte do processo de workers (main.ts): é um comando que o operador
 // roda quando quiser, com as flags que ele mesmo escolhe. Padrão SEGURO: dry-run (só coleta e relata; sem modelo; sem gravar matéria).
-//   DATABASE_URL=... LN_FACTORY_FLAGS=editorialCollector node dist/editorial-factory.js                       (dry-run)
-//   DATABASE_URL=... LN_FACTORY_FLAGS=editorialCollector,editorialPipeline node dist/editorial-factory.js --run --simulate
+//   APP_ENV=staging DATABASE_URL=... LN_FACTORY_FLAGS=editorialCollector node dist/editorial-factory.js                       (dry-run)
+//   APP_ENV=staging DATABASE_URL=... LN_FACTORY_FLAGS=editorialCollector,editorialPipeline node dist/editorial-factory.js --run --simulate
+// DP-94: recusa (saída 2) sem APP_ENV=staging e o banco de staging registrado; nunca roda em produção (ver editorial-factory-guard.ts).
 // `--run` desliga o dry-run; `--simulate` usa o cliente SIMULADO do modelops (nenhuma chamada real). Chamada real de modelo
 // exige `modelosHabilitados` + política com production_enabled + ledger persistente (ainda inexistente): recusada aqui.
 import { resolve } from 'node:path';
@@ -13,6 +14,7 @@ import { BudgetGate, MemoryLedgerStore, SimulatedOpenRouterClient, gateConfigFro
 import { TavilyReader, parseTavilyKeys } from '@ln/editorial';
 import { pilotWiringImporter } from './openbot-wiring';
 import { createFactoryPool, loadPilotWiring, loadShadow, parseFactoryFlags, runEditorialAutoral, runEditorialFactory } from './editorial-factory';
+import { FactoryRefused, assertFactoryEnvironment } from './editorial-factory-guard';
 
 // Nenhum erro de conexão pode sair com o objeto inteiro (ca/cert/key do TLS): filtro de PEM na saída e saída com código ≠ 0 em erro não tratado.
 installOutputFilter();
@@ -25,6 +27,7 @@ async function main() {
   const simulate = args.includes('--simulate');
   const max = Number(args[args.indexOf('--max') + 1]) || undefined;
   if (!DATABASE_URL) { console.error('[fábrica] DATABASE_URL é obrigatório'); process.exit(1); }
+  try { assertFactoryEnvironment(process.env); } catch (e) { console.error(`[fábrica] ${e instanceof FactoryRefused ? e.message : 'recusado'}`); process.exit(2); }
   const flags = parseFactoryFlags(LN_FACTORY_FLAGS);
   if (flags.modelosHabilitados) { console.error('[fábrica] modelosHabilitados recusada: ledger de orçamento persistente ainda não existe'); process.exit(1); }
   let pool: ReturnType<typeof createFactoryPool>;

@@ -24,3 +24,4 @@ export * from './reader-port';
 export * from './readers/providers';
 export * from './readers/editorial-adapter';
 export * from './readers/exa';
+export * from './readers/robots-gate';

@@ -37,6 +37,23 @@ export interface RunnerOptions {
 }
 
 const domainOf = (u: string) => new URL(u).hostname.replace(/^www\./, '');
+/** Recusa do site: a mesma URL não é tentada por outro provedor (ADR-007). */
+const REFUSED: ReadonlySet<ErrorClass> = new Set<ErrorClass>(['captcha', 'robots', 'http_403', 'http_429', 'login_required', 'paywall', 'source_refused']);
+
+/** URLs já recusadas segundo o checkpoint (vale entre execuções). */
+function loadRefused(path: string): Set<string> {
+  const out = new Set<string>();
+  if (!existsSync(path)) return out;
+  for (const line of readFileSync(path, 'utf8').split('\n').filter(Boolean)) {
+    try {
+      const a = JSON.parse(line) as AttemptRecord;
+      if (REFUSED.has(a.errorClass)) out.add(a.url);
+    } catch {
+      /* linha corrompida: ignora */
+    }
+  }
+  return out;
+}
 
 export function classify(r: ReadResult, verdictReason: string): ErrorClass {
   if (r.ok) return verdictReason === 'ok' ? 'none' : verdictReason === 'captcha' ? 'captcha' : verdictReason === 'login_required' ? 'login_required' : verdictReason === 'paywall' ? 'paywall' : verdictReason === 'title_mismatch' ? 'title_mismatch' : 'empty_content';
@@ -46,7 +63,13 @@ export function classify(r: ReadResult, verdictReason: string): ErrorClass {
     case 'timeout':
       return 'timeout';
     case 'captcha_unsolved':
+    case 'captcha_solved_by_provider':
       return 'captcha';
+    case 'robots_disallow':
+    case 'robots_unavailable':
+      return 'robots';
+    case 'unlock_forbidden':
+      return 'disabled';
     case 'login_required':
       return 'login_required';
     case 'paywall':
@@ -90,6 +113,7 @@ export async function runBenchmark(dataset: DatasetEntry[], providers: BenchProv
   const gap = (o.minSecondsPerHost ?? 15) * 1000;
   const lastHit = new Map<string, number>();
   const done = loadDone(o.outPath);
+  const refused = loadRefused(o.outPath);
   mkdirSync(dirname(o.outPath), { recursive: true });
   const out: AttemptRecord[] = [];
   let count = 0;
@@ -114,7 +138,8 @@ export async function runBenchmark(dataset: DatasetEntry[], providers: BenchProv
       };
       const skip = (errorClass: ErrorClass): AttemptRecord => ({ ...base, at: new Date(now()).toISOString(), durationMs: 0, technicalSuccess: false, editorialSuccess: false, errorClass, textLength: 0, creditsUsed: 0, costEstimatedUsd: 0, costEffectiveUsd: null, cacheState: 'bypass', retries: 0 });
       let rec: AttemptRecord;
-      if (isProviderDisabled(p.name, o.env)) rec = skip('disabled');
+      if (refused.has(e.url)) rec = skip('source_refused');
+      else if (isProviderDisabled(p.name, o.env)) rec = skip('disabled');
       else {
         const b = p.name === 'direct' ? { ok: true as const } : o.budget.check(p.name, p.worstCaseCredits);
         if (!b.ok) rec = skip(b.reason);
@@ -162,6 +187,7 @@ export async function runBenchmark(dataset: DatasetEntry[], providers: BenchProv
           count++;
         }
       }
+      if (REFUSED.has(rec.errorClass)) refused.add(rec.url);
       appendFileSync(o.outPath, JSON.stringify(rec) + '\n');
       o.onAttempt?.(rec);
       out.push(rec);

@@ -19,6 +19,7 @@ Envelope de erro: `{ "error": { "code", "message", "details?", "requestId" } }` 
 | Método e rota | Permissão | Notas |
 |---|---|---|
 | `GET/POST /api/editorias`, `GET/PATCH/DELETE /api/editorias/{slug}` | editorias:read/create/update/delete | slug é um dos 10 oficiais; excluir só sem matérias |
+| `GET /api/status/coleta` | pública | `{ estado, ultimaRodadaBoaEm }` para o vigia externo; 200 só em `ok`, senão 503 (ver `packages/editorial/docs/coleta-rodada-boa.md`) |
 | `GET /api/materias?editoria&status&q&limit&offset` | materias:read | lista sem corpo |
 | `POST /api/materias` | materias:create | `{slug,titulo,editoria,corpo,evidenceIds[],imagem?,classeDeDado?,patrocinado?,rotuloPublieditorial?}`; assinatura é sempre "Redação Loyalty News" |
 | `GET /api/materias/{id}` | materias:read | + fontes, recibo da versão atual, histórico de transições |

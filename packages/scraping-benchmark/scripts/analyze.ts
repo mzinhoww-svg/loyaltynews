@@ -21,7 +21,7 @@ const byId = new Map(ds.map((d) => [d.id, d]));
 const PRICE: Record<string, number> = { 'firecrawl-scrape': 19 / 5000 };
 // só URLs do dataset vigente (v1.1 substituiu 6 entradas; as tentativas antigas ficam no JSONL, fora da análise)
 const real = recs
-  .filter((r) => !r.mock && byId.has(r.urlId) && r.errorClass !== 'budget_blocked' && r.errorClass !== 'billing_unconfirmed' && r.errorClass !== 'disabled')
+  .filter((r) => !r.mock && byId.has(r.urlId) && r.errorClass !== 'budget_blocked' && r.errorClass !== 'billing_unconfirmed' && r.errorClass !== 'disabled' && r.errorClass !== 'source_refused')
   // registros anteriores à classe 'title_mismatch' (texto longo, título divergente) foram gravados como 'empty_content'
   // custo recalculado pelo preço de referência vigente (o Firecrawl foi gravado com 16/3000; oficial Hobby mensal = 19/5000)
   // registros gravados antes da correção marcavam fonte correta sem URL final: sem URL final = não verificável
@@ -51,7 +51,7 @@ const providers = [...new Set(real.map((r) => r.provider))].sort();
 const domainMatrix = domains.map((dom) => {
   const row: Record<string, string> = { domain: dom };
   for (const p of providers) {
-    const rs = real.filter((r) => r.domain === dom && r.provider === p && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled');
+    const rs = real.filter((r) => r.domain === dom && r.provider === p && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled' && r.errorClass !== 'source_refused');
     row[p] = rs.length ? `${rs.filter((r) => r.editorialSuccess).length}/${rs.length}` : '—';
   }
   return row;
@@ -62,7 +62,7 @@ const usd = Object.fromEntries(metrics.map((m) => [m.provider, m.creditsUsed ? m
 const router = new AdaptiveRouter(providers.map((p) => ({ name: p, reader: { provider: p, read: async () => ({ ok: false, url: '', provider: p }) }, worstCaseCredits: 1, usdPerCredit: usd[p] ?? 0 })));
 for (const dom of domains)
   for (const p of providers) {
-    const rs = real.filter((r) => r.domain === dom && r.provider === p && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled');
+    const rs = real.filter((r) => r.domain === dom && r.provider === p && r.errorClass !== 'budget_blocked' && r.errorClass !== 'disabled' && r.errorClass !== 'source_refused');
     if (rs.length) router.seed(dom, p, { attempts: rs.length, valid: rs.filter((r) => r.editorialSuccess).length, credits: rs.reduce((a, r) => a + r.creditsUsed, 0) });
   }
 const routingMatrix = router.matrix(domains).map((m) => ({ domain: m.domain, order: m.order.slice(0, 3) }));

@@ -3,11 +3,12 @@
 // UPSERT atômico por chave (last-writer-wins); auditoria em tabela somente-acréscimo lida por ORDER BY id.
 // Limite conhecido: o PostgreSQL não guarda em json/jsonb o caractere NUL (U+0000); texto com NUL é recusado (a promessa rejeita).
 import { randomUUID } from 'node:crypto';
-import { asc, sql } from 'drizzle-orm';
+import { asc, desc, sql } from 'drizzle-orm';
 import { schema } from '@ln/db';
 import type { Db } from '@ln/auth';
-import type {
-  ArticleRecord, AuditItem, CorrectionRecord, EditorialStore, OutboxItem, PublicationCommit, PublicationCommitStep, SourceState,
+import {
+  COLLECTOR_ROUND_ACTION, GOOD_ROUND_PREFIX,
+  type ArticleRecord, type AuditItem, type CorrectionRecord, type EditorialStore, type OutboxItem, type PublicationCommit, type PublicationCommitStep, type ReadReservation, type SourceState,
 } from '@ln/editorial';
 
 /** JSON puro: descarta undefined e garante que nada compartilhe referência com o chamador. */
@@ -121,8 +122,48 @@ export class PgEditorialStore implements EditorialStore {
     return (await this.db.select({ record: schema.editorialSourceState.record }).from(schema.editorialSourceState)).map((r) => r.record as SourceState);
   }
 
+  /**
+   * Horário da última rodada boa da coleta: uma linha, filtrada no banco (a rota pública não pode ler a trilha inteira).
+   * O próprio banco cancela a consulta no prazo (`statement_timeout` só desta transação) e a conexão volta ao pool.
+   */
+  async lastGoodRoundAt(prazoMs = 2000): Promise<string | null> {
+    const t = schema.editorialAudit;
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`select set_config('statement_timeout', ${`${Math.trunc(prazoMs)}ms`}, true)`);
+      const [r] = await tx.select({ at: t.at }).from(t)
+        .where(sql`${t.record}->>'action' = ${COLLECTOR_ROUND_ACTION} and ${t.record}->>'userId' is null and starts_with(${t.record}->>'detail', ${GOOD_ROUND_PREFIX})`)
+        .orderBy(desc(t.id)).limit(1);
+      return r?.at ?? null;
+    });
+  }
+
   async appendAudit(a: AuditItem) {
     await this.db.insert(schema.editorialAudit).values({ at: a.at, record: plain(a) });
+  }
+  /**
+   * Contar e gravar na mesma transação, depois de uma trava consultiva por alvo: outra instância só conta quando esta terminar.
+   * Os horários são ISO 8601 em UTC (toISOString), então a comparação de texto segue a ordem do tempo.
+   */
+  async reserveRead(r: ReadReservation) {
+    const t = schema.editorialAudit;
+    return this.db.transaction(async (tx) => {
+      await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`${r.action}:${r.target}`}))`);
+      if (r.unless) {
+        const from = new Date(r.atMs - r.unless.windowMs).toISOString();
+        const [stop] = await tx.select({ id: t.id }).from(t)
+          .where(sql`${t.at} > ${from} and ${t.record}->>'action' = ${r.unless.action} and ${t.record}->>'target' = ${r.target}`)
+          .limit(1);
+        if (stop) return { allowed: false, used: 0 };
+      }
+      const since = new Date(r.atMs - r.windowMs).toISOString();
+      const rows = await tx.select({ id: t.id }).from(t)
+        .where(sql`${t.at} > ${since} and ${t.record}->>'action' = ${r.action} and ${t.record}->>'target' = ${r.target}`)
+        .limit(r.max);
+      if (rows.length >= r.max) return { allowed: false, used: rows.length };
+      const item: AuditItem = { at: new Date(r.atMs).toISOString(), userId: null, action: r.action, target: r.target };
+      await tx.insert(t).values({ at: item.at, record: plain(item) });
+      return { allowed: true, used: rows.length + 1 };
+    });
   }
   async listAudit() {
     return (await this.db.select({ record: schema.editorialAudit.record }).from(schema.editorialAudit).orderBy(asc(schema.editorialAudit.id))).map(
