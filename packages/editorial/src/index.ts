@@ -51,6 +51,7 @@ export { NOTICES_MARK, FONTES_MARK, renderNotices, parseNotices, composeBody, fo
 export * from './factory/prompts';
 export * from './factory/llm-gateway';
 export * from './factory/collect';
+export * from './factory/inbox';
 export * from './factory/run';
 export * from './factory/anchor';
 export * from './factory/shadow-port';

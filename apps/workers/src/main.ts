@@ -10,6 +10,7 @@ import { flushAdDelivery, type AdRedis } from './ad-redis';
 import { startAttemptRetention } from './attempt-retention';
 import { startLeadRetention } from './lead-retention';
 import { startAuditIpRetention } from './audit-ip-retention';
+import { roundLogLine, startEditorialCollector } from './editorial-collector';
 import { describeHeartbeat, startAdRedisWatch, type HeartbeatRedis } from './ad-redis-watch';
 import type { Db as IntelDb } from '@ln/intelligence';
 import { createHandlers } from './handlers';
@@ -127,12 +128,21 @@ async function main() {
   const reread = startIntelligenceReread({ db: intelDbPort, flags });
   // alertas das watchlists quando um Move é confirmado: DESLIGADO por padrão (LN_INTELLIGENCE_ALERTS=on e a flag intelligencePessoas pelo resolvedor)
   const alerts = startIntelligenceAlerts({ db: intelDbPort, flags });
+  // coleta contínua sem modelo (caixa de pautas): DESLIGADA por padrão; só com a flag editorialCollector do resolvedor (ADR-022)
+  const collector = startEditorialCollector({
+    db,
+    flags,
+    onResult: (r) => console.log('[workers] coleta:', roundLogLine(r)),
+    onError: (e) => console.error(errLine('[workers] coleta falhou', e)),
+  });
+  if (collector) console.log('[workers] coleta contínua ligada (caixa de pautas, sem modelo)');
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
 
   const stop = async () => {
     reconciler.stop();
     reread?.stop();
     alerts?.stop();
+    collector?.stop();
     clearInterval(adFlush);
     adWatch.stop();
     attemptRetention.stop();
