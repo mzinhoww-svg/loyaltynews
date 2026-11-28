@@ -45,7 +45,7 @@ export function startEditorialCollector(o: EditorialCollectorOptions): { stop():
   if (!o.flags('editorialCollector')) return null;
   const store = o.store ?? new PgEditorialStore(o.db);
   const registry = o.registry ?? new SourceRegistry(SEED_SOURCES);
-  const collector = o.collector ?? new Collector(createNodeFetcher(), { flags: { editorialCollector: true }, ...registeredCollectorGuards(store) });
+  const collector = o.collector ?? new Collector(createNodeFetcher(), { flags: { editorialCollector: true }, ...registeredCollectorGuards(store, 'coleta_continua') });
   let running = false;
   let stopped = false;
   let interval: ReturnType<typeof setInterval> | null = null;

@@ -31,7 +31,7 @@ function web(itens = 10) {
   return new MockFetcher(pages);
 }
 const mk = (fetcher: MockFetcher, store: InMemoryEditorialStore, now: () => Date) =>
-  new Collector(fetcher, { now, sleep: async () => {}, minSpacingMs: 0, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: { editorialCollector: true }, ...registeredCollectorGuards(store) });
+  new Collector(fetcher, { now, sleep: async () => {}, minSpacingMs: 0, resolver: new FakeResolver({ [HOST]: [[MOCK_PUBLIC_IP]] }), flags: { editorialCollector: true }, ...registeredCollectorGuards(store, 'coleta_continua') });
 const T0 = Date.parse('2026-11-28T12:00:00.000Z');
 
 test('lista permitida: exatamente as três fontes da decisão, com o host do cadastro, e decisão que existe no registro', () => {
@@ -112,11 +112,20 @@ test('autoria: só nome de pessoa passa; outra fonte, link, número ou frase nã
   assert.equal(extractAuthor('abemf', 'Reportagem - Maria da Silva'), undefined);
 });
 
-test('workers: todo coletor construído recebe as travas, e o main não as substitui', () => {
+test('onde vale: só a coleta contínua; fábrica (piloto) e pauta autoral seguem como antes até nova decisão', () => {
+  const store = new InMemoryEditorialStore();
+  assert.deepEqual(COLLECTOR_ALLOWLIST.appliesTo, ['coleta_continua']);
+  assert.deepEqual(registeredCollectorGuards(store, 'fabrica'), {});
+  assert.deepEqual(registeredCollectorGuards(store, 'pauta_autoral'), {});
+  const ligada = registeredCollectorGuards(store, 'fabrica', { ...COLLECTOR_ALLOWLIST, appliesTo: ['coleta_continua', 'fabrica'] });
+  assert.ok(ligada.allowlist && ligada.hostBudget, 'configurável: basta a decisão incluir o uso');
+});
+
+test('workers: todo coletor construído declara o uso, e o main não substitui as travas', () => {
   const dir = join(ROOT, 'apps/workers/src');
   for (const f of readdirSync(dir).filter((x) => x.endsWith('.ts') && !x.endsWith('.test.ts'))) {
     const src = readFileSync(join(dir, f), 'utf8');
-    for (const linha of src.split('\n').filter((l) => l.includes('new Collector('))) assert.match(linha, /registeredCollectorGuards\(store\)/, f);
+    for (const linha of src.split('\n').filter((l) => l.includes('new Collector('))) assert.match(linha, /registeredCollectorGuards\(store, '(coleta_continua|fabrica|pauta_autoral)'\)/, f);
     if (f.endsWith('main.ts')) assert.ok(!/collectorGuards\s*:|collector\s*:/.test(src), `${f} não pode substituir o coletor nem as travas`);
   }
 });

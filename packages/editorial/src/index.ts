@@ -19,7 +19,7 @@ export type { Resolver, ResolvedAddress } from './collector/net';
 export { createNodeFetcher, pinnedLookup } from './collector/http-fetcher';
 export { assertNoNetworkTools, networkTools } from './collector/guard';
 export { COLLECTOR_ALLOWLIST, isAllowedSource, attributionNameOf } from './collector/allowlist';
-export type { CollectorAllowlist, AllowedSource } from './collector/allowlist';
+export type { CollectorAllowlist, AllowedSource, CollectorUse } from './collector/allowlist';
 export { Deduper, canonicalUrl, clusterItems, contentHash, jaccard, shingles } from './dedupe/dedupe';
 export * from './rules/rules';
 export * from './pipeline/jobs';

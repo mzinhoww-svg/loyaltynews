@@ -1,7 +1,9 @@
 # Travas do coletor dos workers (28/11/2026)
 
 Base: decisão do PM sobre os pareceres 55 e 59 da Security (`fast-track\decisoes\decisao-pm-fontes-coletor-20261128.md`, DP-69). Os três pontos
-valem para todo coletor construído em `apps/workers` (coleta contínua, fábrica avulsa e pauta autoral), por `registeredCollectorGuards(store)`.
+têm a trava e o teto aplicados **só na coleta contínua** (decisão do PM, 28/11), por `registeredCollectorGuards(store, uso)` e `COLLECTOR_ALLOWLIST.appliesTo`.
+A fábrica avulsa (inclui o piloto) e a pauta autoral seguem como antes; ligá-las pede nova decisão registrada e uma linha em `appliesTo`.
+A assinatura e a autoria da Câmara valem em todos os usos.
 
 | Trava | Onde | O que faz |
 |---|---|---|
@@ -12,7 +14,8 @@ valem para todo coletor construído em `apps/workers` (coleta contínua, fábric
 ## Efeitos e limites
 
 - Com 6 por hora, uma rodada de feed lê robots.txt, o feed e até 4 matérias; o resto fica `rate_limited` e a fonte para até a janela abrir.
-- As demais fontes do cadastro (inclusive as usadas por pauta autoral e pelo piloto) deixam de ser lidas pelos workers.
+- As demais fontes do cadastro deixam de ser lidas pela coleta contínua.
+- Pedidos da fábrica avulsa e da pauta autoral não entram no contador: se rodarem sobre as três fontes na mesma hora, o total do site pode passar de 6.
 - O intervalo entre pedidos (Crawl-delay e 3 s) continua por instância.
 - "Só feed" (não abrir a página) NÃO foi implementado: aguarda decisão do proprietário (DP-58 e DP-59).
 - A lista "Fontes e referências" do portal mostra o nome do cadastro; a assinatura e o autor aparecem no bloco "Fontes:" do corpo da matéria.

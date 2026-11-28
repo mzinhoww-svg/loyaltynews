@@ -11,15 +11,22 @@ export interface AllowedSource {
   attributionName?: string;
 }
 
+/** Quem monta um coletor nos workers: a coleta contínua, a fábrica avulsa (inclui o piloto) e a pauta autoral. */
+export type CollectorUse = 'coleta_continua' | 'fabrica' | 'pauta_autoral';
+
 export interface CollectorAllowlist {
   decisionId: string;
   decidedOn: string;
   sources: readonly AllowedSource[];
+  /** Onde a trava e o teto por hora valem. Ligar outro uso pede nova decisão registrada. */
+  appliesTo: readonly CollectorUse[];
 }
 
 export const COLLECTOR_ALLOWLIST: CollectorAllowlist = Object.freeze({
   decisionId: 'DP-69',
   decidedOn: '2026-11-28',
+  // PM, 28/11: só a coleta contínua do produto; piloto e pauta autoral ficam de fora até nova decisão
+  appliesTo: Object.freeze(['coleta_continua'] as const),
   sources: Object.freeze([
     Object.freeze({ id: 'abemf', host: 'web.abemf.com.br' }),
     Object.freeze({ id: 'camara-noticias', host: 'www.camara.leg.br', attributionName: 'Agência Câmara (Câmara dos Deputados)' }),

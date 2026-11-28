@@ -1,7 +1,7 @@
 import type { ReadBudget } from '../collector/collector';
 import type { EditorialStore } from '../api/store';
 import { COLLECTOR_ALLOWLIST } from '../collector/allowlist';
-import type { CollectorAllowlist } from '../collector/allowlist';
+import type { CollectorAllowlist, CollectorUse } from '../collector/allowlist';
 
 /**
  * Orçamento GLOBAL de leituras DP-31 (QA 2): o contador mora no banco (trilha de auditoria do EditorialStore, em PostgreSQL),
@@ -46,6 +46,9 @@ export class StoreHostBudget implements ReadBudget {
   }
 }
 
-/** O que todo coletor de worker recebe: a trava das fontes da decisão vigente e o teto por hora no banco. */
-export const registeredCollectorGuards = (store: EditorialStore): { allowlist: CollectorAllowlist; hostBudget: ReadBudget } =>
-  ({ allowlist: COLLECTOR_ALLOWLIST, hostBudget: new StoreHostBudget(store) });
+/**
+ * O que um coletor de worker recebe, conforme a decisão vigente: nos usos listados em `appliesTo`, a trava das fontes e o teto por
+ * hora no banco; nos outros, nada (comportamento anterior).
+ */
+export const registeredCollectorGuards = (store: EditorialStore, use: CollectorUse, list: CollectorAllowlist = COLLECTOR_ALLOWLIST): { allowlist?: CollectorAllowlist; hostBudget?: ReadBudget } =>
+  list.appliesTo.includes(use) ? { allowlist: list, hostBudget: new StoreHostBudget(store) } : {};

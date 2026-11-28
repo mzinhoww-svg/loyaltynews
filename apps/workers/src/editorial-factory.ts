@@ -107,7 +107,7 @@ export interface RunEditorialFactoryInput {
   /** Rede e resolução de DNS do coletor padrão (testes injetam simulados; padrão: rede real com anti-SSRF). Ignorados se `collector` for informado. */
   fetcher?: Fetcher;
   resolver?: Resolver;
-  /** Só para teste. Ausente = trava das fontes permitidas e teto por hora no banco (o main não passa este campo; há teste disso). */
+  /** Só para teste. Ausente = o que a decisão vigente manda para este uso (COLLECTOR_ALLOWLIST.appliesTo); o main não passa este campo. */
   collectorGuards?: Pick<CollectorOptions, 'allowlist' | 'hostBudget'>;
   /** Opções do coletor padrão (ex.: ritmo). Só para testes/operação; o padrão mantém 3 s por host. */
   collectorOptions?: Partial<CollectorOptions>;
@@ -126,7 +126,7 @@ export async function runEditorialFactory(i: RunEditorialFactoryInput): Promise<
   const now = i.now ?? (() => new Date());
   const reader = shadowReader(i.reader, i.shadow);
   const observer = shadowObserver(i.shadow);
-  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}), ...(i.collectorGuards ?? registeredCollectorGuards(store)) });
+  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}), ...(i.collectorGuards ?? registeredCollectorGuards(store, 'fabrica')) });
   const llm: ChatTransport = i.gateway ? createModelopsTransport(i.gateway) : { chat: async () => ({ ok: false, refusal: 'model_disabled', detail: 'dry-run: sem modelo' }) };
   const modelGateway = i.modelGateway ?? createLlmGateway(llm);
   try {
@@ -151,7 +151,7 @@ export async function runEditorialAutoral(i: Omit<RunEditorialFactoryInput, 'opt
   const now = i.now ?? (() => new Date());
   const reader = shadowReader(i.reader, i.shadow);
   const observer = shadowObserver(i.shadow);
-  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}), ...(i.collectorGuards ?? registeredCollectorGuards(store)) });
+  const collector = i.collector ?? new Collector(i.fetcher ?? createNodeFetcher(), { now, resolver: i.resolver ?? systemResolver, flags, readBudget: new StoreReadBudget(store), ...(reader ? { reader } : {}), ...(observer ? { onDirectRead: observer } : {}), ...(i.collectorOptions ?? {}), ...(i.collectorGuards ?? registeredCollectorGuards(store, 'pauta_autoral')) });
   const modelGateway = i.modelGateway ?? createLlmGateway(createModelopsTransport(i.gateway!));
   try {
     return await runAutoralQueue({ store, registry, collector, gateway: modelGateway, audit: new InMemoryAuditLog(), flags, now, ...(i.pilotSink ? { pilotSink: i.pilotSink } : {}) }, { ...(i.max ? { max: i.max } : {}) });
