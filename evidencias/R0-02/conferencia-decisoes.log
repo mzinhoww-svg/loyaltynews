@@ -1,8 +1,8 @@
 {
  "teste": "R0-02-TEST",
  "ok": true,
- "decisions_sha256": "96250102be2588f2ed173b43f9118d8b6739858616c3404a28d074a41fd80c3b",
- "entradas": 77,
+ "decisions_sha256": "1f7c3a8e7b8b370bb47a4349ec8bf65f2f721a93743e5b32b2983b17a09ac355",
+ "entradas": 116,
  "decisoes_12": 13,
  "decisoes_11": 13,
  "divisao": {
@@ -16,7 +16,7 @@
    "id": "D01",
    "decisao_11": "Nenhuma aprovação humana. Os bots aprovam e operam de forma totalmente autônoma",
    "decisao_12": "Nenhuma aprovação humana; os bots aprovam e operam sozinhos",
-   "escolha": "Aceite autônomo, independente; sem aprovação humana de rotina"
+   "escolha": "Nenhuma aprovação humana; os bots aprovam e operam sozinhos. Complemento (DP-69): \"voce tem total autonomia de publicacao, pagameto, orcamento e juridico, nao sendo exclusivo do proprietario\""
   },
   {
    "n": 2,
@@ -40,7 +40,7 @@
    "id": "D04",
    "decisao_11": "Sem simplificações: tamanho completo desde o início",
    "decisao_12": "Sem simplificações",
-   "escolha": "Escopo integral, 64 agentes, 28 rituais, Redis/BullMQ, Intelligence e ad server"
+   "escolha": "Escopo integral, 64 perfis, 28 rituais, Redis/BullMQ, Intelligence e ad server"
   },
   {
    "n": 5,
@@ -48,7 +48,7 @@
    "id": "D05",
    "decisao_11": "Adiar só a The Loyal (pronta, sem rodar) e o Instagram; LinkedIn pronto por meio do mLabs",
    "decisao_12": "Adiados só a The Loyal e o Instagram",
-   "escolha": "The Loyal e Instagram construídos, desativados; LinkedIn pelo mLabs"
+   "escolha": "Adiados só a The Loyal e o Instagram: The Loyal construída com a chave desligada; LinkedIn no lançamento, pelo mLabs"
   },
   {
    "n": 6,
@@ -56,7 +56,7 @@
    "id": "D06",
    "decisao_11": "Autonomia de publicação desde o início",
    "decisao_12": "Autonomia de publicação desde o lançamento",
-   "escolha": "Publicação autônoma após gates de lançamento"
+   "escolha": "Autonomia de publicação desde o lançamento; sai a aprovação humana do MVP e a espera de 30 dias"
   },
   {
    "n": 7,
@@ -72,7 +72,7 @@
    "id": "D08",
    "decisao_11": "Imagens: a da fonte, como veio, com edição mínima",
    "decisao_12": "Imagens: a da fonte, como veio, com edição mínima",
-   "escolha": "Imagem da fonte, crédito, edição mínima; uso condicionado a base jurídica demonstrável"
+   "escolha": "Imagens: a da fonte, como veio, com edição mínima; sai a regra de licença registrada"
   },
   {
    "n": 9,
@@ -80,7 +80,7 @@
    "id": "D09",
    "decisao_11": "Transparência: só a assinatura, sem nenhuma menção ao uso de IA",
    "decisao_12": "Transparência: só a assinatura; nenhuma menção ao uso de IA",
-   "escolha": "Assinatura Redação Loyalty News; sem autoria humana fictícia; transparência quando exigida"
+   "escolha": "Transparência: só a assinatura, sem menção ao uso de IA; assinatura 'Redação Loyalty News', sem selo e sem página de metodologia"
   },
   {
    "n": 10,
@@ -88,7 +88,7 @@
    "id": "D10",
    "decisao_11": "Fontes: uso de informação pública; não há violação em usar o que já é público",
    "decisao_12": "Fontes: informação pública, sem permissão por fonte",
-   "escolha": "Fontes públicas, sem contornar paywall; originalidade e crédito"
+   "escolha": "Fontes: informação pública, sem permissão por fonte; fica o cadastro das fontes"
   },
   {
    "n": 11,
@@ -96,7 +96,7 @@
    "id": "D11",
    "decisao_11": "Teto de API de US$ 50; o responsável recarrega se for necessário",
    "decisao_12": "Teto de API de US$ 50 por mês; o responsável recarrega quando for necessário",
-   "escolha": "Teto agregado API USD 50/mês; recarga só dentro de teto autorizado"
+   "escolha": "Teto de API de US$ 50 por mês; o responsável recarrega quando for necessário"
   },
   {
    "n": 12,
@@ -115,13 +115,8 @@
    "escolha": "Dez editorias preservadas"
   }
  ],
- "v21_propostas": 16,
- "v21_referencia_fora_do_repo": [
-  {
-   "id": "V21-16",
-   "referencia": "r0-preparacao/achado-V21-16-portabilidade-windows.md"
-  }
- ],
+ "v21_ratificadas": 16,
+ "v21_referencia_fora_do_repo": [],
  "falhas": [],
  "limite": "estrutura e presenca; nao prova fidelidade semantica integral"
 }

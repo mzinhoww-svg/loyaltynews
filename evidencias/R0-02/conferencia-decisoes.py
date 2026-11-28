@@ -8,9 +8,10 @@ Le, somente, os arquivos versionados no commit corrente:
 
 Prova: as 13 linhas de cada documento tem uma entrada D01..D13 com status
 "registrada", escolha nao vazia e referencia a 12_RESPOSTA_OFICIAL; a divisao
-7 x 19:20 e 6 x 22:56 confere nos dois documentos; as 16 divergencias V21-*
-estao como "proposta" e apontam um arquivo existente; nenhuma entrada tem
-campo de aceite; o mapa do registro legivel cobre os 13 itens.
+7 x 19:20 e 6 x 22:56 confere nos dois documentos; as 16 divergencias V21-* estao como "ratificada", com escolha igual a "Ratificada a
+recomendacao: " + a recomendacao do proprio item, e referencia a um arquivo existente; nenhuma entrada tem
+campo de aceite; o mapa do registro legivel cobre os 13 itens; o sha256 do
+decisions.yaml lido e impresso na saida.
 
 LIMITE: prova estrutura e presenca, nao fidelidade semantica integral.
 Uso: python -X utf8 evidencias/R0-02/conferencia-decisoes.py
@@ -110,8 +111,11 @@ for n in range(1, 17):
     if not e:
         fail.append("%s ausente" % k)
         continue
-    if e.get("status") != "proposta":
-        fail.append("%s: status %r != proposta" % (k, e.get("status")))
+    if e.get("status") != "ratificada":
+        fail.append("%s: status %r != ratificada" % (k, e.get("status")))
+    rec = e.get("recomendacao", "").strip()
+    if not rec or e.get("escolha", "") != "Ratificada a recomendacao: " + rec:
+        fail.append("%s: escolha %r nao ratifica a recomendacao do proprio item" % (k, e.get("escolha", "")[:60]))
     ref = e.get("referencia", "")
     if not ref:
         fail.append("%s: referencia vazia" % k)
@@ -133,7 +137,7 @@ saida = {
     "decisoes_11": len(d11),
     "divisao": {"19:20": 7, "22:56": 6},
     "mapa": mapa,
-    "v21_propostas": len([d for d in dec if d["id"].startswith("V21-")]),
+    "v21_ratificadas": len([d for d in dec if d["id"].startswith("V21-") and d.get("status") == "ratificada"]),
     "v21_referencia_fora_do_repo": v21_fora_do_repo,
     "falhas": fail,
     "limite": "estrutura e presenca; nao prova fidelidade semantica integral",
