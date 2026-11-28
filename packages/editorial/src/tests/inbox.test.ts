@@ -8,7 +8,7 @@ import { InMemoryEditorialStore } from '../api/store';
 import { Collector } from '../collector/collector';
 import type { Fetcher } from '../collector/collector';
 import { articleIdFor } from '../factory/collect';
-import { COLLECTOR_ROUND_ACTION, INBOX_FINDING, collectToInbox } from '../factory/inbox';
+import { COLLECTOR_ROUND_ACTION, COLLECTOR_SOURCES_ACTION, INBOX_FINDING, collectToInbox, describeSources, isGoodRound, type InboxSourceReport } from '../factory/inbox';
 import { FlagDisabled } from '../flags';
 import { SourceRegistry } from '../sources/registry';
 import type { Source } from '../types';
@@ -66,7 +66,7 @@ describe('caixa de pautas', () => {
     expect(a!.findings.map((f) => f.code)).toEqual([INBOX_FINDING]);
     expect(a!.evidences).toHaveLength(1);
     const [round] = await t.rounds();
-    expect(round).toMatchObject({ userId: null, target: 'collector', detail: 'fontes 1; com itens 1; novos 1; repetidos 0' });
+    expect(round).toMatchObject({ userId: null, target: 'collector', detail: 'rodada boa; fontes 1; com itens 1; novos 1; repetidos 0' });
     const q = await listQueue(t.ctx('maria-chefe', 'editor_chefe'), {});
     expect('items' in q.body && q.body.items[0]!.titulo).toBe(a!.evidences[0]!.title);
     expect(a!.evidences[0]!.title).not.toBe('');
@@ -82,6 +82,39 @@ describe('caixa de pautas', () => {
     expect(r.duplicates).toBe(1);
     expect(await t.store.listArticles()).toEqual(antes);
     expect(await t.rounds()).toHaveLength(2);
+  });
+
+  it('registra o resultado de CADA fonte antes do resumo, e a repetição aparece por fonte', async () => {
+    const t = setup();
+    await t.enable('mock-ri');
+    await t.enable('mock-ri-2');
+    await t.run();
+    await t.run();
+    const log = (await t.store.listAudit()).filter((x) => x.action.startsWith('collector.'));
+    expect(log.map((x) => x.action)).toEqual([COLLECTOR_SOURCES_ACTION, COLLECTOR_ROUND_ACTION, COLLECTOR_SOURCES_ACTION, COLLECTOR_ROUND_ACTION]);
+    expect(log[0]!.detail).toBe('mock-ri ok itens=1 novos=1 repetidos=0\nmock-ri-2 ok itens=1 novos=1 repetidos=0');
+    expect(log[2]!.detail).toBe('mock-ri ok itens=1 novos=0 repetidos=1\nmock-ri-2 ok itens=1 novos=0 repetidos=1');
+    expect(log[3]!.detail).toContain('rodada boa; '); // repetido também é coleta que funcionou
+  });
+
+  it('fonte sem item aparece sem endereço nem mensagem de erro; rodada sem nenhum item não é boa', async () => {
+    const t = setup(async (url) => { if (url.endsWith('ri.mock.example/feed.xml')) throw new Error('MOCK falha em https://ri.mock.example/segredo'); });
+    await t.enable('mock-ri');
+    const r = await t.run();
+    expect(isGoodRound(r)).toBe(false);
+    const log = (await t.store.listAudit()).filter((x) => x.action.startsWith('collector.'));
+    expect(log[0]!.detail).toMatch(/^mock-ri (erro|sem_itens) itens=0 novos=0 repetidos=0/);
+    expect(log[1]!.detail).toContain('rodada sem item; ');
+    expect(JSON.stringify(log)).not.toMatch(/http:|https:|segredo/);
+  });
+
+  it('muitas fontes: blocos de até 2000 caracteres, nenhuma fonte perdida', () => {
+    const sources: InboxSourceReport[] = Array.from({ length: 120 }, (_, i) => ({ sourceId: `mock-fonte-${i}`, status: 'collected', evidences: 0, saved: 0, skipped: [{ url: 'x', code: 'robots_disallow', detail: 'MOCK' }] }));
+    const blocks = describeSources({ startedAt: '', finishedAt: '', saved: [], duplicates: 0, sources });
+    expect(blocks.length).toBeGreaterThan(1);
+    expect(blocks.every((b) => b.length <= 2000)).toBe(true);
+    expect(blocks.join('\n').split('\n').map((l) => l.split(' ')[0])).toEqual(sources.map((s) => s.sourceId));
+    expect(blocks[0]).toContain('mock-fonte-0 sem_itens itens=0 novos=0 repetidos=0 pulados=robots_disallow:1');
   });
 
   it('desabilitar uma fonte durante a rodada vale antes de a coleta dela começar', async () => {

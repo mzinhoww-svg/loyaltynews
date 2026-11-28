@@ -134,6 +134,7 @@ async function main() {
     flags,
     onResult: (r) => console.log('[workers] coleta:', roundLogLine(r)),
     onError: (e) => console.error(errLine('[workers] coleta falhou', e)),
+    onAlert: (line) => console.error(`[workers] ALERTA coleta: ${line}`),
   });
   if (collector) console.log('[workers] coleta contínua ligada (caixa de pautas, sem modelo)');
   console.log(`[workers] no ar; filas com handler: ${workers.workers.length}`);
