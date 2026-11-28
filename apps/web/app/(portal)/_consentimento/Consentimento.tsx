@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CHAVE_CONSENTIMENTO, configGa, gravarConsentimento, lerConsentimento, mostrarBanner, podeCarregarGa, type Consentimento as Escolha } from './regras';
 
 type Gtag = (...args: unknown[]) => void;
@@ -55,6 +55,25 @@ export function ConsentimentoCookies({ producao }: { producao: boolean }) {
     w.gtag('config', idGa, configGa(caminho ?? '/', window.location.origin));
   }, [escolha, idGa, producao, caminho]);
 
+  const aviso = useRef<HTMLElement>(null);
+  const aberto = escolha !== undefined && mostrarBanner({ idGa, producao, consentimento: escolha });
+
+  // O aviso é fixo sobre o fim da janela. Enquanto aberto, o fim da página reserva a altura REAL dele (--pt-consent-h, portal.css):
+  // sem isso, controles do rodapé ficam presos embaixo mesmo no fim da rolagem (QA 8, 27/11, 390 px).
+  useEffect(() => {
+    const el = aviso.current;
+    if (!aberto || !el) return;
+    const raiz = document.documentElement;
+    const reservar = () => raiz.style.setProperty('--pt-consent-h', `${Math.ceil(el.getBoundingClientRect().height)}px`);
+    reservar();
+    const observador = typeof ResizeObserver === 'function' ? new ResizeObserver(reservar) : null;
+    observador?.observe(el);
+    return () => {
+      observador?.disconnect();
+      raiz.style.removeProperty('--pt-consent-h');
+    };
+  }, [aberto]);
+
   const decidir = (analiticos: boolean) => {
     try {
       window.localStorage.setItem(CHAVE_CONSENTIMENTO, gravarConsentimento(analiticos));
@@ -64,9 +83,9 @@ export function ConsentimentoCookies({ producao }: { producao: boolean }) {
     setEscolha(lerConsentimento(gravarConsentimento(analiticos)));
   };
 
-  if (escolha === undefined || !mostrarBanner({ idGa, producao, consentimento: escolha })) return null;
+  if (!aberto) return null;
   return (
-    <section className="ln-consent" role="region" aria-label="Preferências de cookies" data-testid="consentimento-banner"
+    <section ref={aviso} className="ln-consent" role="region" aria-label="Preferências de cookies" data-testid="consentimento-banner"
       style={{ position: 'fixed', insetInline: 0, bottom: 0, zIndex: 50, background: 'var(--ln-color-surface, #fff)', borderTop: '1px solid var(--ln-color-border)', boxShadow: '0 -4px 16px rgba(0,0,0,.08)', padding: 'var(--ln-space-4, 16px)' }}>
       <div className="pt-wrap" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--ln-space-3, 12px)', alignItems: 'center', justifyContent: 'space-between' }}>
         <p style={{ margin: 0, maxWidth: 760 }}>
