@@ -45,7 +45,7 @@ describe('Fábrica avulsa: só staging (DP-94)', () => {
 
   it('com o vínculo real do repositório, o banco de produção registrado é recusado e o de staging passa', () => {
     const { staging, production } = bindingsFile.ambientes;
-    const url = (a: { dbHost: string; dbName: string }) => `postgres://u:p@${a.dbHost}:5432/${a.dbName}`;
+    const url = (a: { dbHost: string; dbName: string }) => `postgres://u@${a.dbHost}:5432/${a.dbName}`;
     expect(() => assertFactoryEnvironment({ APP_ENV: 'staging', DATABASE_URL: url(production) })).toThrow(FactoryRefused);
     expect(() => assertFactoryEnvironment({ APP_ENV: 'staging', DATABASE_URL: url(staging) })).not.toThrow();
   });
