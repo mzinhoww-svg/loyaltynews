@@ -163,6 +163,7 @@ test('em todo uso: fonte excluída não gera requisição, por id ou por domíni
   const casos: Array<Partial<Source>> = [
     { id: 'skift', host: 'skift.com' }, { id: 'outro-nome', host: 'www.iata.org' }, { id: 'iata-pressroom', host: 'x.example' },
     { id: 'z', host: 'news.cathaypacific.com' }, { id: 'y', host: 'www.bain.com' }, { id: 'w', host: 'netpromotersystem.com', acesso: 'via-provedor' },
+    { id: 'am', host: 'www.asiamiles.com' }, { id: 'br', host: 'bain.com.br' },
   ];
   for (const over of casos) {
     const fetcher = web();

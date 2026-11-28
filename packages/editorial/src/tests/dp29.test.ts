@@ -83,7 +83,7 @@ class Llm implements ChatTransport {
         ];
         if (input.mode === 'autoral' && this.mode === 'quote_in_autoral') claims.push({ id: 'c4', kind: 'quote', text: 'fala', evidenceIds: prim, quote: { text: 'x', speaker: 'y' } });
         out = {
-          headline: input.mode === 'autoral' ? 'MOCK: o que muda no acúmulo com a nova aliança entre Alfa e Beta' : 'MOCK: Alfa e Beta fecham parceria de acúmulo de pontos',
+          headline: input.mode === 'autoral' ? 'MOCK: o que muda no acúmulo com a nova aliança entre Alfa e Beta' : 'MOCK: nova parceria liga o Programa Alfa à Varejista Beta no acúmulo',
           resumo: 'Parceria fictícia de acúmulo entre Programa Alfa e Varejista Beta, com validade e vigência definidas em comunicado.',
           body: 'Programa Alfa e Varejista Beta firmaram uma aliança para o acúmulo de pontos nas compras dos clientes. ' +
             'Cada real gasto renderá 2 pontos ao cliente. A vigência da regra começa em dezembro, no dia 1, ainda em 2026, de acordo com o comunicado.',

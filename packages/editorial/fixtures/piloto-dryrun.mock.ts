@@ -93,7 +93,7 @@ export const DRYRUN_PAGES: DryrunPage[] = [
       'O autor fictício pediu urgência, e o projeto aguarda despacho da presidência.',
     ],
     draft: {
-      headline: 'SIMULADO: projeto fictício trata de prazo para uso de milhas',
+      headline: 'SIMULADO: proposta fictícia discute validade das milhas',
       resumo: 'SIMULADO — ensaio sem modelo real: redação com número ausente da fonte, para provar o bloqueio de afirmação sem suporte.',
       body: 'SIMULADO — texto de ensaio, sem apuração. Um projeto fictício prevê que o consumidor seja informado do prazo de uso das milhas e, segundo o rascunho, o prazo mínimo seria de 35 meses.',
       claims: [
@@ -111,7 +111,7 @@ export const DRYRUN_PAGES: DryrunPage[] = [
       'O guia tem 12 recomendações e fica disponível no site da associação.',
     ],
     draft: {
-      headline: 'SIMULADO: associação fictícia publica guia de boas práticas para fidelidade',
+      headline: 'SIMULADO: guia novo reúne orientações para programas de fidelidade',
       resumo: 'SIMULADO — ensaio sem modelo real: guia fictício reúne 12 recomendações para programas de fidelidade.',
       body: 'SIMULADO — texto de ensaio, sem apuração. A associação fictícia divulgou um guia com 12 recomendações sobre como programas de fidelidade devem comunicar regras e atender participantes.',
       claims: [

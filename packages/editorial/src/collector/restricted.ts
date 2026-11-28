@@ -9,7 +9,8 @@ interface SourceGroup { decisionId: string; ids: readonly string[]; domains: rea
 export const EXCLUDED_SOURCES: SourceGroup = Object.freeze({
   decisionId: 'DP-69',
   ids: Object.freeze(['skift', 'cathay', 'iata', 'bain']),
-  domains: Object.freeze(['skift.com', 'cathaypacific.com', 'cathay.com', 'iata.org', 'bain.com', 'netpromotersystem.com']),
+  // asiamiles.com (programa da Cathay) e bain.com.br: PM, 28/11, sobre o parecer 70
+  domains: Object.freeze(['skift.com', 'cathaypacific.com', 'cathay.com', 'asiamiles.com', 'iata.org', 'bain.com', 'bain.com.br', 'netpromotersystem.com']),
 });
 
 /**
