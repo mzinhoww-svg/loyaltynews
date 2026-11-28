@@ -45,6 +45,7 @@ export interface InboxRound {
 /** Relatório da fonte mais quantos itens dela foram gravados nesta rodada. */
 export type InboxSourceReport = SourceCollectReport & { saved: number };
 
+/** Definição e limites: docs/coleta-rodada-boa.md (a rever depois das 24 h no staging). */
 export const isGoodRound = (r: InboxRound): boolean => r.sources.some((s) => s.evidences > 0);
 
 const toRecord = (item: CollectedItem, at: string): ArticleRecord => ({

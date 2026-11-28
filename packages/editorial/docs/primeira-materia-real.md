@@ -51,10 +51,10 @@ Variáveis: `DATABASE_URL`, `LN_FACTORY_FLAGS`, opcional `LN_MODEL_POLICY` (cami
 (`POST /api/studio/editorial/sources/<id>/review`). Depois o editor-chefe/admin habilita (`.../enabled`). Mudou host, prefixo, URL ou termos ⇒ a revisão vence e a fonte volta a desabilitada.
 
 **P1 — Dry-run (seguro, é o padrão).**
-`LN_FACTORY_FLAGS=editorialCollector node dist/editorial-factory.js` → JSON com fontes tentadas, itens coletados, duplicatas e motivos de descarte (`robots_disallow`, `gated`, `rate_limited`, `crawl_delay_excessive`, `no_feed`).
+`APP_ENV=staging LN_FACTORY_FLAGS=editorialCollector node dist/editorial-factory.js` → JSON com fontes tentadas, itens coletados, duplicatas e motivos de descarte (`robots_disallow`, `gated`, `rate_limited`, `crawl_delay_excessive`, `no_feed`).
 Confira: itens são da fonte certa; nenhum login/paywall; evidências com URL, data e hash. **Nada é gravado.**
 
-**P2 — Rodada simulada.** `LN_FACTORY_FLAGS=editorialCollector,editorialPipeline node dist/editorial-factory.js --run --simulate --max 1`
+**P2 — Rodada simulada.** `APP_ENV=staging LN_FACTORY_FLAGS=editorialCollector,editorialPipeline node dist/editorial-factory.js --run --simulate --max 1`
 O cliente SIMULADO responde "SIMULADO": a matéria deve ficar **`bloqueado` com `invalid_model_output`** (prova de que mock nunca vira matéria). Se virar `aprovado`, PARE e abra incidente.
 
 **P3 — Rodada real (hoje BLOQUEADA pelo item 4 do "não verificado").** Só com as condições 3–4: `--max 1` e a flag `modelosHabilitados`. O comando recusa enquanto não houver ledger persistente.
