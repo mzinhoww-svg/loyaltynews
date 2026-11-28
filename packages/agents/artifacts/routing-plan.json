@@ -3,7 +3,7 @@
   "nota": "GERADO. PROJEÇÃO com premissas de tokens NÃO medidas; não é cobrança nem autorização de chamada. Modelos não qualificados (R2-07/08) e production_enabled=false: nenhuma chamada real é feita.",
   "politica": {
     "arquivo": "packages/modelops/fixtures/model.policy.proposto-DP02-v5.json",
-    "sha256": "2641a8fe3d193af283d3984352ebce5464eed39da7941b62a29ed46afd359a71",
+    "sha256": "341466147a4f0890c517893551b35cab1375c4c0c0ab524329af0127f723a978",
     "version": "2.1-dp02-v5-proposta",
     "rate_card_as_of": "2026-11-21",
     "status": "proposta v5 aprovada pelo QA; contrato protegido ainda em v2.1"
