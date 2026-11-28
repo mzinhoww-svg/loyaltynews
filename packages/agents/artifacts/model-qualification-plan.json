@@ -10,7 +10,7 @@
   ],
   "politica": {
     "arquivo": "packages/modelops/fixtures/model.policy.proposto-DP02-v5.json",
-    "sha256": "2641a8fe3d193af283d3984352ebce5464eed39da7941b62a29ed46afd359a71",
+    "sha256": "341466147a4f0890c517893551b35cab1375c4c0c0ab524329af0127f723a978",
     "version": "2.1-dp02-v5-proposta",
     "nota": "preços e IDs dos 5 candidatos; a v6 (DP-26) altera rotas e verbas, não esses preços; migrar o fixture quando a v6 virar contrato"
   },

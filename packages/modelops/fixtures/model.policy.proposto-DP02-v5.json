@@ -51,7 +51,7 @@
         "openrouter_id": "anthropic/claude-opus-5.5",
         "canonical_slug": "anthropic/claude-opus-5.5-20260921",
         "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
-        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_as_of": "2026-11-28T02:33:31Z",
         "price_usd_per_mtok": {
           "input": 4.0,
           "output": 20.0,
@@ -82,7 +82,7 @@
         "openrouter_id": "anthropic/claude-fable-5.2",
         "canonical_slug": "anthropic/claude-fable-5.2-20261109",
         "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
-        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_as_of": "2026-11-28T02:33:31Z",
         "price_usd_per_mtok": {
           "input": 8.0,
           "output": 40.0,
@@ -133,7 +133,7 @@
         "openrouter_id": "anthropic/claude-haiku-5.5",
         "canonical_slug": "anthropic/claude-haiku-5.5-20261007",
         "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
-        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_as_of": "2026-11-28T02:33:31Z",
         "price_usd_per_mtok": {
           "input": 0.1,
           "output": 0.5,
@@ -174,7 +174,7 @@
         "openrouter_id": "anthropic/claude-sonnet-5.5",
         "canonical_slug": "anthropic/claude-sonnet-5.5-20260928",
         "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
-        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_as_of": "2026-11-28T02:33:31Z",
         "price_usd_per_mtok": {
           "input": 2.0,
           "output": 10.0,
@@ -213,7 +213,7 @@
         "openrouter_id": "openai/gpt-6.1-terra",
         "canonical_slug": "openai/gpt-6.1-terra-20261026",
         "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
-        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_as_of": "2026-11-28T02:33:31Z",
         "price_usd_per_mtok": {
           "input": 1.0,
           "output": 5.0,
@@ -260,7 +260,7 @@
         "openrouter_id": "openai/gpt-6.2-sol",
         "canonical_slug": "openai/gpt-6.2-sol-20261117",
         "price_source": "GET https://openrouter.ai/api/v1/models (public, no key)",
-        "price_as_of": "2026-11-22T20:33:56Z",
+        "price_as_of": "2026-11-28T02:33:31Z",
         "price_usd_per_mtok": {
           "input": 2.0,
           "output": 10.0,
