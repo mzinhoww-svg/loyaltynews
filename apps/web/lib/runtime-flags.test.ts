@@ -9,10 +9,12 @@ describe('runtime-flags (memo da subida)', () => {
     expect(runtimeFlags().intelligencePessoas).toBe(true);
     expect(runtimeFlagNames()).toEqual(['intelligencePessoas']);
   });
-  it('produção limpa: só as flags por commit (DP-57: portalFormularios); adServerVendas e intelligencePessoas desligadas', () => {
+  it('produção limpa: só as flags por commit (DP-57: portalFormularios; DP-76: publicacaoPortal); adServerVendas, intelligencePessoas e publicacaoAutonoma desligadas', () => {
     initRuntimeFlags({ APP_ENV: 'production' });
-    expect(runtimeFlagNames()).toEqual(['portalFormularios']);
+    expect(runtimeFlagNames()).toEqual(['portalFormularios', 'publicacaoPortal']);
     expect(runtimeFlags().portalFormularios).toBe(true);
+    expect(runtimeFlags().publicacaoPortal).toBe(true);
+    expect(runtimeFlags().publicacaoAutonoma).toBe(false);
     expect(runtimeFlags().intelligencePessoas).toBe(false);
     expect(runtimeFlags().adServerVendas).toBe(false);
   });

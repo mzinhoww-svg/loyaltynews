@@ -71,6 +71,7 @@ export const FLAG_RELEASES = {
   leitorViaProvedor: { staging: 'DP-32', production: null }, // ADR-022 adendo 2: provedores de desbloqueio em páginas públicas, só staging // piloto só no staging, só assinaturas, sem API tarifada nem publicação
   adServerVendas: { staging: 'DP-43', production: null }, // venda de anúncios só no staging (DP-43); produção só no go-live, com nova decisão do proprietário
   portalFormularios: { staging: 'DP-57', production: 'DP-57' }, // formulário de proposta (DP-57): produção por commit (PRODUCTION_FLAGS_ON); staging por LN_FLAGS_ON, para ensaiar antes
+  publicacaoPortal: { staging: 'DP-76', production: 'DP-76' }, // publicação pelo CMS/Studio (DP-76): produção por commit; MFA, materias:publish e recibo continuam obrigatórios; publicacaoAutonoma segue desligada
 } as const satisfies Partial<Record<FlagName, FlagRelease>>;
 
 /**
@@ -79,8 +80,9 @@ export const FLAG_RELEASES = {
  * Regras (falha fechada no resolveFlags): cada nome precisa de FLAG_RELEASES[nome].production com id DP-NN(N) válido; sem ele, a subida
  * em produção é recusada. LN_FLAGS_ON continua proibida em produção (guard-env e resolvedor). Não vale fora de production (local, CI, staging).
  * adServerVendas fica FORA (DP-43 só vale para o staging; DP-57 a mantém desligada em produção).
+ * DP-76 acrescenta publicacaoPortal. intelligencePessoas fica FORA até o parecer registrado (V21-14, J-01).
  */
-export const PRODUCTION_FLAGS_ON = ['portalFormularios'] as const satisfies readonly FlagName[];
+export const PRODUCTION_FLAGS_ON = ['portalFormularios', 'publicacaoPortal'] as const satisfies readonly FlagName[];
 
 /**
  * Hosts públicos da produção (N7): o staging RECUSA subir com NEXT_PUBLIC_SITE_URL de qualquer um deles (staging não pode ser a produção mal configurada).

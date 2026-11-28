@@ -43,6 +43,6 @@ describe('/api/health com flags inválidas', () => {
     process.env.APP_ENV = 'production';
     delete process.env.LN_FLAGS_ON;
     resetRuntimeFlagsForTest();
-    expect((await (await get()).json()).flags).toEqual(['portalFormularios']);
+    expect((await (await get()).json()).flags).toEqual(['portalFormularios', 'publicacaoPortal']); // DP-57 e DP-76, por commit
   });
 });
