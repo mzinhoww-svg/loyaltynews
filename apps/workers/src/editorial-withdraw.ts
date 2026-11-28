@@ -1,9 +1,24 @@
 // Pedido de retirada de conteúdo coletado (parecer 64): argumentos e execução do comando `editorial-withdraw.main.ts`.
 import { withdrawCollected, type EditorialStore } from '@ln/editorial';
+import { motivoDeOutroDestino } from './editorial-factory-guard';
+import type { BindingsFile } from './staging-admin';
 
 export interface WithdrawArgs { what: { sourceId: string } | { url: string }; confirm: boolean; environment: 'staging' | 'production' }
 
 export const WITHDRAW_USAGE = 'uso: editorial-withdraw --ambiente staging|production (--fonte <id> | --url <endereço https>) [--confirmar]; sem --confirmar só conta';
+
+export class WithdrawRefused extends Error {}
+
+/**
+ * Parecer 105: o banco tem de ser o registrado para o ambiente informado, conferido ANTES de qualquer conexão, também na contagem.
+ * `APP_ENV` igual a `--ambiente` não basta: com o banco de outro ambiente o comando apagaria lá. Não repete valor de variável.
+ */
+export function assertWithdrawEnvironment(env: Record<string, string | undefined>, environment: WithdrawArgs['environment'], bindings?: BindingsFile): void {
+  const recusa = (motivo: string) => new WithdrawRefused(`recusado: ${motivo}. A retirada só roda no banco registrado para o ambiente informado`);
+  if (env.APP_ENV !== environment) throw recusa('--ambiente precisa ser igual ao APP_ENV deste processo');
+  const motivo = motivoDeOutroDestino(env.DATABASE_URL, environment, bindings);
+  if (motivo) throw recusa(motivo);
+}
 
 /** Exatamente um alvo, sem argumento desconhecido: na dúvida, recusa (o comando apaga dado). */
 export function parseWithdrawArgs(argv: readonly string[]): WithdrawArgs | null {

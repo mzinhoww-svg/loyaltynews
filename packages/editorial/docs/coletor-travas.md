@@ -43,7 +43,7 @@ Proposta (PM, prazo 02/12; ainda não implementada, pede decisão):
 | Passo | Quem | Como |
 |---|---|---|
 | 1. Parar a coleta | pessoa com conta de administrador no Studio | desabilitar a fonte no cadastro das fontes da Fábrica; vale antes de a próxima rodada ler aquela fonte |
-| 2. Contar o que será apagado | operador de DevOps, a pedido do PM | em `apps/workers`: `npm run build:withdraw -w @ln/workers` e `node dist/editorial-withdraw.js --ambiente staging|production --fonte <id>` (ou `--url <endereço>`), com `APP_ENV` igual e `DATABASE_URL` do ambiente |
+| 2. Contar o que será apagado | operador de DevOps, a pedido do PM | em `apps/workers`: `npm run build:withdraw -w @ln/workers` e `node dist/editorial-withdraw.js --ambiente staging|production --fonte <id>` (ou `--url <endereço>`), com `APP_ENV` igual e `DATABASE_URL` do ambiente; recusa (saída 2), também na contagem, se o banco não for o registrado em `infra/vertra/bindings.json` para o `--ambiente` ou se o endereço tiver parâmetro que troque o destino (parecer 105) |
 | 3. Apagar | o mesmo operador; em produção, só com autorização registrada | repetir com `--confirmar`; fica a linha `collector.raw_text_removed` na trilha |
 | 4. Matéria já redigida ou publicada | redação | fluxo de correção do Studio; o comando não a alcança |
 
